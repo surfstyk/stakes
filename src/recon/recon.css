@@ -1,0 +1,151 @@
+/* Recon dev tool — dark, scoped entirely under .recon so it never collides with
+   the product's "Pledge" design system. */
+
+.recon {
+  --bg: #0b0e1a;
+  --card: #151a2e;
+  --line: #232a45;
+  --fg: #e8ecf8;
+  --mut: #8b93b3;
+  --acc: #00d585;
+  --acc-d: #00a86a;
+  --warn: #ff5d5d;
+
+  display: block;
+  min-height: 100vh;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px calc(40px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.recon .hd h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.recon .sub {
+  margin: 0 0 8px;
+  color: var(--mut);
+  font-size: 13px;
+}
+
+.recon .card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.recon .card h2 {
+  font-size: 14px;
+  margin: 0 0 12px;
+  color: var(--mut);
+  font-weight: 600;
+}
+
+.recon .kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+.recon .kv dt {
+  font-size: 11px;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.recon .kv dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.recon .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.recon .warn {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.recon .btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.recon .rrow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.recon .rrow input {
+  width: 84px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--fg);
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.recon button {
+  appearance: none;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1 1 auto;
+  min-height: 44px;
+}
+.recon button:active {
+  transform: scale(0.98);
+}
+.recon button.star {
+  background: var(--acc);
+  border-color: var(--acc-d);
+  color: #06210f;
+  flex: 1;
+}
+
+.recon .hint {
+  font-size: 12px;
+  color: var(--mut);
+  margin: 10px 0 0;
+}
+
+.recon .log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.recon .log li {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+  word-break: break-word;
+}
+.recon .log .ts {
+  color: var(--mut);
+}
+.recon .log .ok {
+  color: var(--acc);
+}
+.recon .log .err {
+  color: var(--warn);
+}
+.recon .log .info {
+  color: var(--fg);
+}

@@ -1,0 +1,28 @@
+{
+  "name": "stakes-mini-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Stakes — a social commitment game as a Nimiq Pay Mini App (dual-chain recon scaffold)",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nimiq/mini-app-sdk": "^0.1.0",
+    "motion": "^12.40.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "viem": "^2.53.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}
