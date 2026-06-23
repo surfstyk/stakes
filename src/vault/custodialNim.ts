@@ -8,9 +8,11 @@ import { getNimiq, nimToLuna } from '../lib/nimiq.ts'
 // gasless, Mini-App-native path. Isolated behind StakeVault so we can later swap in a
 // USDT/trustless implementation (OpenGSN relayer) without touching the UI.
 
-// Set this to the real Stakes treasury NIM address to go live. While empty, the app
-// falls back to the mock vault (see src/vault/index.ts) so the flow stays clickable.
-export const TREASURY_NIM_ADDRESS = ''
+// The Stakes treasury (custody) NIM address — stakes are sent here on join.
+// Set VITE_TREASURY_NIM_ADDRESS in .env.local (git-ignored) to go live; while empty,
+// the app falls back to the mock vault (see src/vault/index.ts) so the flow stays
+// clickable in a plain browser.
+export const TREASURY_NIM_ADDRESS = import.meta.env.VITE_TREASURY_NIM_ADDRESS ?? ''
 
 export function createCustodialNimVault(currentAccount = 'me'): StakeVault {
   return {

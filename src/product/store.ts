@@ -33,6 +33,26 @@ export const WINDOW_PRESETS: { id: WindowPreset; label: string; sub: string; ms:
   { id: 'monday', label: 'Next Mon', sub: 'go wide', ms: 0 /* computed */ },
 ]
 
+// Test mode (enable with ?test in the URL) compresses the real-time bits so the
+// whole arc is testable in minutes instead of days. Persisted so it survives the
+// router rewriting the query string.
+const TEST_KEY = 'stakes.testmode'
+const TEST_WINDOW_MS = 2 * 60_000 // 2-minute join window in test mode
+export function isTestMode(): boolean {
+  try {
+    return localStorage.getItem(TEST_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+export function setTestMode(on: boolean) {
+  try {
+    localStorage.setItem(TEST_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface Joiner {
   name: string
   at: number
@@ -97,8 +117,9 @@ export interface CreateInput {
 
 export function createChallenge(input: CreateInput): ChallengeRecord {
   const now = Date.now()
-  const windowMs =
-    input.window === 'monday'
+  const windowMs = isTestMode()
+    ? TEST_WINDOW_MS
+    : input.window === 'monday'
       ? nextMondayMs(now)
       : (WINDOW_PRESETS.find((w) => w.id === input.window)?.ms ?? 24 * 3600_000)
 
@@ -113,7 +134,7 @@ export function createChallenge(input: CreateInput): ChallengeRecord {
     creatorName: input.creatorName || 'You',
     createdAt: now,
     lockAt: now + windowMs,
-    participants: [{ name: input.creatorName || 'You', at: now }],
+    participants: [], // the creator becomes a participant when they stake (see CreateScreen)
     checkins: [],
   }
 
@@ -126,6 +147,20 @@ export function createChallenge(input: CreateInput): ChallengeRecord {
 
 export function getChallenge(id: string): ChallengeRecord | null {
   return load()[id] ?? null
+}
+
+export function deleteChallenge(id: string) {
+  const all = load()
+  delete all[id]
+  save(all)
+}
+
+/** Challenges the current user is already a participant in, newest first. */
+export function myChallenges(): ChallengeRecord[] {
+  const me = getMe()
+  return Object.values(load())
+    .filter((c) => c.participants.some((p) => p.name === me))
+    .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 /** Stake-to-join: routes the money through the vault, then records the joiner. */

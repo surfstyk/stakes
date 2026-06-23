@@ -335,6 +335,30 @@ button {
   line-height: 1.4;
   margin: -2px 0 10px;
 }
+.s-resume {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--paper-card);
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 13px 15px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.s-resume:active {
+  transform: scale(0.99);
+}
+.s-resume .go {
+  color: var(--go);
+  white-space: nowrap;
+}
 
 /* ============================================================================
    Pledge card — the shareable hero artifact (a tactile ticket)

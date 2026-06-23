@@ -3,6 +3,7 @@ import { CreateScreen } from './product/CreateScreen.tsx'
 import { JoinScreen } from './product/JoinScreen.tsx'
 import { ProgressScreen } from './product/ProgressScreen.tsx'
 import { ResultsScreen } from './product/ResultsScreen.tsx'
+import { isTestMode, setTestMode } from './product/store.ts'
 
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product.
 const Recon = lazy(() => import('./recon/Recon.tsx').then((m) => ({ default: m.Recon })))
@@ -38,8 +39,15 @@ function syncUrl(view: View) {
 
 export function App() {
   const [view, setView] = useState<View>(readView)
+  const [testMode, setTestModeState] = useState<boolean>(() => isTestMode())
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.has('test')) {
+      const on = params.get('test') !== '0'
+      setTestMode(on)
+      setTestModeState(on)
+    }
     const onPop = () => setView(readView())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -65,12 +73,24 @@ export function App() {
         <span className="s-wordmark" style={{ cursor: 'pointer' }} onClick={() => go({ name: 'create' })}>
           <span className="dot" /> Stakes
         </span>
-        <button className="s-link" onClick={() => go({ name: 'recon' })}>
-          recon
-        </button>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {testMode && (
+            <span className="s-link" style={{ color: 'var(--stake)' }}>
+              ⚡ test
+            </span>
+          )}
+          <button className="s-link" onClick={() => go({ name: 'recon' })}>
+            recon
+          </button>
+        </span>
       </div>
 
-      {view.name === 'create' && <CreateScreen onOpenJoin={(id) => go({ name: 'join', id })} />}
+      {view.name === 'create' && (
+        <CreateScreen
+          onOpenJoin={(id) => go({ name: 'join', id })}
+          onEnter={(id) => go({ name: 'progress', id })}
+        />
+      )}
       {view.name === 'join' && (
         <JoinScreen
           challengeId={view.id}

@@ -6,6 +6,11 @@ import {
   TEMPLATES,
   WINDOW_PRESETS,
   createChallenge,
+  deleteChallenge,
+  getChallenge,
+  isTestMode,
+  joinChallenge,
+  myChallenges,
   seedDemoFriends,
   type ChallengeRecord,
   type WindowPreset,
@@ -15,7 +20,13 @@ const STEP: Record<Asset, number> = { NIM: 25, USDT: 1 }
 const MIN: Record<Asset, number> = { NIM: 25, USDT: 1 }
 const DEFAULT_STAKE: Record<Asset, number> = { NIM: 100, USDT: 5 }
 
-export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void }) {
+export function CreateScreen({
+  onOpenJoin,
+  onEnter,
+}: {
+  onOpenJoin: (id: string) => void
+  onEnter: (id: string) => void
+}) {
   const [templateId, setTemplateId] = useState('run')
   const [customGoal, setCustomGoal] = useState('')
   const [name, setName] = useState('')
@@ -25,6 +36,8 @@ export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void 
   const [windowPreset, setWindowPreset] = useState<WindowPreset>('tomorrow')
   const [created, setCreated] = useState<ChallengeRecord | null>(null)
   const [copied, setCopied] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
 
   const template = TEMPLATES.find((t) => t.id === templateId)!
   const isCustom = templateId === 'custom'
@@ -36,7 +49,10 @@ export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void 
     [created],
   )
 
-  function create() {
+  async function create() {
+    if (busy) return
+    setBusy(true)
+    setErr(null)
     const rec = createChallenge({
       templateId,
       goal,
@@ -47,9 +63,18 @@ export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void 
       creatorName: name.trim() || 'You',
       window: windowPreset,
     })
-    seedDemoFriends(rec.id) // demo: so "who's in" isn't empty for the friend who taps the link
-    setCreated(rec)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    try {
+      // The creator commits their own stake too — same path as any joiner.
+      await joinChallenge(rec.id, rec.creatorName)
+      seedDemoFriends(rec.id) // demo: so "who's in" isn't empty when a friend taps the link
+      setCreated(getChallenge(rec.id))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (e) {
+      deleteChallenge(rec.id) // roll back the orphan if the stake was declined
+      setErr((e as Error).message || 'Could not place your stake.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function share() {
@@ -101,17 +126,32 @@ export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void 
           {copied ? 'Link copied ✓' : 'Share to your story'}
         </button>
         <div className="s-spacer" />
-        <button className="s-ghost" onClick={() => onOpenJoin(created.id)}>
-          Preview the join screen →
+        <button className="s-ghost" onClick={() => onEnter(created.id)}>
+          Go to the challenge →
         </button>
-        <p className="s-foothint">This is what your friends will see when they tap your link.</p>
+        <button
+          className="s-link"
+          style={{ display: 'block', margin: '14px auto 0' }}
+          onClick={() => onOpenJoin(created.id)}
+        >
+          Preview what friends see
+        </button>
       </motion.div>
     )
   }
 
   // ---- Create form ----
+  const resumable = myChallenges()[0] ?? null
   return (
     <div>
+      {resumable && (
+        <button className="s-resume" onClick={() => onEnter(resumable.id)}>
+          <span>
+            {resumable.emoji} {resumable.goal}
+          </span>
+          <span className="go">Resume →</span>
+        </button>
+      )}
       <p className="s-kicker">New challenge</p>
       <h1 className="s-h1">
         What are you <em>committing</em> to?
@@ -191,6 +231,11 @@ export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void 
           </button>
         ))}
       </div>
+      {isTestMode() && (
+        <p className="s-note" style={{ color: 'var(--stake)' }}>
+          ⚡ Test mode on — doors close ~2 min after you create.
+        </p>
+      )}
 
       <p className="s-label">Sign it as</p>
       <input
@@ -202,8 +247,13 @@ export function CreateScreen({ onOpenJoin }: { onOpenJoin: (id: string) => void 
       />
 
       <div className="s-sticky">
-        <button className="s-cta" disabled={!canCreate} onClick={create}>
-          Make the pledge →
+        {err && (
+          <p className="s-foothint" style={{ color: 'var(--stake)' }}>
+            {err}
+          </p>
+        )}
+        <button className="s-cta" disabled={!canCreate || busy} onClick={create}>
+          {busy ? 'Placing your stake…' : `Stake ${stake} ${asset} & pledge →`}
         </button>
       </div>
     </div>
