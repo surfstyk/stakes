@@ -44,3 +44,7 @@ Thumbs.db
 # Internal / private notes — never push to GitHub (concept, rules, strategy, orientation)
 surfstyk-notes/
 CLAUDE.md
+
+# Settlement backend local state
+server/.settled/
+server/plan.json
