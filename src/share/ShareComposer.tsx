@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { renderCard } from './renderCard.ts'
 import { CARD_STYLES, getStyle, lastStyleId, rememberStyle } from './registry.ts'
-import { canvasToPngUrl, copyText } from './shareCard.ts'
+import { canvasToPngUrl, copyText, shareImageNative } from './shareCard.ts'
 import type { CardData, CardStyle } from './types.ts'
 
 // The share moment, TikTok-text-post style: a live preview, a horizontal strip of
-// complete *skins* you flip in one tap, then "share" → an in-app post panel (save the
-// image + copy the caption/link). Content is fixed; the look is the thing you play with.
+// complete *skins* you flip in one tap, then "share". On HTTPS that opens the native
+// share sheet (image + caption + link → straight to a story). If the WebView lacks
+// file-sharing, we fall back to a clean in-app panel: save the image (long-press) +
+// copy the caption. Content is fixed; the look is what you play with.
 
 const THUMB = { w: 144, h: 256 } // 9:16
 
@@ -33,7 +35,6 @@ export function ShareComposer({
   const [styleId, setStyleId] = useState<string>(() => lastStyleId())
   const [postUrl, setPostUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [busy, setBusy] = useState(false)
   const mainRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -48,22 +49,27 @@ export function ShareComposer({
 
   const caption = `${shareText}\n${shareUrl}`
 
-  async function toPost() {
-    const c = mainRef.current
-    if (!c || busy) return
-    // Copy FIRST, inside the user gesture — the legacy clipboard path (needed over
-    // LAN HTTP) only works synchronously within the tap, before any await.
-    setCopied(await copyText(caption))
-    setBusy(true)
-    try {
-      await renderCard(c, getStyle(styleId), data) // guarantee the latest pick is painted
-      setPostUrl(canvasToPngUrl(c))
-    } finally {
-      setBusy(false)
-    }
+  function openFallback(c: HTMLCanvasElement) {
+    setPostUrl(canvasToPngUrl(c))
+    void copyText(caption).then(setCopied)
   }
 
-  // ---- post panel: save the image (long-press) + copy the caption/link ----
+  // Stays synchronous up to the share() call — native share needs the user gesture.
+  function onShare() {
+    const c = mainRef.current
+    if (!c) return
+    const shared = shareImageNative(c, 'stakes.png', caption)
+    if (shared) {
+      shared.catch((e: unknown) => {
+        // user cancelled the sheet → nothing to do; anything else → in-app fallback
+        if ((e as { name?: string })?.name !== 'AbortError') openFallback(c)
+      })
+      return
+    }
+    openFallback(c)
+  }
+
+  // ---- fallback panel (no native share): save the image + copy the caption ----
   if (postUrl) {
     return (
       <div className="composer">
@@ -72,10 +78,7 @@ export function ShareComposer({
           <img className="composer-canvas post-img" src={postUrl} alt="Your card" />
         </div>
         <p className="composer-hint">
-          Press &amp; hold the image to save it — then post it to your story 👀
-        </p>
-        <p className="composer-caption" onClick={async () => setCopied(await copyText(caption))}>
-          {caption}
+          Press &amp; hold the image to save it, then post it to your story 👀
         </p>
         <button className="s-cta" onClick={async () => setCopied(await copyText(caption))}>
           {copied ? 'Caption + link copied ✓' : 'Copy caption + link'}
@@ -111,8 +114,8 @@ export function ShareComposer({
         ))}
       </div>
 
-      <button className="s-cta" onClick={toPost} disabled={busy}>
-        {busy ? 'Preparing…' : cta}
+      <button className="s-cta" onClick={onShare}>
+        {cta}
       </button>
     </div>
   )
