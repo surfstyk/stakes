@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - name: Build
+        run: npm run build          # mock vault (no VITE_TREASURY_NIM_ADDRESS set)
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 46.225.188.5 >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key" dist/ hendrik@46.225.188.5:/var/www/stakes.surfstyk.com/
