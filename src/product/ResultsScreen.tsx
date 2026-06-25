@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
-import { motion } from 'motion/react'
+import { copy } from '../brand/index.ts'
+import { Confetti } from './Confetti.tsx'
+import { Headline } from './Headline.tsx'
+import { ShareComposer } from '../share/index.ts'
+import type { ResultsCardData } from '../share/index.ts'
 import { computeSettlement, type ParticipantPayout } from '../vault/settlement.ts'
 import { avatarColor, buildResults, getChallenge, getMe, initials } from './store.ts'
 
@@ -34,9 +38,9 @@ export function ResultsScreen({
   if (!rec || !settlement) {
     return (
       <div className="s-center" style={{ paddingTop: 40 }}>
-        <h1 className="s-h1">No results yet.</h1>
+        <h1 className="s-h1">{copy.results.none}</h1>
         <button className="s-cta" onClick={onHome}>
-          Home
+          {copy.results.home}
         </button>
       </div>
     )
@@ -48,90 +52,40 @@ export function ResultsScreen({
   const mine = settlement.perParticipant.find((p) => p.account === me)
   const finishers = rows.filter((r) => r.isPerfectFinisher)
 
-  async function share() {
-    const url = `${location.origin}${location.pathname}?c=${rec!.id}`
-    const text = mine?.isPerfectFinisher
-      ? `Perfect week ✅ ${rec!.emoji} ${rec!.goal}. Run it back?`
-      : `Wrapped my ${rec!.emoji} week on Stakes.`
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Stakes', text, url })
-        return
-      } catch {
-        /* fall through */
+  const cardData: ResultsCardData | null = mine
+    ? {
+        kind: 'results',
+        emoji: rec.emoji,
+        goal: rec.goal,
+        durationDays: rec.durationDays,
+        daysCompleted: mine.daysCompleted,
+        payout: mine.payout,
+        asset: rec.asset,
+        isPerfectFinisher: mine.isPerfectFinisher,
+        creatorName: rec.creatorName,
       }
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      /* ignore */
-    }
-  }
+    : null
 
   return (
     <div>
-      <p className="s-kicker">
-        {rec.emoji} {rec.goal} · the week's up
-      </p>
-      <h1 className="s-h1">
-        {mine?.isPerfectFinisher ? (
-          <>
-            Perfect <em>week.</em>
-          </>
-        ) : (
-          <>
-            How it <em>landed.</em>
-          </>
-        )}
-      </h1>
+      {mine?.isPerfectFinisher && <Confetti />}
+      <p className="s-kicker">{copy.results.kicker(rec.emoji, rec.goal)}</p>
+      <Headline h={mine?.isPerfectFinisher ? copy.results.h1Perfect : copy.results.h1Landed} />
 
-      {mine && (
-        <motion.div
-          className="result-card"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 220, damping: 22 }}
-        >
-          <div className="rc-top">
-            <span className="brand">Stakes</span>
-            <span className="meta">
-              {mine.daysCompleted}/{rec.durationDays} days
-            </span>
-          </div>
-          <div className="rc-big">
-            {fmt(mine.payout)} <span>{rec.asset} back</span>
-          </div>
-          <div className="rc-rows">
-            {mine.forfeited > 0 && (
-              <div>
-                <span>🔥 burned</span>
-                <b>
-                  {fmt(mine.forfeited)} {rec.asset}
-                </b>
-              </div>
-            )}
-            {mine.isPerfectFinisher && (
-              <div className="go">
-                <span>🎉 finisher bonus</span>
-                <b>+{fmt(mine.nimBonus)} NIM</b>
-              </div>
-            )}
-            {mine.isPerfectFinisher && (
-              <div className="go">
-                <span>🏅 perfect-week club</span>
-                <b>joined</b>
-              </div>
-            )}
-          </div>
-        </motion.div>
+      {mine && cardData && (
+        <ShareComposer
+          data={cardData}
+          cta={mine.isPerfectFinisher ? copy.results.shareWin : copy.results.shareWrap}
+          shareText={
+            mine.isPerfectFinisher
+              ? copy.share.resultsWin(rec.emoji, rec.goal)
+              : copy.share.resultsWrap(rec.emoji)
+          }
+          shareUrl={`${location.origin}${location.pathname}?c=${rec.id}`}
+        />
       )}
 
-      <div className="s-spacer" />
-      <button className="s-cta" onClick={share}>
-        {mine?.isPerfectFinisher ? 'Share the win' : 'Share the wrap'}
-      </button>
-
-      <p className="s-label">The crew</p>
+      <p className="s-label">{copy.results.crewLabel}</p>
       <ul className="board">
         {rows.map((r) => (
           <BoardRow key={r.account} r={r} D={rec.durationDays} asset={rec.asset} me={me} />
@@ -139,17 +93,15 @@ export function ResultsScreen({
       </ul>
 
       <div className="s-card s-center" style={{ marginTop: 14 }}>
-        <div style={{ fontWeight: 800 }}>
-          🔥 {fmt(settlement.burnedPot)} {rec.asset} burned
-        </div>
+        <div style={{ fontWeight: 800 }}>{copy.results.burnedSummary(fmt(settlement.burnedPot), rec.asset)}</div>
         <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 2 }}>
-          Removed from circulation. {finishers.length} in the perfect-week club.
+          {copy.results.burnedSub(finishers.length)}
         </div>
       </div>
 
       <div className="s-sticky">
         <button className="s-cta" data-variant="go" onClick={onHome}>
-          Run it back →
+          {copy.results.runItBack}
         </button>
       </div>
     </div>
@@ -177,10 +129,11 @@ function BoardRow({
       </span>
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>
-          {r.account === me ? 'You' : r.account} {r.isPerfectFinisher && <span title="perfect week">🏅</span>}
+          {r.account === me ? copy.results.you : r.account}{' '}
+          {r.isPerfectFinisher && <span title={copy.results.perfectBadgeTitle}>🏅</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-          {r.daysCompleted}/{D} days
+          {copy.results.daysMeta(r.daysCompleted, D)}
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
@@ -188,7 +141,7 @@ function BoardRow({
           {fmt(r.payout)} {asset}
         </div>
         {r.forfeited > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--stake)' }}>−{fmt(r.forfeited)} burned</div>
+          <div style={{ fontSize: 11.5, color: 'var(--stake)' }}>{copy.results.burnedTag(fmt(r.forfeited))}</div>
         )}
       </div>
     </li>

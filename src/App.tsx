@@ -1,15 +1,19 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { CreateScreen } from './product/CreateScreen.tsx'
+import { PledgeShareScreen } from './product/PledgeShareScreen.tsx'
 import { JoinScreen } from './product/JoinScreen.tsx'
 import { ProgressScreen } from './product/ProgressScreen.tsx'
 import { ResultsScreen } from './product/ResultsScreen.tsx'
-import { isTestMode, setTestMode } from './product/store.ts'
+import { WelcomeScreen } from './product/WelcomeScreen.tsx'
+import { hasSeenWelcome, isTestMode, markWelcomeSeen, setTestMode } from './product/store.ts'
+import { brand, copy } from './brand/index.ts'
 
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product.
 const Recon = lazy(() => import('./recon/Recon.tsx').then((m) => ({ default: m.Recon })))
 
 type View =
   | { name: 'create' }
+  | { name: 'share'; id: string }
   | { name: 'join'; id: string }
   | { name: 'progress'; id: string }
   | { name: 'results'; id: string }
@@ -22,6 +26,8 @@ function readView(): View {
   if (r) return { name: 'results', id: r }
   const pg = p.get('p')
   if (pg) return { name: 'progress', id: pg }
+  const s = p.get('s')
+  if (s) return { name: 'share', id: s }
   const c = p.get('c')
   if (c) return { name: 'join', id: c }
   return { name: 'create' }
@@ -30,6 +36,7 @@ function readView(): View {
 function syncUrl(view: View) {
   const url = new URL(location.href)
   url.search = ''
+  if (view.name === 'share') url.searchParams.set('s', view.id)
   if (view.name === 'join') url.searchParams.set('c', view.id)
   if (view.name === 'progress') url.searchParams.set('p', view.id)
   if (view.name === 'results') url.searchParams.set('r', view.id)
@@ -40,6 +47,7 @@ function syncUrl(view: View) {
 export function App() {
   const [view, setView] = useState<View>(readView)
   const [testMode, setTestModeState] = useState<boolean>(() => isTestMode())
+  const [seenWelcome, setSeenWelcome] = useState<boolean>(() => hasSeenWelcome())
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -67,28 +75,50 @@ export function App() {
     )
   }
 
+  // First-run welcome for an organic opener (deeplinks land on their own screen).
+  if (view.name === 'create' && !seenWelcome) {
+    return (
+      <div className="stakes">
+        <WelcomeScreen
+          onStart={() => {
+            markWelcomeSeen()
+            setSeenWelcome(true)
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="stakes">
       <div className="s-top">
         <span className="s-wordmark" style={{ cursor: 'pointer' }} onClick={() => go({ name: 'create' })}>
-          <span className="dot" /> Stakes
+          {brand.hasDot && <span className="dot" />} {copy.app.wordmark}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {testMode && (
             <span className="s-link" style={{ color: 'var(--stake)' }}>
-              ⚡ test
+              {copy.app.test}
             </span>
           )}
           <button className="s-link" onClick={() => go({ name: 'recon' })}>
-            recon
+            {copy.app.recon}
           </button>
         </span>
       </div>
 
       {view.name === 'create' && (
         <CreateScreen
-          onOpenJoin={(id) => go({ name: 'join', id })}
+          onShare={(id) => go({ name: 'share', id })}
           onEnter={(id) => go({ name: 'progress', id })}
+        />
+      )}
+      {view.name === 'share' && (
+        <PledgeShareScreen
+          challengeId={view.id}
+          onEnter={(id) => go({ name: 'progress', id })}
+          onOpenJoin={(id) => go({ name: 'join', id })}
+          onCreate={() => go({ name: 'create' })}
         />
       )}
       {view.name === 'join' && (

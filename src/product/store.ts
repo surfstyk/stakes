@@ -216,6 +216,23 @@ export function setMe(name: string) {
   }
 }
 
+// ---- first-run welcome ------------------------------------------------------
+const WELCOME_KEY = 'stakes.welcome.seen'
+export function hasSeenWelcome(): boolean {
+  try {
+    return localStorage.getItem(WELCOME_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+export function markWelcomeSeen() {
+  try {
+    localStorage.setItem(WELCOME_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
 // ---- check-ins ------------------------------------------------------------
 // Photos stay in-memory only (never localStorage) to avoid quota bloat; they
 // live for the session and are looked up by check-in id.

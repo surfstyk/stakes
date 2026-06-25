@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { copy } from '../brand/index.ts'
 import {
   avatarColor,
   checkIn,
@@ -42,9 +43,9 @@ export function ProgressScreen({
         <div className="pledge-emoji" style={{ fontSize: 48 }}>
           🤷
         </div>
-        <h1 className="s-h1">Challenge not found.</h1>
+        <h1 className="s-h1">{copy.progress.notFoundH1}</h1>
         <button className="s-cta" onClick={onCreate}>
-          Start one
+          {copy.progress.notFoundCta}
         </button>
       </div>
     )
@@ -75,9 +76,7 @@ export function ProgressScreen({
 
   return (
     <div>
-      <p className="s-kicker">
-        Day {Math.min(myDays + (done ? 0 : 1), D)} of {D}
-      </p>
+      <p className="s-kicker">{copy.progress.dayOf(Math.min(myDays + (done ? 0 : 1), D), D)}</p>
       <h1 className="s-h1">
         {rec.emoji} {rec.goal}
       </h1>
@@ -96,18 +95,18 @@ export function ProgressScreen({
       {done ? (
         <div className="s-card s-center" style={{ marginTop: 16 }}>
           <div style={{ fontSize: 28 }}>🏁</div>
-          <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>You did the week.</p>
-          <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>See how everyone landed.</p>
+          <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.doneTitle}</p>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>{copy.progress.doneSub}</p>
         </div>
       ) : (
         <div className="composer">
           <p className="s-label" style={{ margin: '16px 0 8px' }}>
-            Today's check-in
+            {copy.progress.checkinLabel}
           </p>
           <textarea
             className="s-field"
             rows={2}
-            placeholder="proof + a line… your crew sees this"
+            placeholder={copy.progress.checkinPlaceholder}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={140}
@@ -131,26 +130,26 @@ export function ProgressScreen({
             disabled={!note.trim() && !photo}
             onClick={submit}
           >
-            Check in for day {myDays + 1}
+            {copy.progress.checkinCta(myDays + 1)}
           </button>
         </div>
       )}
 
-      <p className="s-label">The crew</p>
+      <p className="s-label">{copy.progress.crewLabel}</p>
       <ul className="feed">
         {feed.map((c) => (
           <FeedItem key={c.id} c={c} onCheer={() => setRec({ ...cheer(challengeId, c.id) })} />
         ))}
         {feed.length === 0 && (
           <p className="s-foothint" style={{ textAlign: 'left' }}>
-            No check-ins yet. Be the first.
+            {copy.progress.feedEmpty}
           </p>
         )}
       </ul>
 
       <div className="s-sticky">
         <button className="s-cta" onClick={() => onResults(challengeId)}>
-          {done ? 'See results →' : 'Finish & see results →'}
+          {done ? copy.progress.seeResults : copy.progress.finishResults}
         </button>
       </div>
     </div>
@@ -170,7 +169,7 @@ function FeedItem({ c, onCheer }: { c: CheckIn; onCheer: () => void }) {
       <div className="feed-body">
         <div className="feed-head">
           <strong>{c.account}</strong>
-          <span className="feed-day">Day {c.day + 1}</span>
+          <span className="feed-day">{copy.progress.feedDay(c.day + 1)}</span>
         </div>
         <div className="feed-note">
           {c.emoji ? `${c.emoji} ` : ''}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
+import { brand, copy } from '../brand/index.ts'
+import { Headline } from './Headline.tsx'
 import {
   avatarColor,
   getChallenge,
@@ -38,9 +40,9 @@ function Avatars({ names }: { names: string[] }) {
 }
 
 function whosInLine(names: string[]): string {
-  if (names.length === 1) return `${names[0]} is in`
-  if (names.length === 2) return `${names[0]} & ${names[1]} are in`
-  return `${names[0]}, ${names[1]} +${names.length - 2} are in`
+  if (names.length === 1) return copy.join.whosInOne(names[0])
+  if (names.length === 2) return copy.join.whosInTwo(names[0], names[1])
+  return copy.join.whosInMany(names[0], names[1], names.length - 2)
 }
 
 export function JoinScreen({
@@ -65,12 +67,12 @@ export function JoinScreen({
         <div className="pledge-emoji" style={{ fontSize: 48 }}>
           🤷
         </div>
-        <h1 className="s-h1">This one's gone.</h1>
+        <h1 className="s-h1">{copy.join.notFoundH1}</h1>
         <p className="s-sub" style={{ margin: '0 auto 22px' }}>
-          The link's expired or the challenge doesn't exist. Start your own — it takes 30 seconds.
+          {copy.join.notFoundSub}
         </p>
         <button className="s-cta" onClick={onCreateOwn}>
-          Start a challenge
+          {copy.join.notFoundCta}
         </button>
       </div>
     )
@@ -91,21 +93,20 @@ export function JoinScreen({
           🤝
         </motion.div>
         <p className="s-kicker" style={{ color: 'var(--go)' }}>
-          You're in
+          {copy.join.joinedKicker}
         </p>
-        <h1 className="s-h1">See you Monday.</h1>
+        <h1 className="s-h1">{copy.join.joinedH1}</h1>
         <p className="s-sub" style={{ margin: '0 auto 22px' }}>
-          {rec.stake} {rec.asset} locked. {whosInLine(names)}. Now drag a friend in — the more
-          people watching, the harder it is to quit.
+          {copy.join.joinedSub(rec.stake, rec.asset, whosInLine(names))}
         </p>
         <button
           className="s-cta"
           onClick={async () => {
             const url = `${location.origin}${location.pathname}?c=${rec.id}`
-            const text = `I just joined ${rec.creatorName}'s ${rec.emoji} challenge. You in?`
+            const text = copy.share.joined(rec.creatorName, rec.emoji)
             if (navigator.share) {
               try {
-                await navigator.share({ title: 'Stakes', text, url })
+                await navigator.share({ title: brand.name, text, url })
                 return
               } catch {
                 /* fall through */
@@ -118,11 +119,11 @@ export function JoinScreen({
             }
           }}
         >
-          Pull in a friend
+          {copy.join.pullFriend}
         </button>
         <div className="s-spacer" />
         <button className="s-ghost" onClick={() => onEnter(rec.id)}>
-          Go to the challenge →
+          {copy.join.goChallenge}
         </button>
       </div>
     )
@@ -135,15 +136,15 @@ export function JoinScreen({
         <div className="pledge-emoji" style={{ fontSize: 48 }}>
           🚪
         </div>
-        <h1 className="s-h1">Doors closed on this one.</h1>
+        <h1 className="s-h1">{copy.join.closedH1}</h1>
         <p className="s-sub" style={{ margin: '0 auto 22px' }}>
-          {rec.creatorName}'s {rec.emoji} week already kicked off. But you don't have to miss out.
+          {copy.join.closedSub(rec.creatorName, rec.emoji)}
         </p>
         <button className="s-cta" onClick={onCreateOwn}>
-          Start the same challenge
+          {copy.join.closedCta}
         </button>
         <div className="s-spacer" />
-        <p className="s-foothint">{whosInLine(names)} on the last one.</p>
+        <p className="s-foothint">{copy.join.closedFoot(whosInLine(names))}</p>
       </div>
     )
   }
@@ -162,10 +163,8 @@ export function JoinScreen({
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <p className="s-kicker">{rec.creatorName} dared you in</p>
-      <h1 className="s-h1">
-        Are you <em>in?</em>
-      </h1>
+      <p className="s-kicker">{copy.join.kickerDared(rec.creatorName)}</p>
+      <Headline h={copy.join.h1} />
 
       <div className="s-spacer" />
       <PledgeMini rec={rec} />
@@ -175,7 +174,7 @@ export function JoinScreen({
         <div>
           <div style={{ fontWeight: 800, fontSize: 14 }}>{whosInLine(names)}</div>
           <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
-            {names.length} {names.length === 1 ? 'person' : 'people'} staking {rec.stake} {rec.asset}
+            {copy.join.stakingLine(names.length, rec.stake, rec.asset)}
           </div>
         </div>
       </div>
@@ -183,13 +182,13 @@ export function JoinScreen({
       <div className="s-spacer" />
       <div className="s-count">
         <span className="pulse" />
-        Doors close in&nbsp;<span className="nums">{countdown.text}</span>
+        {copy.join.countdown}&nbsp;<span className="nums">{countdown.text}</span>
       </div>
 
-      <p className="s-label">Join as</p>
+      <p className="s-label">{copy.join.nameLabel}</p>
       <input
         className="s-field"
-        placeholder="your first name"
+        placeholder={copy.join.namePlaceholder}
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={18}
@@ -197,9 +196,9 @@ export function JoinScreen({
 
       <div className="s-sticky">
         <button className="s-cta" data-variant="go" disabled={busy} onClick={join}>
-          {busy ? 'Locking it in…' : `Stake ${rec.stake} ${rec.asset} & join`}
+          {busy ? copy.join.ctaBusy : copy.join.cta(rec.stake, rec.asset)}
         </button>
-        <p className="s-foothint">You get it all back if you finish the week.</p>
+        <p className="s-foothint">{copy.join.foothint}</p>
       </div>
     </motion.div>
   )
@@ -213,13 +212,13 @@ function PledgeMini({ rec }: { rec: ChallengeRecord }) {
         {rec.emoji}
       </div>
       <h2 className="pledge-goal" style={{ fontSize: 24 }}>
-        <em>{rec.goal}</em> for {rec.durationDays} days.
+        <em>{rec.goal}</em> {copy.cards.pledgeForDays(rec.durationDays)}
       </h2>
       <div className="pledge-stake">
         <span className="amt">
           {rec.stake} {rec.asset}
         </span>{' '}
-        <span className="lbl">to play</span>
+        <span className="lbl">{copy.join.miniToPlay}</span>
       </div>
     </div>
   )
