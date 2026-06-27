@@ -143,6 +143,12 @@ const server = createServer(async (req, res) => {
   }
 })
 
-server.listen(PORT, () => {
-  console.log(`Stakes API on http://localhost:${PORT}  (db: ${process.env.STAKES_DB ?? 'server/stakes.db'})`)
+// Bind to loopback by default: in prod the service sits behind Caddy (reverse_proxy
+// localhost:PORT) and must NOT be reachable directly from the internet. The Vite dev
+// proxy also targets localhost, so this is correct in dev too. Override with
+// STAKES_API_HOST=0.0.0.0 only if you knowingly need to expose it.
+const HOST = process.env.STAKES_API_HOST ?? '127.0.0.1'
+
+server.listen(PORT, HOST, () => {
+  console.log(`Stakes API on http://${HOST}:${PORT}  (db: ${process.env.STAKES_DB ?? 'server/stakes.db'})`)
 })
