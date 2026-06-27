@@ -20,12 +20,14 @@ jobs:
       - name: Build
         run: npm run build          # mock vault (no VITE_TREASURY_NIM_ADDRESS set)
 
+      # Deploy target lives in repo secrets so this public file advertises no infra.
+      # Required secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH.
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 46.225.188.5 >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy
-        run: rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key" dist/ hendrik@46.225.188.5:/var/www/stakes.surfstyk.com/
+        run: rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key" dist/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}"
