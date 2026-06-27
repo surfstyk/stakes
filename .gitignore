@@ -48,3 +48,8 @@ CLAUDE.md
 # Settlement backend local state
 server/.settled/
 server/plan.json
+
+# Local SQLite database (shared-state API)
+*.db
+*.db-shm
+*.db-wal

@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
+    "api": "node --env-file-if-exists=.env.local --import tsx server/api.ts",
     "treasury:check": "node --env-file=.env.local --import tsx server/check.ts",
     "deposits": "node --env-file=.env.local --import tsx server/deposits.ts",
     "settle": "node --env-file=.env.local --import tsx server/settle.ts"
