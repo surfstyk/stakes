@@ -120,6 +120,21 @@ export function cheer(checkinId: string) {
   db.prepare(`UPDATE checkins SET cheers = cheers + 1 WHERE id = ?`).run(checkinId)
 }
 
+/** Record whether a participant's stake deposit is confirmed (+ the canonical tx hash). */
+export function confirmDeposit(
+  challengeId: string,
+  address: string,
+  depositTxHash: string | null,
+  confirmed: boolean,
+) {
+  db.prepare(
+    `UPDATE participants
+        SET depositConfirmed = ?,
+            depositTxHash = COALESCE(?, depositTxHash)
+      WHERE challengeId = ? AND address = ?`,
+  ).run(confirmed ? 1 : 0, depositTxHash, challengeId, address)
+}
+
 // ---- reads ----------------------------------------------------------------
 
 interface ChallengeRow {
@@ -171,11 +186,16 @@ export function getChallenge(id: string) {
   return { ...c, participants, checkins }
 }
 
-/** Deterministic payouts from real check-ins (post-lock). Reuses the frontend math. */
+/**
+ * Deterministic payouts from real check-ins (post-lock). Reuses the frontend math.
+ * Only participants whose stake deposit is CONFIRMED are settled (money flow: settlement
+ * counts confirmed deposits only) — callers should verify first (see server/verify.ts).
+ */
 export function getSettlement(id: string) {
   const view = getChallenge(id)
   if (!view) return null
-  const results = view.participants.map((p) => ({
+  const staked = view.participants.filter((p) => p.depositConfirmed)
+  const results = staked.map((p) => ({
     account: p.address,
     daysCompleted: new Set(
       view.checkins.filter((c) => c.address === p.address).map((c) => c.day),

@@ -14,6 +14,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { addCheckin, cheer, createChallenge, getChallenge, getSettlement, joinChallenge } from './db.ts'
+import { verifyChallenge } from './verify.ts'
 
 const PORT = Number(process.env.STAKES_API_PORT ?? 8787)
 
@@ -92,10 +93,17 @@ const server = createServer(async (req, res) => {
         return view ? send(res, 200, view) : send(res, 404, { error: 'challenge not found' })
       }
 
-      // GET /api/challenges/:id/settlement
+      // GET /api/challenges/:id/settlement (verify deposits first → count confirmed only)
       if (method === 'GET' && seg[3] === 'settlement' && seg.length === 4) {
+        if (!(await verifyChallenge(id))) return send(res, 404, { error: 'challenge not found' })
         const s = getSettlement(id)
         return s ? send(res, 200, s) : send(res, 404, { error: 'challenge not found' })
+      }
+
+      // POST /api/challenges/:id/verify (confirm stake deposits landed on-chain)
+      if (method === 'POST' && seg[3] === 'verify' && seg.length === 4) {
+        const result = await verifyChallenge(id)
+        return result ? send(res, 200, { ...result, challenge: getChallenge(id) }) : send(res, 404, { error: 'challenge not found' })
       }
 
       // POST /api/challenges/:id/join
