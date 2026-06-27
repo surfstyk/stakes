@@ -1,21 +1,17 @@
-import { connect } from './client.ts'
-import { loadTreasury, treasuryAddress } from './treasury.ts'
+import { getBalanceLuna, getBlockNumber } from './rpc.ts'
+import { loadTreasury, lunaToNim, treasuryAddress } from './treasury.ts'
 
-// Diagnostic: confirms the treasury key loads and the node reaches consensus.
+// Diagnostic: confirms the treasury key loads and the chain RPC is reachable + funded.
 //   node --env-file=.env.local --import tsx server/check.ts
 async function main() {
-  const kp = loadTreasury()
-  console.log('treasury address:', treasuryAddress(kp))
-  console.log('connecting to TestAlbatross…')
-  const client = await connect()
-  console.log('consensus established ✓')
-  console.log('network id      :', await client.getNetworkId())
-  console.log('head height     :', await client.getHeadHeight())
-  await client.disconnectNetwork()
+  const treasury = treasuryAddress(loadTreasury())
+  console.log('treasury address:', treasury)
+  console.log('head block      :', await getBlockNumber())
+  console.log('treasury balance:', lunaToNim(await getBalanceLuna(treasury)), 'NIM')
   process.exit(0)
 }
 
 main().catch((e) => {
-  console.error('check failed:', e)
+  console.error('check failed:', e?.message ?? e)
   process.exit(1)
 })

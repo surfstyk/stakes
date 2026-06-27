@@ -34,6 +34,17 @@ export function getBlockNumber(): Promise<number> {
   return rpc<number>('getBlockNumber', [])
 }
 
+/** Broadcast a pre-signed, hex-serialized transaction. Resolves to the tx hash. */
+export function sendRawTransaction(rawTxHex: string): Promise<string> {
+  return rpc<string>('sendRawTransaction', [rawTxHex])
+}
+
+/** Account balance in luna (used to check the treasury is funded before settling). */
+export async function getBalanceLuna(address: string): Promise<number> {
+  const acc = await rpc<{ balance: number }>('getAccountByAddress', [address])
+  return acc.balance
+}
+
 // Shape returned by nimiqscan's getTransactionsByAddress (the fields we use).
 export interface ChainTx {
   hash: string
