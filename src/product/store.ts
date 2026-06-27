@@ -1,11 +1,18 @@
-import type { Asset, Challenge, CompletionResult } from '../vault/types.ts'
+import type { Asset, CompletionResult } from '../vault/types.ts'
 import { getVault } from '../vault/index.ts'
+import { getNimiq } from '../lib/nimiq.ts'
 import { safeRandomId } from '../lib/id.ts'
 
-// Local, no-backend store so the create→join ignition loop runs end-to-end on a
-// single device. Challenges persist to localStorage so a share link (?c=<id>)
-// resolves across reloads/tabs. The "money" goes through the swappable StakeVault
-// (mock for now) — see src/vault/.
+// The store is the seam between the screens and the shared-state backend. Reads/writes
+// go through the same-origin `/api` (Vite proxy in dev, Caddy reverse_proxy in prod) so
+// the journey works ACROSS devices: a friend opening the share link on their phone reads
+// the same challenge the creator wrote. The function names are unchanged from the old
+// localStorage store — only the internals (and that the mutating reads are now async).
+//
+// Identity is the Nimiq wallet address (SDK `listAccounts`), with a per-device dev
+// fallback so the whole loop still runs in a plain browser. The address is the participant
+// id everywhere; `name` is display only. The "money" still flows through the swappable
+// StakeVault (src/vault/) — mock today, real custodial-NIM next phase.
 
 export interface Template {
   id: string
@@ -53,47 +60,169 @@ export function setTestMode(on: boolean) {
   }
 }
 
-export interface Joiner {
-  name: string
-  at: number
+// ---- shared-state types (mirror the API view in server/db.ts) --------------
+
+export interface Participant {
+  address: string // the participant id (Nimiq wallet address, or a dev pseudo-address)
+  name: string // display only
+  joinedAt: number
+  depositTxHash?: string | null
+  depositConfirmed: number
 }
 
 export interface CheckIn {
   id: string
-  account: string // participant name (demo handle)
+  address: string // who checked in (resolve to a name via the participant list)
   day: number // 0-indexed
   note: string
-  emoji?: string
+  emoji?: string | null
   at: number
   cheers: number
 }
 
-export interface ChallengeRecord extends Challenge {
+export interface ChallengeRecord {
+  id: string
   goal: string
   emoji: string
+  durationDays: number
+  stake: number
+  asset: Asset
+  creatorAddress: string
   creatorName: string
   createdAt: number
   lockAt: number
-  participants: Joiner[]
+  status: string
+  participants: Participant[]
   checkins: CheckIn[]
 }
 
-const KEY = 'stakes.challenges.v1'
+// ---- API client ------------------------------------------------------------
 
-function load(): Record<string, ChallengeRecord> {
+const API_BASE = '/api'
+
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(API_BASE + path, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+  })
+  if (!res.ok) {
+    let msg = `Request failed (${res.status})`
+    try {
+      const body = (await res.json()) as { error?: string }
+      if (body && typeof body.error === 'string') msg = body.error
+    } catch {
+      /* non-JSON error body */
+    }
+    const err = new Error(msg) as Error & { status?: number }
+    err.status = res.status
+    throw err
+  }
+  const text = await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
+}
+
+// ---- identity (Nimiq wallet address, with a dev fallback) ------------------
+
+const DEV_ADDR_KEY = 'stakes.devAddress'
+const NAME_KEY = 'stakes.name'
+let cachedAddress: string | null = null
+
+/**
+ * The current user's participant id. Inside Nimiq Pay this is the real wallet
+ * address (`listAccounts`); in a plain browser it's a stable per-device pseudo-address
+ * so create → join → check-in → settle still runs end-to-end without a wallet.
+ * Cached for the session.
+ */
+export async function getMyAddress(): Promise<string> {
+  if (cachedAddress) return cachedAddress
+  if (typeof window !== 'undefined' && window.nimiqPay) {
+    try {
+      const nim = await getNimiq(4000)
+      const accounts = await nim.listAccounts()
+      if (accounts?.[0]) return (cachedAddress = accounts[0])
+    } catch {
+      /* not reachable / declined — fall back to the dev identity */
+    }
+  }
+  return (cachedAddress = devAddress())
+}
+
+function devAddress(): string {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '{}')
+    const existing = localStorage.getItem(DEV_ADDR_KEY)
+    if (existing) return existing
+    const a = 'DEV-' + safeRandomId().replace(/-/g, '').slice(0, 12).toUpperCase()
+    localStorage.setItem(DEV_ADDR_KEY, a)
+    return a
   } catch {
-    return {}
+    return 'DEV-ANON'
   }
 }
-function save(all: Record<string, ChallengeRecord>) {
+
+/** The display name the user last used (for prefilling the name field). */
+export function getMyName(): string {
   try {
-    localStorage.setItem(KEY, JSON.stringify(all))
+    return localStorage.getItem(NAME_KEY) || 'You'
+  } catch {
+    return 'You'
+  }
+}
+export function setMyName(name: string) {
+  try {
+    localStorage.setItem(NAME_KEY, name || 'You')
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Resolve a participant's display name within a challenge (falls back to a short address). */
+export function nameFor(rec: ChallengeRecord, address: string): string {
+  const p = rec.participants.find((q) => q.address === address)
+  if (p?.name) return p.name
+  return address.length > 10 ? `${address.slice(0, 4)}…${address.slice(-3)}` : address
+}
+
+// ---- "my challenges" breadcrumb (local, per-device) ------------------------
+// A lightweight local index so the create screen can offer a one-tap "resume" of the
+// challenge you last created/joined ON THIS DEVICE — which is exactly the right scope
+// for a resume affordance. Source of truth for the challenge itself is the backend.
+
+const MINE_KEY = 'stakes.mine.v1'
+export interface MineEntry {
+  id: string
+  emoji: string
+  goal: string
+  at: number
+}
+function loadMine(): MineEntry[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(MINE_KEY) ?? '[]')
+    return Array.isArray(v) ? v : []
+  } catch {
+    return []
+  }
+}
+function saveMine(list: MineEntry[]) {
+  try {
+    localStorage.setItem(MINE_KEY, JSON.stringify(list))
   } catch {
     /* ignore quota/private-mode */
   }
 }
+function rememberMine(e: MineEntry) {
+  const list = loadMine().filter((m) => m.id !== e.id)
+  list.unshift(e)
+  saveMine(list.slice(0, 12))
+}
+function forgetMine(id: string) {
+  saveMine(loadMine().filter((m) => m.id !== id))
+}
+/** Challenges this device created/joined, newest first (for the resume banner). */
+export function myChallenges(): MineEntry[] {
+  return loadMine().sort((a, b) => b.at - a.at)
+}
+
+// ---- challenges ------------------------------------------------------------
 
 function nextMondayMs(from: number): number {
   const d = new Date(from)
@@ -115,7 +244,8 @@ export interface CreateInput {
   window: WindowPreset
 }
 
-export function createChallenge(input: CreateInput): ChallengeRecord {
+/** Create a challenge on the backend. Returns the new challenge id. */
+export async function createChallenge(input: CreateInput): Promise<string> {
   const now = Date.now()
   const windowMs = isTestMode()
     ? TEST_WINDOW_MS
@@ -123,68 +253,102 @@ export function createChallenge(input: CreateInput): ChallengeRecord {
       ? nextMondayMs(now)
       : (WINDOW_PRESETS.find((w) => w.id === input.window)?.ms ?? 24 * 3600_000)
 
-  const rec: ChallengeRecord = {
-    id: safeRandomId().slice(0, 8),
-    title: input.goal,
-    goal: input.goal,
-    emoji: input.emoji,
-    durationDays: input.durationDays,
-    stake: input.stake,
-    asset: input.asset,
-    creatorName: input.creatorName || 'You',
-    createdAt: now,
-    lockAt: now + windowMs,
-    participants: [], // the creator becomes a participant when they stake (see CreateScreen)
-    checkins: [],
+  const creatorAddress = await getMyAddress()
+  const creatorName = input.creatorName || 'You'
+  const { id } = await api<{ id: string }>('/challenges', {
+    method: 'POST',
+    body: JSON.stringify({
+      goal: input.goal,
+      emoji: input.emoji,
+      durationDays: input.durationDays,
+      stake: input.stake,
+      asset: input.asset,
+      creatorAddress,
+      creatorName,
+      windowMs,
+    }),
+  })
+  setMyName(creatorName)
+  rememberMine({ id, emoji: input.emoji, goal: input.goal, at: now })
+  return id
+}
+
+/** Full challenge view (+ participants, check-ins). null if it doesn't exist. */
+export async function getChallenge(id: string): Promise<ChallengeRecord | null> {
+  try {
+    return await api<ChallengeRecord>(`/challenges/${id}`)
+  } catch (e) {
+    if ((e as { status?: number }).status === 404) return null
+    console.warn('getChallenge failed', e)
+    return null // a transient failure shouldn't dead-end the UI; screens show "not found"
   }
-
-  const all = load()
-  all[rec.id] = rec
-  save(all)
-  setMe(rec.creatorName)
-  return rec
 }
 
-export function getChallenge(id: string): ChallengeRecord | null {
-  return load()[id] ?? null
-}
-
+/**
+ * Best-effort rollback of the local breadcrumb if a create flow aborts (e.g. the
+ * creator declines their own stake). The backend has no delete for the MVP — an
+ * unstaked, unshared orphan is harmless and a retry just makes a fresh challenge.
+ */
 export function deleteChallenge(id: string) {
-  const all = load()
-  delete all[id]
-  save(all)
+  forgetMine(id)
 }
 
-/** Challenges the current user is already a participant in, newest first. */
-export function myChallenges(): ChallengeRecord[] {
-  const me = getMe()
-  return Object.values(load())
-    .filter((c) => c.participants.some((p) => p.name === me))
-    .sort((a, b) => b.createdAt - a.createdAt)
-}
-
-/** Stake-to-join: routes the money through the vault, then records the joiner. */
+/** Stake-to-join: routes the money through the vault, then records the participant. */
 export async function joinChallenge(id: string, name: string): Promise<ChallengeRecord> {
-  const all = load()
-  const rec = all[id]
-  if (!rec) throw new Error('Challenge not found')
-  await getVault().deposit({ challengeId: id, amount: rec.stake, asset: rec.asset })
-  rec.participants = [...rec.participants, { name: name || 'You', at: Date.now() }]
-  save(all)
-  setMe(name || 'You')
-  return rec
+  const address = await getMyAddress()
+  const display = name || 'You'
+  const current = await getChallenge(id)
+  if (!current) throw new Error('Challenge not found')
+  const receipt = await getVault().deposit({ challengeId: id, amount: current.stake, asset: current.asset })
+  const updated = await api<ChallengeRecord>(`/challenges/${id}/join`, {
+    method: 'POST',
+    body: JSON.stringify({ address, name: display, depositTxHash: receipt.ref }),
+  })
+  setMyName(display)
+  rememberMine({ id, emoji: updated.emoji, goal: updated.goal, at: Date.now() })
+  return updated
 }
 
-// For a convincing solo demo, seed a couple of friends so "who's in" isn't empty.
-export function seedDemoFriends(id: string) {
-  const all = load()
-  const rec = all[id]
-  if (!rec || rec.participants.length > 1) return
-  rec.participants.push({ name: 'Maya', at: Date.now() }, { name: 'Tom', at: Date.now() })
-  save(all)
+// ---- check-ins -------------------------------------------------------------
+
+/** Post a text+emoji check-in, then return the refreshed challenge view. */
+export async function checkIn(
+  challengeId: string,
+  input: { address: string; day: number; note: string; emoji?: string },
+): Promise<ChallengeRecord> {
+  await api(`/challenges/${challengeId}/checkins`, {
+    method: 'POST',
+    body: JSON.stringify({
+      address: input.address,
+      day: input.day,
+      note: input.note,
+      emoji: input.emoji,
+    }),
+  })
+  const updated = await getChallenge(challengeId)
+  if (!updated) throw new Error('Challenge not found')
+  return updated
 }
 
-// avatar accent from a name
+/** Add a cheer to a check-in (fire-and-forget; the caller updates optimistically). */
+export async function cheer(challengeId: string, checkinId: string): Promise<void> {
+  await api(`/challenges/${challengeId}/checkins/${checkinId}/cheer`, { method: 'POST' })
+}
+
+export function daysCompletedFor(rec: ChallengeRecord, address: string): number {
+  return new Set(rec.checkins.filter((c) => c.address === address).map((c) => c.day)).size
+}
+
+/** Build the per-participant completion input for computeSettlement (keyed by address). */
+export function buildResults(rec: ChallengeRecord): CompletionResult[] {
+  return rec.participants.map((p) => ({
+    account: p.address,
+    daysCompleted: daysCompletedFor(rec, p.address),
+  }))
+}
+
+// ---- display helpers (pure; also used by the share-card renderers) ---------
+
 const AV_COLORS = ['#ef2d06', '#0f7a44', '#c98a16', '#2b6cb0', '#8a3ffc', '#d6336c']
 export function avatarColor(name: string): string {
   let h = 0
@@ -199,24 +363,7 @@ export function goalEmoji(templateId: string): string {
   return TEMPLATES.find((t) => t.id === templateId)?.emoji ?? '🔥'
 }
 
-// ---- "current user" (demo handle) -----------------------------------------
-const ME_KEY = 'stakes.me'
-export function getMe(): string {
-  try {
-    return localStorage.getItem(ME_KEY) || 'You'
-  } catch {
-    return 'You'
-  }
-}
-export function setMe(name: string) {
-  try {
-    localStorage.setItem(ME_KEY, name || 'You')
-  } catch {
-    /* ignore */
-  }
-}
-
-// ---- first-run welcome ------------------------------------------------------
+// ---- first-run welcome (per-device, local) ---------------------------------
 const WELCOME_KEY = 'stakes.welcome.seen'
 export function hasSeenWelcome(): boolean {
   try {
@@ -231,86 +378,4 @@ export function markWelcomeSeen() {
   } catch {
     /* ignore */
   }
-}
-
-// ---- check-ins ------------------------------------------------------------
-// Photos stay in-memory only (never localStorage) to avoid quota bloat; they
-// live for the session and are looked up by check-in id.
-const photoCache = new Map<string, string>()
-export function getCheckinPhoto(id: string): string | undefined {
-  return photoCache.get(id)
-}
-
-export function checkIn(
-  challengeId: string,
-  input: { account: string; day: number; note: string; emoji?: string; photo?: string },
-): ChallengeRecord {
-  const all = load()
-  const rec = all[challengeId]
-  if (!rec) throw new Error('Challenge not found')
-  rec.checkins = rec.checkins ?? []
-  const ci: CheckIn = {
-    id: safeRandomId().slice(0, 8),
-    account: input.account,
-    day: input.day,
-    note: input.note,
-    emoji: input.emoji,
-    at: Date.now(),
-    cheers: 0,
-  }
-  rec.checkins.push(ci)
-  if (input.photo) photoCache.set(ci.id, input.photo)
-  save(all)
-  return rec
-}
-
-export function cheer(challengeId: string, checkinId: string): ChallengeRecord {
-  const all = load()
-  const rec = all[challengeId]
-  if (!rec) throw new Error('Challenge not found')
-  const ci = (rec.checkins ?? []).find((c) => c.id === checkinId)
-  if (ci) ci.cheers += 1
-  save(all)
-  return rec
-}
-
-export function daysCompletedFor(rec: ChallengeRecord, account: string): number {
-  const days = new Set((rec.checkins ?? []).filter((c) => c.account === account).map((c) => c.day))
-  return days.size
-}
-
-/** Build the per-participant completion input for computeSettlement. */
-export function buildResults(rec: ChallengeRecord): CompletionResult[] {
-  return rec.participants.map((p) => ({
-    account: p.name,
-    daysCompleted: daysCompletedFor(rec, p.name),
-  }))
-}
-
-// For a believable solo demo, give the seeded friends some history: Maya goes
-// perfect, Tom misses the last two days (so results show a real mix). Runs once.
-const MOCK_NOTES = ['done ✅', 'tough one today', 'nearly skipped — glad I didn’t', 'easy today', 'streak alive']
-export function seedMockActivity(id: string) {
-  const all = load()
-  const rec = all[id]
-  if (!rec) return
-  rec.checkins = rec.checkins ?? []
-  if (rec.checkins.some((c) => c.account === 'Maya' || c.account === 'Tom')) return
-  const names = rec.participants.map((p) => p.name)
-  const D = rec.durationDays
-  const add = (name: string, upto: number) => {
-    for (let d = 0; d < upto; d++) {
-      rec.checkins.push({
-        id: safeRandomId().slice(0, 8),
-        account: name,
-        day: d,
-        note: MOCK_NOTES[d % MOCK_NOTES.length],
-        at: Date.now() - (upto - d) * 90_000,
-        cheers: (d % 3) + 1,
-      })
-    }
-  }
-  if (names.includes('Maya')) add('Maya', D)
-  if (names.includes('Tom')) add('Tom', Math.max(0, D - 2))
-  save(all)
 }

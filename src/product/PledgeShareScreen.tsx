@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
+import { Loading } from './Loading.tsx'
 import { ShareComposer } from '../share/index.ts'
 import type { PledgeCardData } from '../share/index.ts'
-import { getChallenge } from './store.ts'
+import { getChallenge, type ChallengeRecord } from './store.ts'
 
 // The post-create "share your pledge" moment, as its own URL-backed screen (?s=<id>).
 // Being addressable is the point: the WebView can reload (iOS does this after the
@@ -20,7 +22,22 @@ export function PledgeShareScreen({
   onOpenJoin: (id: string) => void
   onCreate: () => void
 }) {
-  const rec = getChallenge(challengeId)
+  const [rec, setRec] = useState<ChallengeRecord | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let alive = true
+    getChallenge(challengeId).then((r) => {
+      if (!alive) return
+      setRec(r)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+  }, [challengeId])
+
+  if (loading) return <Loading />
   if (!rec) {
     return (
       <div className="s-center" style={{ paddingTop: 40 }}>

@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
+import { Loading } from './Loading.tsx'
 import {
   avatarColor,
   checkIn,
   cheer,
   daysCompletedFor,
   getChallenge,
-  getCheckinPhoto,
-  getMe,
+  getMyAddress,
   initials,
-  seedMockActivity,
+  nameFor,
   type ChallengeRecord,
   type CheckIn,
 } from './store.ts'
@@ -25,17 +25,27 @@ export function ProgressScreen({
   onResults: (id: string) => void
   onCreate: () => void
 }) {
-  const me = getMe()
-  const [rec, setRec] = useState<ChallengeRecord | null>(() => getChallenge(challengeId))
+  const [me, setMe] = useState('')
+  const [rec, setRec] = useState<ChallengeRecord | null>(null)
+  const [loading, setLoading] = useState(true)
   const [note, setNote] = useState('')
   const [mood, setMood] = useState<string | undefined>(undefined)
-  const [photo, setPhoto] = useState<string | undefined>(undefined)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [posting, setPosting] = useState(false)
 
   useEffect(() => {
-    seedMockActivity(challengeId)
-    setRec(getChallenge(challengeId))
+    let alive = true
+    Promise.all([getMyAddress(), getChallenge(challengeId)]).then(([addr, view]) => {
+      if (!alive) return
+      setMe(addr)
+      setRec(view)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
   }, [challengeId])
+
+  if (loading) return <Loading />
 
   if (!rec) {
     return (
@@ -56,22 +66,28 @@ export function ProgressScreen({
   const done = myDays >= D
   const feed = [...rec.checkins].sort((a, b) => b.at - a.at)
 
-  function onPhoto(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => setPhoto(reader.result as string)
-    reader.readAsDataURL(f)
+  async function submit() {
+    if (posting || !rec) return
+    if (!note.trim() && !mood) return
+    setPosting(true)
+    try {
+      const updated = await checkIn(challengeId, { address: me, day: myDays, note: note.trim(), emoji: mood })
+      setRec(updated)
+      setNote('')
+      setMood(undefined)
+    } finally {
+      setPosting(false)
+    }
   }
 
-  function submit() {
-    if (!note.trim() && !photo) return
-    const updated = checkIn(challengeId, { account: me, day: myDays, note: note.trim(), emoji: mood, photo })
-    setRec({ ...updated })
-    setNote('')
-    setMood(undefined)
-    setPhoto(undefined)
-    if (fileRef.current) fileRef.current.value = ''
+  // Optimistic cheer: bump the count locally, fire the write in the background.
+  function onCheer(checkinId: string) {
+    setRec((prev) =>
+      prev
+        ? { ...prev, checkins: prev.checkins.map((c) => (c.id === checkinId ? { ...c, cheers: c.cheers + 1 } : c)) }
+        : prev,
+    )
+    cheer(challengeId, checkinId).catch((e) => console.warn('cheer failed', e))
   }
 
   return (
@@ -117,20 +133,15 @@ export function ProgressScreen({
                 {m}
               </button>
             ))}
-            <button className="mood photo" onClick={() => fileRef.current?.click()}>
-              {photo ? '🖼️' : '📷'}
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onPhoto} />
           </div>
-          {photo && <img className="composer-photo" src={photo} alt="check-in" />}
           <button
             className="s-cta"
             data-variant="go"
             style={{ marginTop: 12 }}
-            disabled={!note.trim() && !photo}
+            disabled={posting || (!note.trim() && !mood)}
             onClick={submit}
           >
-            {copy.progress.checkinCta(myDays + 1)}
+            {posting ? copy.progress.checkinBusy : copy.progress.checkinCta(myDays + 1)}
           </button>
         </div>
       )}
@@ -138,7 +149,7 @@ export function ProgressScreen({
       <p className="s-label">{copy.progress.crewLabel}</p>
       <ul className="feed">
         {feed.map((c) => (
-          <FeedItem key={c.id} c={c} onCheer={() => setRec({ ...cheer(challengeId, c.id) })} />
+          <FeedItem key={c.id} c={c} name={nameFor(rec, c.address)} onCheer={() => onCheer(c.id)} />
         ))}
         {feed.length === 0 && (
           <p className="s-foothint" style={{ textAlign: 'left' }}>
@@ -156,26 +167,24 @@ export function ProgressScreen({
   )
 }
 
-function FeedItem({ c, onCheer }: { c: CheckIn; onCheer: () => void }) {
-  const photo = getCheckinPhoto(c.id)
+function FeedItem({ c, name, onCheer }: { c: CheckIn; name: string; onCheer: () => void }) {
   return (
     <li className="feed-item">
       <span
         className="s-av"
-        style={{ background: avatarColor(c.account), width: 36, height: 36, marginLeft: 0 }}
+        style={{ background: avatarColor(name), width: 36, height: 36, marginLeft: 0 }}
       >
-        {initials(c.account)}
+        {initials(name)}
       </span>
       <div className="feed-body">
         <div className="feed-head">
-          <strong>{c.account}</strong>
+          <strong>{name}</strong>
           <span className="feed-day">{copy.progress.feedDay(c.day + 1)}</span>
         </div>
         <div className="feed-note">
           {c.emoji ? `${c.emoji} ` : ''}
           {c.note}
         </div>
-        {photo && <img className="feed-photo" src={photo} alt="" />}
       </div>
       <button className="cheer" onClick={onCheer}>
         🔥 {c.cheers}

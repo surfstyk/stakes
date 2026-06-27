@@ -110,6 +110,7 @@ export const copy = {
     checkinLabel: "Today's check-in",
     checkinPlaceholder: 'proof + a line… your crew sees this',
     checkinCta: (day: number) => `Check in for day ${day}`,
+    checkinBusy: 'Posting your check-in…',
     doneTitle: 'You did the week.',
     doneSub: 'See how everyone landed.',
     crewLabel: 'The crew',

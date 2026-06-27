@@ -1,13 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import { Confetti } from './Confetti.tsx'
 import { Headline } from './Headline.tsx'
+import { Loading } from './Loading.tsx'
 import { ShareComposer } from '../share/index.ts'
 import type { ResultsCardData } from '../share/index.ts'
 import { computeSettlement, type ParticipantPayout } from '../vault/settlement.ts'
-import { avatarColor, buildResults, getChallenge, getMe, initials } from './store.ts'
+import { avatarColor, buildResults, getChallenge, getMyAddress, initials, nameFor, type ChallengeRecord } from './store.ts'
 
-const NIM_BONUS = 10 // sponsor/treasury-funded completion bonus (demo value)
+const NIM_BONUS = 10 // sponsor/treasury-funded completion bonus (matches the backend)
 
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2)
@@ -20,8 +21,25 @@ export function ResultsScreen({
   challengeId: string
   onHome: () => void
 }) {
-  const rec = getChallenge(challengeId)
-  const me = getMe()
+  const [rec, setRec] = useState<ChallengeRecord | null>(null)
+  const [me, setMe] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let alive = true
+    Promise.all([getChallenge(challengeId), getMyAddress()]).then(([view, addr]) => {
+      if (!alive) return
+      setRec(view)
+      setMe(addr)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+  }, [challengeId])
+
+  // Settlement is computed client-side from the fetched view via the same deterministic
+  // `computeSettlement` the backend uses — identical math, no extra round trip.
   const settlement = useMemo(
     () =>
       rec
@@ -34,6 +52,8 @@ export function ResultsScreen({
         : null,
     [rec],
   )
+
+  if (loading) return <Loading />
 
   if (!rec || !settlement) {
     return (
@@ -88,7 +108,14 @@ export function ResultsScreen({
       <p className="s-label">{copy.results.crewLabel}</p>
       <ul className="board">
         {rows.map((r) => (
-          <BoardRow key={r.account} r={r} D={rec.durationDays} asset={rec.asset} me={me} />
+          <BoardRow
+            key={r.account}
+            r={r}
+            D={rec.durationDays}
+            asset={rec.asset}
+            name={nameFor(rec, r.account)}
+            isMe={r.account === me}
+          />
         ))}
       </ul>
 
@@ -112,24 +139,26 @@ function BoardRow({
   r,
   D,
   asset,
-  me,
+  name,
+  isMe,
 }: {
   r: ParticipantPayout
   D: number
   asset: string
-  me: string
+  name: string
+  isMe: boolean
 }) {
   return (
     <li className="board-row">
       <span
         className="s-av"
-        style={{ background: avatarColor(r.account), width: 34, height: 34, marginLeft: 0 }}
+        style={{ background: avatarColor(name), width: 34, height: 34, marginLeft: 0 }}
       >
-        {initials(r.account)}
+        {initials(name)}
       </span>
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>
-          {r.account === me ? copy.results.you : r.account}{' '}
+          {isMe ? copy.results.you : name}{' '}
           {r.isPerfectFinisher && <span title={copy.results.perfectBadgeTitle}>🏅</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
