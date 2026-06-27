@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
+    "build:public": "tsc --noEmit && VITE_PUBLIC_BUILD=1 vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "api": "node --env-file-if-exists=.env.local --import tsx server/api.ts",

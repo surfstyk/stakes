@@ -2,6 +2,7 @@ import type { Asset, CompletionResult } from '../vault/types.ts'
 import { getVault } from '../vault/index.ts'
 import { getNimiq } from '../lib/nimiq.ts'
 import { safeRandomId } from '../lib/id.ts'
+import { DEV_TOOLS } from '../lib/flags.ts'
 
 // The store is the seam between the screens and the shared-state backend. Reads/writes
 // go through the same-origin `/api` (Vite proxy in dev, Caddy reverse_proxy in prod) so
@@ -46,6 +47,7 @@ export const WINDOW_PRESETS: { id: WindowPreset; label: string; sub: string; ms:
 const TEST_KEY = 'stakes.testmode'
 const TEST_WINDOW_MS = 2 * 60_000 // 2-minute join window in test mode
 export function isTestMode(): boolean {
+  if (!DEV_TOOLS) return false // test mode doesn't exist in the public build
   try {
     return localStorage.getItem(TEST_KEY) === '1'
   } catch {
