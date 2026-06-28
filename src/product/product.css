@@ -744,6 +744,11 @@ button {
   color: var(--ink);
   box-shadow: 0 0 0 1.5px var(--ink);
 }
+.cell.missed {
+  background: color-mix(in srgb, var(--stake) 12%, var(--paper-card));
+  border-color: color-mix(in srgb, var(--stake) 35%, var(--line));
+  color: var(--stake);
+}
 
 .composer {
   margin-top: 4px;

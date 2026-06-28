@@ -46,6 +46,8 @@ export const WINDOW_PRESETS: { id: WindowPreset; label: string; sub: string; ms:
 // router rewriting the query string.
 const TEST_KEY = 'stakes.testmode'
 const TEST_WINDOW_MS = 2 * 60_000 // 2-minute join window in test mode
+const DAY_MS = 24 * 3600_000 // a real check-in "day"
+const TEST_DAY_MS = 3 * 60_000 // 3-minute "day" in test mode → run the whole arc in minutes
 export function isTestMode(): boolean {
   if (!DEV_TOOLS) return false // test mode doesn't exist in the public build
   try {
@@ -92,7 +94,8 @@ export interface ChallengeRecord {
   creatorAddress: string
   creatorName: string
   createdAt: number
-  lockAt: number
+  lockAt: number // doors close → the challenge starts (day 0 begins)
+  dayLengthMs: number // length of each check-in day/round (24h prod, minutes in test)
   status: string
   participants: Participant[]
   checkins: CheckIn[]
@@ -255,6 +258,8 @@ export async function createChallenge(input: CreateInput): Promise<string> {
       ? nextMondayMs(now)
       : (WINDOW_PRESETS.find((w) => w.id === input.window)?.ms ?? 24 * 3600_000)
 
+  const dayLengthMs = isTestMode() ? TEST_DAY_MS : DAY_MS
+
   const creatorAddress = await getMyAddress()
   const creatorName = input.creatorName || 'You'
   const { id } = await api<{ id: string }>('/challenges', {
@@ -268,6 +273,7 @@ export async function createChallenge(input: CreateInput): Promise<string> {
       creatorAddress,
       creatorName,
       windowMs,
+      dayLengthMs,
     }),
   })
   setMyName(creatorName)
@@ -339,6 +345,48 @@ export async function cheer(challengeId: string, checkinId: string): Promise<voi
 
 export function daysCompletedFor(rec: ChallengeRecord, address: string): number {
   return new Set(rec.checkins.filter((c) => c.address === address).map((c) => c.day)).size
+}
+
+/** Which days a participant has checked in (set of 0-indexed day numbers). */
+export function checkedDaysFor(rec: ChallengeRecord, address: string): Set<number> {
+  return new Set(rec.checkins.filter((c) => c.address === address).map((c) => c.day))
+}
+
+export interface DayState {
+  started: boolean // doors closed → the challenge has begun
+  over: boolean // all days elapsed → time to settle
+  currentDay: number // the day whose check-in window is open now (-1 before start, durationDays once over)
+  msUntilStart: number // >0 while still in the join window
+  msLeftInDay: number // time left to check in for the current day
+  totalDays: number
+}
+
+/**
+ * Where a challenge is in real time. Day k's window is
+ * [lockAt + k·dayLength, lockAt + (k+1)·dayLength); you can only check in for the day
+ * whose window is open *now*, so a missed day's window closes for good. This is the
+ * "closing door" that makes "miss a day → forfeit" real (parameterized by dayLengthMs:
+ * 24h in production, minutes in test, ready for other cadences/game modes).
+ */
+export function dayState(rec: ChallengeRecord, now: number = Date.now()): DayState {
+  const len = rec.dayLengthMs || DAY_MS
+  const total = rec.durationDays
+  if (now < rec.lockAt) {
+    return { started: false, over: false, currentDay: -1, msUntilStart: rec.lockAt - now, msLeftInDay: 0, totalDays: total }
+  }
+  const elapsed = now - rec.lockAt
+  const idx = Math.floor(elapsed / len)
+  if (idx >= total) {
+    return { started: true, over: true, currentDay: total, msUntilStart: 0, msLeftInDay: 0, totalDays: total }
+  }
+  return {
+    started: true,
+    over: false,
+    currentDay: idx,
+    msUntilStart: 0,
+    msLeftInDay: (idx + 1) * len - elapsed,
+    totalDays: total,
+  }
 }
 
 /** Build the per-participant completion input for computeSettlement (keyed by address). */
