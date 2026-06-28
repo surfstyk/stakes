@@ -24,8 +24,13 @@ async function main() {
   const id = args.find((a) => !a.startsWith('--'))
   const execute = args.includes('--execute')
   const force = args.includes('--force')
+  // --no-burn: skip the burn tx so the forfeited pot stays in the treasury (recoverable)
+  // instead of going to the dead burn address. For testing with real NIM — the per-
+  // participant outcome is identical, we just don't destroy the forfeits. (Also avoids the
+  // "sender == recipient" error a treasury→treasury "refund" tx would throw.)
+  const noBurn = args.includes('--no-burn')
   if (!id) {
-    console.error('usage: node --env-file=.env.local --import tsx server/settle.ts <challengeId> [--execute] [--force]')
+    console.error('usage: node --env-file=.env.local --import tsx server/settle.ts <challengeId> [--execute] [--force] [--no-burn]')
     process.exit(1)
   }
 
@@ -67,12 +72,16 @@ async function main() {
     plan.push({ kind: 'payout', to: p.account, nim: amount, signed: buildSignedNim(kp, p.account, nimToLuna(amount), height) })
   }
   if (settlement.burnedPot > 0) {
-    plan.push({
-      kind: 'burn',
-      to: BURN_ADDRESS,
-      nim: settlement.burnedPot,
-      signed: buildSignedNim(kp, BURN_ADDRESS, nimToLuna(settlement.burnedPot), height),
-    })
+    if (noBurn) {
+      console.log(`  🔥 burn SKIPPED (--no-burn): ${fmt(settlement.burnedPot)} NIM stays in the treasury`)
+    } else {
+      plan.push({
+        kind: 'burn',
+        to: BURN_ADDRESS,
+        nim: settlement.burnedPot,
+        signed: buildSignedNim(kp, BURN_ADDRESS, nimToLuna(settlement.burnedPot), height),
+      })
+    }
   }
 
   const totalOut = plan.reduce((s, t) => s + t.nim, 0)
