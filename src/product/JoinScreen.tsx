@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
+import { Loading } from './Loading.tsx'
 import {
   avatarColor,
   getChallenge,
@@ -54,11 +55,26 @@ export function JoinScreen({
   onCreateOwn: () => void
   onEnter: (id: string) => void
 }) {
-  const [rec, setRec] = useState<ChallengeRecord | null>(() => getChallenge(challengeId))
+  const [rec, setRec] = useState<ChallengeRecord | null>(null)
+  const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [joined, setJoined] = useState(false)
   const countdown = useCountdown(rec?.lockAt ?? 0)
+
+  useEffect(() => {
+    let alive = true
+    getChallenge(challengeId).then((r) => {
+      if (!alive) return
+      setRec(r)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+  }, [challengeId])
+
+  if (loading) return <Loading />
 
   // ---- challenge not found ----
   if (!rec) {

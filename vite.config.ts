@@ -14,5 +14,10 @@ export default defineConfig({
     // Allow loading via any LAN host/IP (Vite 5 blocks unknown hosts by default).
     allowedHosts: true,
     hmr: hmrHost ? { host: hmrHost, protocol: 'ws', clientPort: 5173 } : undefined,
+    // Same-origin /api in dev → proxied to the local API (npm run api). In prod
+    // Caddy does the equivalent reverse_proxy, so the frontend never needs CORS.
+    proxy: {
+      '/api': { target: `http://localhost:${process.env.STAKES_API_PORT ?? 8787}`, changeOrigin: true },
+    },
   },
 })

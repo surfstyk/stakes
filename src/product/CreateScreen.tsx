@@ -7,10 +7,10 @@ import {
   WINDOW_PRESETS,
   createChallenge,
   deleteChallenge,
+  getMyName,
   isTestMode,
   joinChallenge,
   myChallenges,
-  seedDemoFriends,
   type WindowPreset,
 } from './store.ts'
 
@@ -27,7 +27,10 @@ export function CreateScreen({
 }) {
   const [templateId, setTemplateId] = useState('run')
   const [customGoal, setCustomGoal] = useState('')
-  const [name, setName] = useState('')
+  const [name, setName] = useState(() => {
+    const n = getMyName()
+    return n === 'You' ? '' : n // prefill from a prior session, but not the 'You' default
+  })
   const [days, setDays] = useState(7)
   const asset: Asset = 'NIM' // Cycle-I money layer is custodial-NIM (locked 2026-06-23)
   const [stake, setStake] = useState(DEFAULT_STAKE.NIM)
@@ -44,24 +47,26 @@ export function CreateScreen({
     if (busy) return
     setBusy(true)
     setErr(null)
-    const rec = createChallenge({
-      templateId,
-      goal,
-      emoji: template.emoji,
-      durationDays: days,
-      stake,
-      asset,
-      creatorName: name.trim() || 'You',
-      window: windowPreset,
-    })
+    const creatorName = name.trim() || 'You'
+    let id: string | null = null
     try {
-      // The creator commits their own stake too — same path as any joiner.
-      await joinChallenge(rec.id, rec.creatorName)
-      seedDemoFriends(rec.id) // demo: so "who's in" isn't empty when a friend taps the link
+      id = await createChallenge({
+        templateId,
+        goal,
+        emoji: template.emoji,
+        durationDays: days,
+        stake,
+        asset,
+        creatorName,
+        window: windowPreset,
+      })
+      // The creator commits their own stake too — same path as any joiner — so "who's
+      // in" is real (the creator) the moment a friend taps the link. No seeded friends.
+      await joinChallenge(id, creatorName)
       // Hand off to the URL-backed share screen so a WebView reload can restore it.
-      onShare(rec.id)
+      onShare(id)
     } catch (e) {
-      deleteChallenge(rec.id) // roll back the orphan if the stake was declined
+      if (id) deleteChallenge(id) // roll back the local breadcrumb if the stake was declined
       setErr((e as Error).message || copy.create.errFallback)
     } finally {
       setBusy(false)

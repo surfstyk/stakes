@@ -1,76 +1,42 @@
-// ⚠️ TRANSPORT TODO (2026-06-24): the @nimiq/core P2P Client used in connect() is BROKEN
-// in plain Node — worker init throws "addEventListener is not a function" and it never
-// reaches consensus (confirmed in a real terminal, not just the sandbox). The PROVEN
-// transport is offline-sign + HTTP JSON-RPC: build/sign with TransactionBuilder (works)
-// then POST `sendRawTransaction` to a node — verified against https://rpc.nimiqwatch.com,
-// which accepted a signed tx. Before deploy, rewrite connect()/sendNim()/listDeposits() to
-// fetch the RPC. See surfstyk-notes/FRAMEWORK-FACTS.md → "Settlement broadcast".
-import {
-  Address,
-  Client,
-  ClientConfiguration,
-  KeyPair,
-  TransactionBuilder,
-} from '@nimiq/core'
+// Write/broadcast transport for settlement — the PROVEN path (FRAMEWORK-FACTS →
+// "Settlement broadcast"): build + sign a transaction OFFLINE with `@nimiq/core`
+// (TransactionBuilder + KeyPair work fine in plain Node), then POST the raw hex to a
+// node's `sendRawTransaction` over HTTP-RPC (server/rpc.ts).
+//
+// This replaces the old `@nimiq/core` P2P `Client`, which is broken in plain Node (the
+// worker never reaches consensus). Nothing here opens a P2P connection.
+//
+// Used only by the offline operator settlement job (server/settle.ts) — this is the one
+// place the treasury KEY is touched, so it never runs on the internet-facing API box.
 
-const NETWORK = 'TestAlbatross'
-const norm = (s: string) => s.replace(/\s/g, '')
+import { Address, KeyPair, TransactionBuilder } from '@nimiq/core'
+import { sendRawTransaction } from './rpc.ts'
 
-/** Connect a Node client to the Nimiq testnet and wait for consensus. */
-export async function connect(): Promise<Client> {
-  const config = new ClientConfiguration()
-  config.network(NETWORK)
-  config.logLevel('warn')
-  const client = await Client.create(config.build())
-  await client.waitForConsensusEstablished()
-  return client
-}
+// Albatross network id: 5 = TestAlbatross (testnet), 24 = MainAlbatross (mainnet).
+// `getNetworkId` is blocked on the public node, so we use the constant (FRAMEWORK-FACTS).
+export const NETWORK_ID = Number(process.env.STAKES_NETWORK_ID ?? 5)
 
-export interface Deposit {
-  from: string
-  valueLuna: number
-  hash: string
+export interface SignedTx {
+  hash: string // tx hash (its on-chain id), known before broadcast
+  hex: string // raw serialized signed tx (what we POST)
+  to: string
+  valueLuna: bigint
 }
 
 /**
- * Index stake deposits for a challenge: incoming treasury transactions whose raw
- * data equals `stakes:<challengeId>` (the tag the Mini App attaches on join).
+ * Build and sign a NIM transfer entirely offline (no network). `validityStartHeight`
+ * should be a recent block height (see rpc.getBlockNumber). `tx.verify` is a local
+ * sanity check that the signature + fields are valid before we ever broadcast.
  */
-export async function listDeposits(
-  client: Client,
-  treasury: string,
-  challengeId: string,
-): Promise<Deposit[]> {
-  const tag = `stakes:${challengeId}`
-  const txs = await client.getTransactionsByAddress(treasury, 0, null, null, 500, 1)
-  const deposits: Deposit[] = []
-  for (const tx of txs) {
-    if (norm(tx.recipient) !== norm(treasury)) continue // incoming only
-    if (tx.data?.type !== 'raw') continue
-    let decoded: string
-    try {
-      decoded = Buffer.from(tx.data.raw, 'hex').toString('utf8')
-    } catch {
-      continue
-    }
-    if (decoded !== tag) continue
-    deposits.push({ from: tx.sender, valueLuna: tx.value, hash: tx.transactionHash })
-  }
-  return deposits
-}
-
-/** Build, sign (with the treasury key), and broadcast a NIM transfer. */
-export async function sendNim(
-  client: Client,
+export function buildSignedNim(
   kp: KeyPair,
   recipient: string,
   valueLuna: bigint,
+  validityStartHeight: number,
   data?: string,
-): Promise<string> {
+): SignedTx {
   const sender = kp.toAddress()
   const to = Address.fromUserFriendlyAddress(recipient)
-  const height = await client.getHeadHeight()
-  const networkId = await client.getNetworkId()
   const tx = data
     ? TransactionBuilder.newBasicWithData(
         sender,
@@ -78,11 +44,28 @@ export async function sendNim(
         new TextEncoder().encode(data),
         valueLuna,
         null,
-        height,
-        networkId,
+        validityStartHeight,
+        NETWORK_ID,
       )
-    : TransactionBuilder.newBasic(sender, to, valueLuna, null, height, networkId)
+    : TransactionBuilder.newBasic(sender, to, valueLuna, null, validityStartHeight, NETWORK_ID)
   kp.signTransaction(tx)
-  const details = await client.sendTransaction(tx)
-  return details.transactionHash
+  tx.verify(NETWORK_ID) // throws if the signed tx is malformed — fail before broadcasting
+  return { hash: tx.hash(), hex: tx.toHex(), to: recipient, valueLuna }
+}
+
+/** Broadcast a pre-signed tx via HTTP-RPC. Resolves to the tx hash. */
+export async function broadcast(signed: SignedTx): Promise<string> {
+  const hash = await sendRawTransaction(signed.hex)
+  return hash || signed.hash
+}
+
+/** Convenience: build, sign, and broadcast a NIM transfer in one step. */
+export async function sendNim(
+  kp: KeyPair,
+  recipient: string,
+  valueLuna: bigint,
+  validityStartHeight: number,
+  data?: string,
+): Promise<string> {
+  return broadcast(buildSignedNim(kp, recipient, valueLuna, validityStartHeight, data))
 }

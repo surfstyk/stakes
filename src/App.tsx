@@ -7,9 +7,11 @@ import { ResultsScreen } from './product/ResultsScreen.tsx'
 import { WelcomeScreen } from './product/WelcomeScreen.tsx'
 import { hasSeenWelcome, isTestMode, markWelcomeSeen, setTestMode } from './product/store.ts'
 import { brand, copy } from './brand/index.ts'
+import { DEV_TOOLS } from './lib/flags.ts'
 
-// Recon is a dev tool — lazy-load it so its (dark) styles never touch the product.
-const Recon = lazy(() => import('./recon/Recon.tsx').then((m) => ({ default: m.Recon })))
+// Recon is a dev tool — lazy-load it so its (dark) styles never touch the product. The
+// inline DEV_TOOLS literal lets the bundler drop the recon chunk entirely in the public build.
+const Recon = DEV_TOOLS ? lazy(() => import('./recon/Recon.tsx').then((m) => ({ default: m.Recon }))) : null
 
 type View =
   | { name: 'create' }
@@ -21,7 +23,7 @@ type View =
 
 function readView(): View {
   const p = new URLSearchParams(location.search)
-  if (p.has('recon')) return { name: 'recon' }
+  if (DEV_TOOLS && p.has('recon')) return { name: 'recon' }
   const r = p.get('r')
   if (r) return { name: 'results', id: r }
   const pg = p.get('p')
@@ -51,7 +53,7 @@ export function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
-    if (params.has('test')) {
+    if (DEV_TOOLS && params.has('test')) {
       const on = params.get('test') !== '0'
       setTestMode(on)
       setTestModeState(on)
@@ -67,7 +69,7 @@ export function App() {
     window.scrollTo({ top: 0 })
   }
 
-  if (view.name === 'recon') {
+  if (view.name === 'recon' && Recon) {
     return (
       <Suspense fallback={null}>
         <Recon />
@@ -95,16 +97,18 @@ export function App() {
         <span className="s-wordmark" style={{ cursor: 'pointer' }} onClick={() => go({ name: 'create' })}>
           {brand.hasDot && <span className="dot" />} {copy.app.wordmark}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {testMode && (
-            <span className="s-link" style={{ color: 'var(--stake)' }}>
-              {copy.app.test}
-            </span>
-          )}
-          <button className="s-link" onClick={() => go({ name: 'recon' })}>
-            {copy.app.recon}
-          </button>
-        </span>
+        {DEV_TOOLS && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {testMode && (
+              <span className="s-link" style={{ color: 'var(--stake)' }}>
+                {copy.app.test}
+              </span>
+            )}
+            <button className="s-link" onClick={() => go({ name: 'recon' })}>
+              {copy.app.recon}
+            </button>
+          </span>
+        )}
       </div>
 
       {view.name === 'create' && (
