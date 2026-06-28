@@ -50,8 +50,13 @@ export async function verifyChallenge(challengeId: string): Promise<VerifyResult
       confirmed++
       continue
     }
+    // Match by the tx hash the participant reported on join — robust even when the
+    // wallet's identity address (listAccounts) differs from the address that actually
+    // sent the stake (real Nimiq Pay wallets do this). Fall back to a sender match.
     const match = deposits.find(
-      (d) => normAddr(d.from) === normAddr(p.address) && Math.abs(d.valueLuna - expectedLuna) <= 1,
+      (d) =>
+        Math.abs(d.valueLuna - expectedLuna) <= 1 &&
+        (d.hash === p.depositTxHash || normAddr(d.from) === normAddr(p.address)),
     )
     if (match) {
       confirmDeposit(challengeId, p.address, match.hash, true) // persist the canonical chain hash

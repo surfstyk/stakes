@@ -66,6 +66,8 @@ export const copy = {
     sub: 'The first friend who taps in starts your week. This card is the invite.',
     share: 'Share to your story',
     shareCopied: 'Link copied ✓',
+    invite: 'Invite a friend (send link)',
+    inviteCopied: 'Invite link copied ✓',
     goChallenge: 'Go to the challenge →',
     preview: 'Preview what friends see',
   },
