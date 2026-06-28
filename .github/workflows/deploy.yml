@@ -18,7 +18,13 @@ jobs:
 
       - run: npm ci
       - name: Build
-        run: npm run build          # mock vault (no VITE_TREASURY_NIM_ADDRESS set)
+        run: npm run build
+        env:
+          # Public treasury address as a GitHub Actions VARIABLE (not a secret). When set,
+          # the app uses the real custodial-NIM vault inside Nimiq Pay; when the variable is
+          # absent this renders empty → mock vault. So this line is a no-op until the var is
+          # added — adding it + redeploying is the whole "flip to real deposits" switch.
+          VITE_TREASURY_NIM_ADDRESS: ${{ vars.VITE_TREASURY_NIM_ADDRESS }}
 
       # Deploy target lives in repo secrets so this public file advertises no infra.
       # Required secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH.
