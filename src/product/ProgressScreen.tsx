@@ -4,8 +4,9 @@ import { Loading } from './Loading.tsx'
 import {
   avatarColor,
   checkIn,
+  checkedDaysFor,
   cheer,
-  daysCompletedFor,
+  dayState,
   getChallenge,
   getMyAddress,
   initials,
@@ -15,6 +16,20 @@ import {
 } from './store.ts'
 
 const MOODS = ['💪', '🔥', '😮‍💨', '😌', '🙌']
+
+/** Compact h/m/s countdown — minutes/seconds in test, hours/days in production. */
+function fmtDur(ms: number): string {
+  if (ms <= 0) return '0s'
+  const s = Math.floor(ms / 1000)
+  const d = Math.floor(s / 86400)
+  const h = Math.floor((s % 86400) / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (d > 0) return `${d}d ${h}h`
+  if (h > 0) return `${h}h ${m}m`
+  if (m > 0) return `${m}m ${sec}s`
+  return `${sec}s`
+}
 
 export function ProgressScreen({
   challengeId,
@@ -31,6 +46,7 @@ export function ProgressScreen({
   const [note, setNote] = useState('')
   const [mood, setMood] = useState<string | undefined>(undefined)
   const [posting, setPosting] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     let alive = true
@@ -44,6 +60,12 @@ export function ProgressScreen({
       alive = false
     }
   }, [challengeId])
+
+  // Live clock so day windows open/close and countdowns tick without a reload.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   if (loading) return <Loading />
 
@@ -62,16 +84,18 @@ export function ProgressScreen({
   }
 
   const D = rec.durationDays
-  const myDays = daysCompletedFor(rec, me)
-  const done = myDays >= D
+  const ds = dayState(rec, now)
+  const checked = checkedDaysFor(rec, me)
+  const checkedToday = ds.started && !ds.over && checked.has(ds.currentDay)
+  const canCheckIn = ds.started && !ds.over && !checkedToday
   const feed = [...rec.checkins].sort((a, b) => b.at - a.at)
 
   async function submit() {
-    if (posting || !rec) return
+    if (posting || !rec || !canCheckIn) return
     if (!note.trim() && !mood) return
     setPosting(true)
     try {
-      const updated = await checkIn(challengeId, { address: me, day: myDays, note: note.trim(), emoji: mood })
+      const updated = await checkIn(challengeId, { address: me, day: ds.currentDay, note: note.trim(), emoji: mood })
       setRec(updated)
       setNote('')
       setMood(undefined)
@@ -80,7 +104,6 @@ export function ProgressScreen({
     }
   }
 
-  // Optimistic cheer: bump the count locally, fire the write in the background.
   function onCheer(checkinId: string) {
     setRec((prev) =>
       prev
@@ -90,35 +113,65 @@ export function ProgressScreen({
     cheer(challengeId, checkinId).catch((e) => console.warn('cheer failed', e))
   }
 
+  const kicker = !ds.started
+    ? copy.progress.startsKicker
+    : ds.over
+      ? copy.progress.wrappedKicker
+      : copy.progress.dayOf(ds.currentDay + 1, D)
+
   return (
     <div>
-      <p className="s-kicker">{copy.progress.dayOf(Math.min(myDays + (done ? 0 : 1), D), D)}</p>
+      <p className="s-kicker">{kicker}</p>
       <h1 className="s-h1">
         {rec.emoji} {rec.goal}
       </h1>
 
       <div className="streak">
         {Array.from({ length: D }).map((_, i) => {
-          const state = i < myDays ? 'done' : i === myDays && !done ? 'today' : 'todo'
+          const state = checked.has(i)
+            ? 'done'
+            : ds.started && !ds.over && i === ds.currentDay
+              ? 'today'
+              : ds.over || (ds.started && i < ds.currentDay)
+                ? 'missed'
+                : 'todo'
           return (
             <span key={i} className={`cell ${state}`}>
-              {state === 'done' ? '✓' : i + 1}
+              {state === 'done' ? '✓' : state === 'missed' ? '✕' : i + 1}
             </span>
           )
         })}
       </div>
 
-      {done ? (
+      {/* ---- the state-appropriate panel ---- */}
+      {!ds.started ? (
+        <div className="s-card s-center" style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 28 }}>⏳</div>
+          <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.startsTitle}</p>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>
+            {copy.progress.startsSub(fmtDur(ds.msUntilStart))}
+          </p>
+        </div>
+      ) : ds.over ? (
         <div className="s-card s-center" style={{ marginTop: 16 }}>
           <div style={{ fontSize: 28 }}>🏁</div>
-          <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.doneTitle}</p>
-          <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>{copy.progress.doneSub}</p>
+          <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.overTitle}</p>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>{copy.progress.overSub}</p>
+        </div>
+      ) : checkedToday ? (
+        <div className="s-card s-center" style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 28 }}>✅</div>
+          <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.checkedTitle}</p>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>
+            {copy.progress.checkedSub(fmtDur(ds.msLeftInDay))}
+          </p>
         </div>
       ) : (
         <div className="composer">
-          <p className="s-label" style={{ margin: '16px 0 8px' }}>
+          <p className="s-label" style={{ margin: '16px 0 4px' }}>
             {copy.progress.checkinLabel}
           </p>
+          <p className="s-note" style={{ color: 'var(--stake)' }}>{copy.progress.windowLeft(fmtDur(ds.msLeftInDay))}</p>
           <textarea
             className="s-field"
             rows={2}
@@ -141,7 +194,7 @@ export function ProgressScreen({
             disabled={posting || (!note.trim() && !mood)}
             onClick={submit}
           >
-            {posting ? copy.progress.checkinBusy : copy.progress.checkinCta(myDays + 1)}
+            {posting ? copy.progress.checkinBusy : copy.progress.checkinCta(ds.currentDay + 1)}
           </button>
         </div>
       )}
@@ -160,7 +213,7 @@ export function ProgressScreen({
 
       <div className="s-sticky">
         <button className="s-cta" onClick={() => onResults(challengeId)}>
-          {done ? copy.progress.seeResults : copy.progress.finishResults}
+          {ds.over ? copy.progress.seeResults : copy.progress.finishResults}
         </button>
       </div>
     </div>

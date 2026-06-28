@@ -45,8 +45,9 @@ async function main() {
   }
   console.log(`challenge ${id}: "${view.goal}" · ${view.durationDays}d · ${view.stake} ${view.asset} stake`)
 
-  if (Date.now() < view.lockAt && !force) {
-    console.error(`Join window still open (locks ${new Date(view.lockAt).toISOString()}). Re-run with --force to settle anyway.`)
+  const endAt = view.lockAt + view.durationDays * view.dayLengthMs
+  if (Date.now() < endAt && !force) {
+    console.error(`Challenge still running (ends ${new Date(endAt).toISOString()}). Re-run with --force to settle now.`)
     process.exit(1)
   }
 

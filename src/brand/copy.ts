@@ -109,6 +109,15 @@ export const copy = {
 
   progress: {
     dayOf: (day: number, total: number) => `Day ${day} of ${total}`,
+    startsKicker: 'Doors still closing',
+    startsTitle: 'Your challenge starts soon',
+    startsSub: (t: string) => `First check-in opens when the doors close — in ${t}.`,
+    wrappedKicker: 'The challenge wrapped',
+    windowLeft: (t: string) => `${t} left to check in today`,
+    checkedTitle: 'Checked in for today ✓',
+    checkedSub: (t: string) => `Next check-in opens in ${t}.`,
+    overTitle: "Time's up.",
+    overSub: 'See how everyone landed.',
     checkinLabel: "Today's check-in",
     checkinPlaceholder: 'proof + a line… your crew sees this',
     checkinCta: (day: number) => `Check in for day ${day}`,

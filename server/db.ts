@@ -31,6 +31,7 @@ db.exec(`
     creatorName    TEXT NOT NULL,
     createdAt      INTEGER NOT NULL,
     lockAt         INTEGER NOT NULL,
+    dayLengthMs    INTEGER NOT NULL DEFAULT 86400000,
     status         TEXT NOT NULL DEFAULT 'open'
   );
   CREATE TABLE IF NOT EXISTS participants (
@@ -54,6 +55,14 @@ db.exec(`
   );
 `)
 
+// Migration: add dayLengthMs to challenges tables created before timed days (the
+// CREATE above only applies to fresh DBs). Existing rows default to 24h.
+try {
+  db.exec(`ALTER TABLE challenges ADD COLUMN dayLengthMs INTEGER NOT NULL DEFAULT 86400000`)
+} catch {
+  /* column already exists */
+}
+
 const shortId = () => randomUUID().replace(/-/g, '').slice(0, 8)
 
 // ---- writes ---------------------------------------------------------------
@@ -67,14 +76,15 @@ export interface NewChallenge {
   creatorAddress: string
   creatorName: string
   lockAt: number
+  dayLengthMs: number // length of each check-in day/round (24h prod, minutes in test)
 }
 
 export function createChallenge(input: NewChallenge): string {
   const id = shortId()
   db.prepare(
     `INSERT INTO challenges
-       (id, goal, emoji, durationDays, stake, asset, creatorAddress, creatorName, createdAt, lockAt, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+       (id, goal, emoji, durationDays, stake, asset, creatorAddress, creatorName, createdAt, lockAt, dayLengthMs, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
   ).run(
     id,
     input.goal,
@@ -86,6 +96,7 @@ export function createChallenge(input: NewChallenge): string {
     input.creatorName,
     Date.now(),
     input.lockAt,
+    input.dayLengthMs,
   )
   return id
 }
@@ -148,6 +159,7 @@ interface ChallengeRow {
   creatorName: string
   createdAt: number
   lockAt: number
+  dayLengthMs: number
   status: string
 }
 interface ParticipantRow {

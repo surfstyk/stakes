@@ -67,6 +67,7 @@ const server = createServer(async (req, res) => {
       const durationDays = num(b.durationDays)
       const stake = num(b.stake)
       const windowMs = num(b.windowMs)
+      const dayLengthMs = num(b.dayLengthMs)
       if (!goal || !creatorAddress || !Number.isFinite(durationDays) || !Number.isFinite(stake)) {
         return send(res, 400, { error: 'goal, creatorAddress, durationDays, stake required' })
       }
@@ -79,6 +80,7 @@ const server = createServer(async (req, res) => {
         creatorAddress,
         creatorName: str(b.creatorName) || 'You',
         lockAt: Date.now() + (Number.isFinite(windowMs) ? windowMs : 24 * 3600_000),
+        dayLengthMs: Number.isFinite(dayLengthMs) && dayLengthMs > 0 ? dayLengthMs : 24 * 3600_000,
       })
       return send(res, 201, { id })
     }
