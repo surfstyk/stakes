@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { copy } from '../brand/index.ts'
+import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
-import { ShareComposer } from '../share/index.ts'
+import { ShareComposer, copyText } from '../share/index.ts'
 import type { PledgeCardData } from '../share/index.ts'
 import { getChallenge, type ChallengeRecord } from './store.ts'
 
@@ -24,6 +24,7 @@ export function PledgeShareScreen({
 }) {
   const [rec, setRec] = useState<ChallengeRecord | null>(null)
   const [loading, setLoading] = useState(true)
+  const [invited, setInvited] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -68,6 +69,27 @@ export function PledgeShareScreen({
       <Headline h={copy.pledged.h1} className="s-h1 s-h1-tight" />
 
       <ShareComposer data={cardData} cta={copy.pledged.share} shareText={shareText} shareUrl={shareUrl} />
+
+      {/* Direct invite: shares the join LINK (url-only → reliable on iOS, where attaching the
+          card image drops the caption text), with a clipboard fallback. */}
+      <button
+        className="s-cta"
+        data-variant="go"
+        style={{ marginTop: 10 }}
+        onClick={async () => {
+          if (navigator.share) {
+            try {
+              await navigator.share({ title: brand.name, text: shareText, url: shareUrl })
+              return
+            } catch (e) {
+              if ((e as { name?: string })?.name === 'AbortError') return // user cancelled the sheet
+            }
+          }
+          setInvited(await copyText(shareUrl))
+        }}
+      >
+        {invited ? copy.pledged.inviteCopied : copy.pledged.invite}
+      </button>
 
       <div className="s-share-nav">
         <button className="s-link" onClick={() => onOpenJoin(rec.id)}>
