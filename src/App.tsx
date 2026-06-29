@@ -5,9 +5,11 @@ import { JoinScreen } from './product/JoinScreen.tsx'
 import { ProgressScreen } from './product/ProgressScreen.tsx'
 import { ResultsScreen } from './product/ResultsScreen.tsx'
 import { WelcomeScreen } from './product/WelcomeScreen.tsx'
+import { OpenInNimiqPay } from './product/OpenInNimiqPay.tsx'
 import { hasSeenWelcome, isTestMode, markWelcomeSeen, setTestMode } from './product/store.ts'
 import { brand, copy } from './brand/index.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
+import { mustOpenInNimiqPay } from './lib/context.ts'
 
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product. The
 // inline DEV_TOOLS literal lets the bundler drop the recon chunk entirely in the public build.
@@ -74,6 +76,21 @@ export function App() {
       <Suspense fallback={null}>
         <Recon />
       </Suspense>
+    )
+  }
+
+  // The viral-loop gate: in a real-money build the app only works inside Nimiq Pay (real
+  // wallet identity + real deposits). Opened outside it (e.g. an invite link tapped in a
+  // normal browser), route the user IN instead of letting them silently "join"/"create"
+  // against the mock vault under a throwaway identity — the trap that quietly killed the
+  // loop. Mock/dev builds have no funds at risk, so they stay clickable in a plain browser.
+  // (Recon, a dev diagnostic, is handled above so it stays reachable for debugging.)
+  if (mustOpenInNimiqPay()) {
+    const c = new URLSearchParams(location.search).get('c')
+    return (
+      <div className="stakes">
+        <OpenInNimiqPay challengeId={c ?? undefined} />
+      </div>
     )
   }
 
