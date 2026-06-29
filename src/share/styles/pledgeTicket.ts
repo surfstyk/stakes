@@ -4,7 +4,7 @@
 
 import { theme, copy } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
-import { drawAvatar, drawLines, roundRectPath, wrapText } from '../draw.ts'
+import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
 
 const C = theme.color
@@ -233,7 +233,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   y += s(96)
   ctx.fillStyle = perfect ? C.go : C.ink
   ctx.font = `700 ${s(150)}px ${DISPLAY}`
-  const payStr = `${d.payout} ${d.asset}`
+  const payStr = `${fmtAmount(d.payout)} ${d.asset}`
   ctx.fillText(payStr, px, y)
   ctx.fillStyle = C.inkSoft
   ctx.font = `600 ${s(40)}px ${UI}`

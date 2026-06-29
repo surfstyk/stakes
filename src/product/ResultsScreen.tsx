@@ -3,16 +3,12 @@ import { copy } from '../brand/index.ts'
 import { Confetti } from './Confetti.tsx'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
-import { ShareComposer } from '../share/index.ts'
+import { ShareComposer, fmtAmount } from '../share/index.ts'
 import type { ResultsCardData } from '../share/index.ts'
 import { computeSettlement, type ParticipantPayout } from '../vault/settlement.ts'
 import { avatarColor, buildResults, getChallenge, getMyAddress, initials, nameFor, type ChallengeRecord } from './store.ts'
 
 const NIM_BONUS = 10 // sponsor/treasury-funded completion bonus (matches the backend)
-
-function fmt(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(2)
-}
 
 export function ResultsScreen({
   challengeId,
@@ -120,7 +116,7 @@ export function ResultsScreen({
       </ul>
 
       <div className="s-card s-center" style={{ marginTop: 14 }}>
-        <div style={{ fontWeight: 800 }}>{copy.results.burnedSummary(fmt(settlement.burnedPot), rec.asset)}</div>
+        <div style={{ fontWeight: 800 }}>{copy.results.burnedSummary(fmtAmount(settlement.burnedPot), rec.asset)}</div>
         <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 2 }}>
           {copy.results.burnedSub(finishers.length)}
         </div>
@@ -167,10 +163,10 @@ function BoardRow({
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>
-          {fmt(r.payout)} {asset}
+          {fmtAmount(r.payout)} {asset}
         </div>
         {r.forfeited > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--stake)' }}>{copy.results.burnedTag(fmt(r.forfeited))}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--stake)' }}>{copy.results.burnedTag(fmtAmount(r.forfeited))}</div>
         )}
       </div>
     </li>
