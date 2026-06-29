@@ -29,12 +29,30 @@ export function isRealMoney(): boolean {
 }
 
 /**
- * The exact (and only) situation where the silent-mock-stake trap exists: real funds are
- * on the line AND we're not inside Nimiq Pay. When true, the app shell shows the
- * "Open in Nimiq Pay" gate instead of any normal screen.
+ * Resolve whether we're inside Nimiq Pay, allowing a short grace window for the host to
+ * inject `window.nimiqPay` / `window.nimiq`.
+ *
+ * The host is supposed to seed these synchronously before our script runs — and iOS does —
+ * but on Android the injection lands a beat AFTER our first render. Deciding synchronously
+ * there made us wrongly show the "Open in Nimiq Pay" gate *inside* Nimiq Pay, looping the
+ * user (gate → tap → already inside → gate). So we poll (like the SDK's own init()) and
+ * only conclude "outside" after `graceMs` with neither global present. Resolves true the
+ * instant either appears.
  */
-export function mustOpenInNimiqPay(): boolean {
-  return isRealMoney() && !isInsideNimiqPay()
+export function awaitInsideNimiqPay(graceMs = 1500): Promise<boolean> {
+  if (isInsideNimiqPay()) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    const start = Date.now()
+    const t = setInterval(() => {
+      if (isInsideNimiqPay()) {
+        clearInterval(t)
+        resolve(true)
+      } else if (Date.now() - start >= graceMs) {
+        clearInterval(t)
+        resolve(false)
+      }
+    }, 50)
+  })
 }
 
 /** Official page to install Nimiq Pay (routes to the right store for iOS/Android). */
