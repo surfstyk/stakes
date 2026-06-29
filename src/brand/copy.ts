@@ -40,6 +40,20 @@ export const copy = {
     foot: 'A commitment game built on trust, not surveillance.',
   },
 
+  // "Open in Nimiq Pay" gate — shown when a real-money build is opened OUTSIDE Nimiq Pay
+  // (e.g. an invite link tapped in a normal browser). Routes the user into Nimiq Pay so
+  // their real wallet + real stake are in play, instead of silently mock-staking.
+  gate: {
+    kicker: 'One quick step',
+    h1: { lead: 'Open in ', em: 'Nimiq Pay' } as Headline,
+    sub: 'This is where your wallet lives — and where your stake is real. Tap below to continue inside Nimiq Pay.',
+    invitedKicker: (creator: string) => `${creator} dared you in`,
+    invitedSub: 'Your wallet — and the real stake — live inside Nimiq Pay. Open it there to join.',
+    open: 'Open in Nimiq Pay →',
+    get: "Don't have it? Get Nimiq Pay",
+    foot: 'A commitment game built on trust, not surveillance.',
+  },
+
   create: {
     resumeGo: 'Resume →',
     kicker: 'New challenge',
