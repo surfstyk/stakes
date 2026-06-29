@@ -6,10 +6,11 @@ import { ProgressScreen } from './product/ProgressScreen.tsx'
 import { ResultsScreen } from './product/ResultsScreen.tsx'
 import { WelcomeScreen } from './product/WelcomeScreen.tsx'
 import { OpenInNimiqPay } from './product/OpenInNimiqPay.tsx'
+import { Loading } from './product/Loading.tsx'
 import { hasSeenWelcome, isTestMode, markWelcomeSeen, setTestMode } from './product/store.ts'
 import { brand, copy } from './brand/index.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
-import { mustOpenInNimiqPay } from './lib/context.ts'
+import { awaitInsideNimiqPay, isInsideNimiqPay, isRealMoney } from './lib/context.ts'
 
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product. The
 // inline DEV_TOOLS literal lets the bundler drop the recon chunk entirely in the public build.
@@ -52,6 +53,12 @@ export function App() {
   const [view, setView] = useState<View>(readView)
   const [testMode, setTestModeState] = useState<boolean>(() => isTestMode())
   const [seenWelcome, setSeenWelcome] = useState<boolean>(() => hasSeenWelcome())
+  // The "Open in Nimiq Pay" gate decision. Mock builds are never gated; a real-money build
+  // that already sees the host is OK immediately; otherwise we wait briefly for injection
+  // (Android seeds the provider a beat after first render) before concluding we're outside.
+  const [gate, setGate] = useState<'checking' | 'gate' | 'ok'>(() =>
+    !isRealMoney() || isInsideNimiqPay() ? 'ok' : 'checking',
+  )
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -64,6 +71,17 @@ export function App() {
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+
+  useEffect(() => {
+    if (gate !== 'checking') return
+    let alive = true
+    awaitInsideNimiqPay().then((inside) => {
+      if (alive) setGate(inside ? 'ok' : 'gate')
+    })
+    return () => {
+      alive = false
+    }
+  }, [gate])
 
   function go(v: View) {
     setView(v)
@@ -85,7 +103,16 @@ export function App() {
   // against the mock vault under a throwaway identity — the trap that quietly killed the
   // loop. Mock/dev builds have no funds at risk, so they stay clickable in a plain browser.
   // (Recon, a dev diagnostic, is handled above so it stays reachable for debugging.)
-  if (mustOpenInNimiqPay()) {
+  // `checking` = waiting on provider injection (see the grace-period note) — show a spinner,
+  // not the gate, so we never flash the gate inside Nimiq Pay while the host is still wiring up.
+  if (gate === 'checking') {
+    return (
+      <div className="stakes">
+        <Loading />
+      </div>
+    )
+  }
+  if (gate === 'gate') {
     const c = new URLSearchParams(location.search).get('c')
     return (
       <div className="stakes">
