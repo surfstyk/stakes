@@ -4,7 +4,7 @@
 
 import { brand } from '../../brand/index.ts'
 import { initials } from '../../product/store.ts'
-import { drawAvatar, drawLines, roundRectPath, wrapText } from '../draw.ts'
+import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
 
 const UI = 'Hanken Grotesk'
@@ -145,7 +145,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   // payout pill
   y += s(60)
   ctx.font = `900 ${s(58)}px ${UI}`
-  const payTxt = `${d.payout} ${d.asset} BACK`
+  const payTxt = `${fmtAmount(d.payout)} ${d.asset} BACK`
   const tw = ctx.measureText(payTxt).width
   const padX = s(48)
   const pillH = s(120)

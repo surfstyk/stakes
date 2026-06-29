@@ -1,6 +1,13 @@
 // Canvas drawing helpers shared by every card style. Resolution-independent: pass
 // already-scaled values in. Keep this dependency-free so styles stay portable.
 
+/** Format a NIM amount for display: whole numbers stay clean (35), fractions round to
+ *  2 dp (16.6666… → 16.67). Shared by the card renderers and the results screen so an
+ *  amount reads the same everywhere — no raw 16.6666666666 on the share card. */
+export function fmtAmount(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
+}
+
 export function roundRectPath(
   ctx: CanvasRenderingContext2D,
   x: number,

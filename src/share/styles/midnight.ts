@@ -3,7 +3,7 @@
 
 import { brand } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
-import { drawAvatar, drawLines, wrapText } from '../draw.ts'
+import { drawAvatar, drawLines, fmtAmount, wrapText } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
 
 const UI = 'Hanken Grotesk'
@@ -161,7 +161,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   y += s(110)
   ctx.fillStyle = perfect ? MINT : FG
   ctx.font = `700 ${s(150)}px ${DISPLAY}`
-  ctx.fillText(`${d.payout} ${d.asset}`, px, y)
+  ctx.fillText(`${fmtAmount(d.payout)} ${d.asset}`, px, y)
   ctx.fillStyle = FAINT
   ctx.font = `600 ${s(40)}px ${UI}`
   ctx.fillText('back in your pocket', px, y + s(58))
