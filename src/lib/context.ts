@@ -29,30 +29,42 @@ export function isRealMoney(): boolean {
 }
 
 /**
- * Resolve whether we're inside Nimiq Pay, allowing a short grace window for the host to
- * inject `window.nimiqPay` / `window.nimiq`.
+ * Watch for the Nimiq Pay host to appear, calling `onInside()` the instant
+ * `window.nimiqPay` / `window.nimiq` shows up (immediately if already present).
  *
- * The host is supposed to seed these synchronously before our script runs — and iOS does —
- * but on Android the injection lands a beat AFTER our first render. Deciding synchronously
- * there made us wrongly show the "Open in Nimiq Pay" gate *inside* Nimiq Pay, looping the
- * user (gate → tap → already inside → gate). So we poll (like the SDK's own init()) and
- * only conclude "outside" after `graceMs` with neither global present. Resolves true the
- * instant either appears.
+ * Why a *watcher* and not a one-shot timeout: the host is supposed to seed those globals
+ * synchronously before our script runs — iOS does — but on Android they land a beat later,
+ * and worse, if Nimiq Pay throws up its **passcode-unlock** screen on launch the provider
+ * isn't injected until the user finishes unlocking (which can take many seconds). A fixed
+ * grace window can't cover that, so we keep watching indefinitely — via a poll AND the
+ * visibility/focus/pageshow events that fire when the user returns from the lock screen —
+ * so the gate SELF-HEALS into the app instead of dead-ending and forcing a re-tap.
+ *
+ * Returns a cleanup function. Pair this with a short grace timer (see App) that shows the
+ * gate for genuine browsers, where the host never appears.
  */
-export function awaitInsideNimiqPay(graceMs = 1500): Promise<boolean> {
-  if (isInsideNimiqPay()) return Promise.resolve(true)
-  return new Promise((resolve) => {
-    const start = Date.now()
-    const t = setInterval(() => {
-      if (isInsideNimiqPay()) {
-        clearInterval(t)
-        resolve(true)
-      } else if (Date.now() - start >= graceMs) {
-        clearInterval(t)
-        resolve(false)
-      }
-    }, 50)
-  })
+export function watchInsideNimiqPay(onInside: () => void): () => void {
+  if (isInsideNimiqPay()) {
+    onInside()
+    return () => {}
+  }
+  function check() {
+    if (isInsideNimiqPay()) {
+      stop()
+      onInside()
+    }
+  }
+  function stop() {
+    clearInterval(poll)
+    document.removeEventListener('visibilitychange', check)
+    window.removeEventListener('focus', check)
+    window.removeEventListener('pageshow', check)
+  }
+  const poll = setInterval(check, 250)
+  document.addEventListener('visibilitychange', check)
+  window.addEventListener('focus', check)
+  window.addEventListener('pageshow', check)
+  return stop
 }
 
 /** Official page to install Nimiq Pay (routes to the right store for iOS/Android). */

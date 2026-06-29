@@ -10,7 +10,7 @@ import { Loading } from './product/Loading.tsx'
 import { hasSeenWelcome, isTestMode, markWelcomeSeen, setTestMode } from './product/store.ts'
 import { brand, copy } from './brand/index.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
-import { awaitInsideNimiqPay, isInsideNimiqPay, isRealMoney } from './lib/context.ts'
+import { isInsideNimiqPay, isRealMoney, watchInsideNimiqPay } from './lib/context.ts'
 
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product. The
 // inline DEV_TOOLS literal lets the bundler drop the recon chunk entirely in the public build.
@@ -73,15 +73,19 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (gate !== 'checking') return
-    let alive = true
-    awaitInsideNimiqPay().then((inside) => {
-      if (alive) setGate(inside ? 'ok' : 'gate')
-    })
+    // Mock build or host already present → nothing to do (initial state is 'ok').
+    if (!isRealMoney() || isInsideNimiqPay()) return
+    // Show the gate for genuine browsers after a short grace…
+    const grace = setTimeout(() => setGate((g) => (g === 'checking' ? 'gate' : g)), 1500)
+    // …but keep watching: if the host appears later (Android injection lag, or the user
+    // finishing the Nimiq Pay passcode-unlock), auto-advance INTO the app — gate self-heals,
+    // no re-tap. `setGate('ok')` wins over the grace timer's checking→gate.
+    const stop = watchInsideNimiqPay(() => setGate('ok'))
     return () => {
-      alive = false
+      clearTimeout(grace)
+      stop()
     }
-  }, [gate])
+  }, [])
 
   function go(v: View) {
     setView(v)
