@@ -71,17 +71,22 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         </>
       )}
 
-      <div className="s-spacer" />
-      <button className="s-cta" data-variant="go" onClick={() => openInNimiqPay()}>
+      {/* reassurance — defuse the fear before the cross-over (no jargon) */}
+      <div className="gate-trust">
+        <ShieldCheck />
+        {copy.join.guarantee}
+      </div>
+      <button className="s-cta s-cta--share" data-variant="go" onClick={() => openInNimiqPay()}>
         {g.open}
       </button>
-      <div style={{ height: 10 }} />
+      {/* gently pre-empt Nimiq Pay's first-access confirm + unlock so it doesn't feel broken */}
+      <p className="gate-reassure">{g.reassure}</p>
       <a
         className="s-ghost"
         href={NIMIQ_PAY_INSTALL_URL}
         target="_blank"
         rel="noopener noreferrer"
-        style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}
+        style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 12 }}
       >
         {g.get}
       </a>
@@ -89,5 +94,14 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         {g.foot}
       </p>
     </motion.div>
+  )
+}
+
+function ShieldCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2l7 3v6c0 4.5-3 8.3-7 9.5C8 19.3 5 15.5 5 11V5l7-3z" stroke="var(--ink-soft)" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M9 11.5l2 2 4-4.5" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

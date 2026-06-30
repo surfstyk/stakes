@@ -1816,3 +1816,26 @@ textarea.s-field {
     display: none;
   }
 }
+
+/* ---- gate: reassurance strip + expectation note ---------------------------- */
+.gate-trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 20px auto 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.gate-trust svg {
+  display: block;
+}
+.gate-reassure {
+  text-align: center;
+  margin: 12px auto 0;
+  max-width: 32ch;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}

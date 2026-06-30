@@ -46,10 +46,11 @@ export const copy = {
   gate: {
     kicker: 'One quick step',
     h1: { lead: 'Open in ', em: 'Nimiq Pay' } as Headline,
-    sub: 'This is where your wallet lives — and where your stake is real. Tap below to continue inside Nimiq Pay.',
+    sub: 'Stakes runs inside Nimiq Pay — tap to open it and you’re in.',
     invitedKicker: (creator: string) => `${creator} dared you in`,
-    invitedSub: 'Your wallet — and the real stake — live inside Nimiq Pay. Open it there to join.',
+    invitedSub: 'Open it in Nimiq Pay to lock in your spot.',
     open: 'Open in Nimiq Pay →',
+    reassure: 'First time? Nimiq Pay may ask you to confirm — that’s normal.',
     get: "Don't have it? Get Nimiq Pay",
     foot: 'A commitment game built on trust, not surveillance.',
   },
