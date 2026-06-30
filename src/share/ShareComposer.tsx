@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { brand } from '../brand/index.ts'
 import { renderCard } from './renderCard.ts'
 import { CARD_STYLES, lastStyleId, rememberStyle } from './registry.ts'
 import { canvasToPngUrl, copyText, shareImageNative } from './shareCard.ts'
@@ -68,6 +69,16 @@ export function ShareComposer({
     if (shared) {
       shared.catch((e: unknown) => {
         // user cancelled the sheet → nothing to do; anything else → in-app fallback
+        if ((e as { name?: string })?.name !== 'AbortError') openFallback(c)
+      })
+      return
+    }
+    // No file sharing (e.g. Android WebView, where long-press-to-save also fails): share
+    // the caption + link via the system sheet instead — text/url sharing works there and
+    // the link is the viral payload. Must stay in the gesture, so call share() right here.
+    const nav = navigator as Navigator & { share?: (data?: ShareData) => Promise<void> }
+    if (nav.share) {
+      nav.share({ title: brand.name, text: shareText, url: shareUrl }).catch((e: unknown) => {
         if ((e as { name?: string })?.name !== 'AbortError') openFallback(c)
       })
       return
