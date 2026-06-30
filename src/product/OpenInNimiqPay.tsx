@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
+import { PledgeTicket } from './PledgeTicket.tsx'
 import { NIMIQ_PAY_INSTALL_URL, openInNimiqPay } from '../lib/context.ts'
 import { getChallenge, type ChallengeRecord } from './store.ts'
 
@@ -49,21 +50,10 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
           <p className="s-kicker" style={{ marginTop: 20 }}>
             {g.invitedKicker(rec.creatorName)}
           </p>
-          {/* compact pledge preview — mirrors JoinScreen's PledgeMini so the invitee sees
-              exactly what they're being pulled into before crossing into Nimiq Pay */}
-          <div className="pledge" style={{ padding: '20px 22px', margin: '6px auto 0', maxWidth: 360 }}>
-            <div className="pledge-emoji" style={{ marginTop: 0, fontSize: 34 }}>
-              {rec.emoji}
-            </div>
-            <h2 className="pledge-goal" style={{ fontSize: 24 }}>
-              <em>{rec.goal}</em> {copy.cards.pledgeForDays(rec.durationDays)}
-            </h2>
-            <div className="pledge-stake">
-              <span className="amt">
-                {rec.stake} {rec.asset}
-              </span>{' '}
-              <span className="lbl">{copy.join.miniToPlay}</span>
-            </div>
+          {/* the real pledge ticket — the same artifact they saw shared and will meet again
+              on the Join screen, so the invitee sees exactly what they're crossing over for */}
+          <div className="stage">
+            <PledgeTicket rec={rec} />
           </div>
           <p className="s-sub" style={{ margin: '14px auto 6px' }}>
             {g.invitedSub}

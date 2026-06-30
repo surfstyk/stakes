@@ -76,37 +76,47 @@ export const copy = {
 
   pledged: {
     kicker: 'Your pledge is live',
-    h1: { lead: 'Now go ', em: 'post it.' } as Headline,
-    sub: 'The first friend who taps in starts your week. This card is the invite.',
+    h1: { lead: 'Now go ', em: 'show', tail: ' them.' } as Headline,
+    sub: 'The first friend who taps in starts your week.',
     share: 'Share to your story',
     shareCopied: 'Link copied ✓',
-    invite: 'Invite a friend (send link)',
-    inviteCopied: 'Invite link copied ✓',
+    inviteLead: 'Rather just send the link?',
+    invite: 'Copy invite',
+    inviteCopied: 'Copied ✓',
     goChallenge: 'Go to the challenge →',
     preview: 'Preview what friends see',
   },
 
   join: {
     kickerDared: (creator: string) => `${creator} dared you in`,
-    h1: { lead: 'Are you ', em: 'in?' } as Headline,
+    h1Lead: "Money's on the line.",
+    h1: { lead: 'Are ', em: 'you', tail: ' in?' } as Headline,
+    sub: 'Match the stake to join the week. Show up daily, get it all back.',
     whosInOne: (a: string) => `${a} is in`,
     whosInTwo: (a: string, b: string) => `${a} & ${b} are in`,
     whosInMany: (a: string, b: string, extra: number) => `${a}, ${b} +${extra} are in`,
+    crewRunning: "the crew's already running",
     stakingLine: (n: number, stake: number, asset: Asset) =>
       `${n} ${n === 1 ? 'person' : 'people'} staking ${stake} ${asset}`,
     countdown: 'Doors close in',
     miniToPlay: 'to play',
     nameLabel: 'Join as',
     namePlaceholder: 'your first name',
-    cta: (stake: number, asset: Asset) => `Stake ${stake} ${asset} & join`,
+    cta: (stake: number, asset: Asset) => `Put ${stake} ${asset} in — I'm in`,
     ctaBusy: 'Locking it in…',
+    guarantee: 'Free to move · held safe · back in your pocket',
+    heldSafe: (stake: number, asset: Asset) =>
+      `Your ${stake} ${asset} is held safe until the week's up. Keep every day and it all comes back.`,
     foothint: 'You get it all back if you finish the week.',
 
-    joinedKicker: "You're in",
-    joinedH1: 'See you Monday.',
-    joinedSub: (stake: number, asset: Asset, whosIn: string) =>
-      `${stake} ${asset} locked. ${whosIn}. Now drag a friend in — the more people watching, the harder it is to quit.`,
+    joinedKicker: "You're locked in",
+    joinedH1: { lead: "You're ", em: 'in', tail: '.' } as Headline,
+    joinedSub: (stake: number, asset: Asset) =>
+      `${stake} ${asset} on the line — and the crew's watching now.`,
+    youMake: (n: number) => `You make ${n}`,
+    reshareQuote: 'The more people watching, the harder it is to quit.',
     pullFriend: 'Pull in a friend',
+    later: 'Maybe later — take me to my week',
     goChallenge: 'Go to the challenge →',
 
     closedH1: 'Doors closed on this one.',
@@ -195,5 +205,10 @@ export const copy = {
     pledgeStamp: 'PLEDGED',
     pledgeStampSub: 'WATCH ME',
     pledgeFoot: 'hold me to it 🤞',
+    // DOM pledge ticket (PledgeTicket.tsx)
+    ticketSignedBy: 'Signed by',
+    ticketSealed: 'Sealed',
+    ticketCta: { lead: 'Doors are open — ', em: 'tap in', tail: ' 👀' } as Headline,
+    lockedIn: '· Locked in ·',
   },
 }

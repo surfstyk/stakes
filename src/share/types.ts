@@ -9,6 +9,8 @@ export type CardKind = 'pledge' | 'results'
 
 export interface PledgeCardData {
   kind: 'pledge'
+  id: string // challenge id → the ticket "No." (cosmetic, stable)
+  createdAt: number // → the "sealed" date
   emoji: string
   goal: string
   durationDays: number
@@ -20,6 +22,8 @@ export interface PledgeCardData {
 
 export interface ResultsCardData {
   kind: 'results'
+  id: string
+  createdAt: number
   emoji: string
   goal: string
   durationDays: number

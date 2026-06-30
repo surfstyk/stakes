@@ -71,6 +71,8 @@ export function ResultsScreen({
   const cardData: ResultsCardData | null = mine
     ? {
         kind: 'results',
+        id: rec.id,
+        createdAt: rec.createdAt,
         emoji: rec.emoji,
         goal: rec.goal,
         durationDays: rec.durationDays,

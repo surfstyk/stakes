@@ -97,6 +97,10 @@ export function ShareComposer({
         <canvas ref={mainRef} className="composer-canvas" />
       </div>
 
+      <div className="picker-head">
+        <span className="picker-lbl">Try a different look</span>
+        <span className="picker-hint">tap to flip ↺</span>
+      </div>
       <div className="composer-styles" role="radiogroup" aria-label="Card style">
         {CARD_STYLES.map((st) => (
           <button
@@ -114,7 +118,11 @@ export function ShareComposer({
         ))}
       </div>
 
-      <button className="s-cta" onClick={onShare}>
+      <button className="s-cta s-cta--share" onClick={onShare}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3v12M12 3L7.5 7.5M12 3l4.5 4.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M5 13v5a2 2 0 002 2h10a2 2 0 002-2v-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
         {cta}
       </button>
     </div>

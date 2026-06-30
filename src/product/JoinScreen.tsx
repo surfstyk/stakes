@@ -3,13 +3,25 @@ import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
+import { PledgeTicket } from './PledgeTicket.tsx'
 import {
   avatarColor,
   getChallenge,
+  getMyName,
   initials,
   joinChallenge,
   type ChallengeRecord,
 } from './store.ts'
+
+/** Compact countdown: "6h 23m" while hours remain, "04m 12s" inside the last hour. */
+function fmtLeft(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`
+  return `${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`
+}
 
 function useCountdown(target: number): { text: string; over: boolean } {
   const [now, setNow] = useState(Date.now())
@@ -18,14 +30,10 @@ function useCountdown(target: number): { text: string; over: boolean } {
     return () => clearInterval(t)
   }, [])
   const ms = target - now
-  if (ms <= 0) return { text: '0h 0m 0s', over: true }
-  const h = Math.floor(ms / 3600_000)
-  const m = Math.floor((ms % 3600_000) / 60_000)
-  const s = Math.floor((ms % 60_000) / 1000)
-  return { text: `${h}h ${m}m ${s}s`, over: false }
+  return { text: fmtLeft(ms), over: ms <= 0 }
 }
 
-function Avatars({ names }: { names: string[] }) {
+function Avatars({ names, extraLabel = true }: { names: string[]; extraLabel?: boolean }) {
   const shown = names.slice(0, 4)
   const extra = names.length - shown.length
   return (
@@ -35,7 +43,7 @@ function Avatars({ names }: { names: string[] }) {
           {initials(n)}
         </span>
       ))}
-      {extra > 0 && <span className="s-av more">+{extra}</span>}
+      {extraLabel && extra > 0 && <span className="s-av more">+{extra}</span>}
     </div>
   )
 }
@@ -44,6 +52,24 @@ function whosInLine(names: string[]): string {
   if (names.length === 1) return copy.join.whosInOne(names[0])
   if (names.length === 2) return copy.join.whosInTwo(names[0], names[1])
   return copy.join.whosInMany(names[0], names[1], names.length - 2)
+}
+
+async function shareInvite(rec: ChallengeRecord) {
+  const url = `${location.origin}${location.pathname}?c=${rec.id}`
+  const text = copy.share.joined(rec.creatorName, rec.emoji)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: brand.name, text, url })
+      return
+    } catch {
+      /* cancelled / unsupported → fall through */
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+  } catch {
+    /* ignore */
+  }
 }
 
 export function JoinScreen({
@@ -57,7 +83,10 @@ export function JoinScreen({
 }) {
   const [rec, setRec] = useState<ChallengeRecord | null>(null)
   const [loading, setLoading] = useState(true)
-  const [name, setName] = useState('')
+  // Pre-fill from a prior session; only ask for a name if we don't already know one.
+  const known = getMyName()
+  const [name, setName] = useState(known === 'You' ? '' : known)
+  const askName = known === 'You'
   const [busy, setBusy] = useState(false)
   const [joined, setJoined] = useState(false)
   const countdown = useCountdown(rec?.lockAt ?? 0)
@@ -96,52 +125,45 @@ export function JoinScreen({
 
   const names = rec.participants.map((p) => p.name)
 
-  // ---- joined confirmation ----
+  // ---- joined confirmation ("you're in") ----
   if (joined) {
     return (
-      <div className="s-confirm">
-        <motion.div
-          className="s-seal"
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 14 }}
-        >
-          🤝
-        </motion.div>
-        <p className="s-kicker" style={{ color: 'var(--go)' }}>
+      <section className="confirm">
+        <div className="confirm-seal-stage">
+          <div className="confirm-dust" aria-hidden="true" />
+          <div className="big-seal" aria-hidden="true">
+            <span className="e">{copy.cards.pledgeStamp}</span>
+            <span className="t">{copy.cards.lockedIn}</span>
+          </div>
+        </div>
+
+        <p className="confirm-kick reveal d1" style={{ color: 'var(--go)' }}>
           {copy.join.joinedKicker}
         </p>
-        <h1 className="s-h1">{copy.join.joinedH1}</h1>
-        <p className="s-sub" style={{ margin: '0 auto 22px' }}>
-          {copy.join.joinedSub(rec.stake, rec.asset, whosInLine(names))}
+        <Headline h={copy.join.joinedH1} className="s-h1 s-h1-go confirm-h1 reveal d1" />
+        <p className="s-sub reveal d2" style={{ margin: '12px auto 0', textAlign: 'center' }}>
+          {copy.join.joinedSub(rec.stake, rec.asset)}
         </p>
-        <button
-          className="s-cta"
-          onClick={async () => {
-            const url = `${location.origin}${location.pathname}?c=${rec.id}`
-            const text = copy.share.joined(rec.creatorName, rec.emoji)
-            if (navigator.share) {
-              try {
-                await navigator.share({ title: brand.name, text, url })
-                return
-              } catch {
-                /* fall through */
-              }
-            }
-            try {
-              await navigator.clipboard.writeText(url)
-            } catch {
-              /* ignore */
-            }
-          }}
-        >
-          {copy.join.pullFriend}
-        </button>
-        <div className="s-spacer" />
-        <button className="s-ghost" onClick={() => onEnter(rec.id)}>
-          {copy.join.goChallenge}
-        </button>
-      </div>
+
+        <div className="crew-line reveal d3">
+          <Avatars names={names} extraLabel={false} />
+          <span className="txt">{copy.join.youMake(names.length)}</span>
+        </div>
+
+        <div className="reshare-card reveal d4">
+          <div className="quote">“{copy.join.reshareQuote}”</div>
+        </div>
+
+        <div className="s-sticky">
+          <button className="s-cta s-cta--share" onClick={() => shareInvite(rec)}>
+            <ShareIcon />
+            {copy.join.pullFriend}
+          </button>
+          <button className="later" onClick={() => onEnter(rec.id)}>
+            {copy.join.later}
+          </button>
+        </div>
+      </section>
     )
   }
 
@@ -179,63 +201,90 @@ export function JoinScreen({
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <p className="s-kicker">{copy.join.kickerDared(rec.creatorName)}</p>
-      <Headline h={copy.join.h1} />
+      {/* the hook */}
+      <div className="hook">
+        <div className="darer">
+          <span className="face" style={{ background: avatarColor(rec.creatorName) }}>
+            {initials(rec.creatorName)}
+          </span>
+          <span className="kick">{copy.join.kickerDared(rec.creatorName)}</span>
+        </div>
+        <h1 className="s-h1 hook-h1">
+          <span className="hook-h1-lead">{copy.join.h1Lead}</span>
+          {copy.join.h1.lead}
+          <em>{copy.join.h1.em}</em>
+          {copy.join.h1.tail}
+        </h1>
+        <p className="s-sub hook-sub">{copy.join.sub}</p>
+      </div>
 
-      <div className="s-spacer" />
-      <PledgeMini rec={rec} />
-
-      <div className="s-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* social proof — loud, high */}
+      <div className="proof">
         <Avatars names={names} />
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 14 }}>{whosInLine(names)}</div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
-            {copy.join.stakingLine(names.length, rec.stake, rec.asset)}
-          </div>
+        <div className="proof-txt">
+          {whosInLine(names)}
+          <span>{copy.join.crewRunning}</span>
         </div>
       </div>
 
-      <div className="s-spacer" />
-      <div className="s-count">
-        <span className="pulse" />
-        {copy.join.countdown}&nbsp;<span className="nums">{countdown.text}</span>
+      {/* the clock — the engine, the one vermilion thing */}
+      <div className="clock" role="timer" aria-label={`${copy.join.countdown} ${countdown.text}`}>
+        <span className="dot" />
+        <span className="clock-lbl">{copy.join.countdown}</span>
+        <span className="clock-time">{countdown.text}</span>
       </div>
 
-      <p className="s-label">{copy.join.nameLabel}</p>
-      <input
-        className="s-field"
-        placeholder={copy.join.namePlaceholder}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        maxLength={18}
-      />
+      {/* the real artifact — continuity with the shared card */}
+      <div className="stage">
+        <PledgeTicket rec={rec} />
+      </div>
+
+      <p className="fine">{copy.join.heldSafe(rec.stake, rec.asset)}</p>
+
+      {askName && (
+        <>
+          <p className="s-label">{copy.join.nameLabel}</p>
+          <input
+            className="s-field"
+            placeholder={copy.join.namePlaceholder}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={18}
+          />
+        </>
+      )}
 
       <div className="s-sticky">
+        <div className="clock-echo" aria-hidden="true">
+          <span className="dot" />
+          {copy.join.countdown} <span>{countdown.text}</span>
+        </div>
         <button className="s-cta" data-variant="go" disabled={busy} onClick={join}>
           {busy ? copy.join.ctaBusy : copy.join.cta(rec.stake, rec.asset)}
         </button>
-        <p className="s-foothint">{copy.join.foothint}</p>
+        <div className="join-meta">
+          <ShieldCheck />
+          {copy.join.guarantee}
+        </div>
       </div>
     </motion.div>
   )
 }
 
-// compact pledge summary for the join screen
-function PledgeMini({ rec }: { rec: ChallengeRecord }) {
+function ShareIcon() {
   return (
-    <div className="pledge" style={{ padding: '20px 22px' }}>
-      <div className="pledge-emoji" style={{ marginTop: 0, fontSize: 34 }}>
-        {rec.emoji}
-      </div>
-      <h2 className="pledge-goal" style={{ fontSize: 24 }}>
-        <em>{rec.goal}</em> {copy.cards.pledgeForDays(rec.durationDays)}
-      </h2>
-      <div className="pledge-stake">
-        <span className="amt">
-          {rec.stake} {rec.asset}
-        </span>{' '}
-        <span className="lbl">{copy.join.miniToPlay}</span>
-      </div>
-    </div>
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3v12M12 3L7.5 7.5M12 3l4.5 4.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 13v5a2 2 0 002 2h10a2 2 0 002-2v-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ShieldCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2l7 3v6c0 4.5-3 8.3-7 9.5C8 19.3 5 15.5 5 11V5l7-3z" stroke="var(--ink-soft)" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M9 11.5l2 2 4-4.5" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

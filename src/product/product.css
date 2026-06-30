@@ -1027,3 +1027,792 @@ textarea.s-field {
   gap: 20px;
   margin-top: 14px;
 }
+
+/* ============================================================================
+   Brand UX pass — Join + Share (DOM pledge ticket · hook · clock · confirm)
+   Ported from the desktop comps. Reuses the tokens at the top of this file.
+   ============================================================================ */
+
+/* ---- shared: green-accent headline + share-button sheen -------------------- */
+.s-h1-go em {
+  color: var(--go);
+}
+.s-cta--share {
+  position: relative;
+  overflow: hidden;
+}
+.s-cta--share::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -45%;
+  width: 36%;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+  animation: sheen 3.8s ease-in-out 1.6s infinite;
+}
+@keyframes sheen {
+  0% {
+    left: -45%;
+  }
+  24% {
+    left: 135%;
+  }
+  100% {
+    left: 135%;
+  }
+}
+
+/* ---- hype frame (share screen) + live kicker ------------------------------- */
+.hype {
+  text-align: center;
+  padding: 2px 6px 16px;
+}
+.hype-h1 {
+  text-align: center;
+}
+.hype-sub {
+  margin: 11px auto 0;
+  text-align: center;
+}
+.live-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stake);
+  margin-bottom: 10px;
+}
+.live-kicker .pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--stake);
+  animation: pulse-ring 1.9s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 45, 6, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(239, 45, 6, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 45, 6, 0);
+  }
+}
+
+/* ---- share: bigger card stage + demoted invite + picker head --------------- */
+.composer-stage {
+  max-width: 248px;
+}
+.picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 2px 10px;
+}
+.picker-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.picker-hint {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.invite-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.invite-row button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1.5px solid var(--line-strong);
+  padding: 0 0 1px;
+  line-height: 1.1;
+}
+.invite-row button:active {
+  opacity: 0.6;
+}
+
+/* ---- join: the hook -------------------------------------------------------- */
+.hook {
+  text-align: center;
+  padding: 2px 4px;
+}
+.hook-h1 {
+  text-align: center;
+  font-size: clamp(25px, 7vw, 32px);
+  line-height: 1.05;
+}
+.hook-h1-lead {
+  display: block;
+}
+.hook-sub {
+  margin: 10px auto 0;
+  text-align: center;
+}
+.darer {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+.darer .face {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 4px 10px -3px rgba(28, 24, 19, 0.4);
+}
+.darer .kick {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stake);
+}
+
+/* ---- join: social proof pill ----------------------------------------------- */
+.proof {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px auto 0;
+  width: max-content;
+  max-width: 100%;
+  background: var(--paper-card);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 18px 9px 12px;
+  box-shadow: var(--shadow-card);
+}
+.proof .s-av {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  margin-left: -11px;
+  border-color: var(--paper-card);
+}
+.proof .s-av:first-child {
+  margin-left: 0;
+}
+.proof-txt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  text-align: left;
+}
+.proof-txt span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--go);
+  letter-spacing: 0.02em;
+}
+
+/* ---- join: the clock (the engine) ------------------------------------------ */
+.clock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 14px auto 2px;
+  width: max-content;
+  max-width: 100%;
+  background: var(--stake-tint);
+  border: 1.5px solid rgba(239, 45, 6, 0.32);
+  border-radius: 999px;
+  padding: 11px 22px;
+}
+.clock .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--stake);
+  animation: pulse-ring 1.7s ease-out infinite;
+}
+.clock-lbl {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stake-deep);
+}
+.clock-time {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 23px;
+  color: var(--stake-deep);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.clock-echo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0 auto 11px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--stake-deep);
+  font-variant-numeric: tabular-nums;
+}
+.clock-echo .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--stake);
+  animation: pulse-ring 1.7s ease-out infinite;
+}
+.clock-echo span {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* ---- join: artifact stage + fineprint + guarantee -------------------------- */
+.stage {
+  padding: 12px 0 2px;
+}
+.fine {
+  text-align: center;
+  margin: 14px auto 0;
+  max-width: 30ch;
+  font-size: 12.5px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.join-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.join-meta svg {
+  display: block;
+}
+
+/* ---- the DOM pledge ticket ------------------------------------------------- */
+.ticket-wrap {
+  width: min(300px, 100%);
+  margin: 0 auto;
+  position: relative;
+  filter: drop-shadow(0 18px 40px rgba(28, 24, 19, 0.26));
+  animation: dropin 0.8s cubic-bezier(0.18, 0.9, 0.22, 1.04) both;
+}
+@keyframes dropin {
+  0% {
+    opacity: 0;
+    transform: translateY(-22px) scale(0.94);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.008);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.ticket {
+  position: relative;
+  background: var(--paper-card);
+  border-radius: 18px;
+}
+.ticket .frame {
+  position: absolute;
+  inset: 9px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 11px;
+  pointer-events: none;
+}
+.ticket .frame::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.tear-line {
+  position: relative;
+  margin: 16px 20px 2px;
+  border-top: 2px dashed var(--line);
+}
+.ticket-inner {
+  position: relative;
+  padding: 20px 22px 0;
+}
+.ticket-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ticket-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.ticket-brand .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--stake);
+  box-shadow: 0 0 0 3.5px var(--stake-tint);
+}
+.ticket-no {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ticket-emoji {
+  font-size: 56px;
+  line-height: 1;
+  text-align: center;
+  margin: 4px 0 12px;
+  filter: drop-shadow(0 6px 10px rgba(28, 24, 19, 0.18));
+}
+.ticket-goal {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--ink);
+}
+.ticket-goal em {
+  font-style: italic;
+  color: var(--stake);
+}
+.ticket-for {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-top: 5px;
+}
+.ticket-stake {
+  text-align: center;
+  margin: 14px 0 2px;
+}
+.ticket-stake .amt {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  color: var(--go);
+  font-variant-numeric: tabular-nums;
+}
+.ticket-stake .lbl {
+  display: block;
+  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ticket-foot {
+  position: relative;
+  padding: 13px 22px 18px;
+}
+.ticket-cta {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.ticket-cta em {
+  font-style: italic;
+  color: var(--stake);
+}
+.ticket-sign {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+.ticket-sign .by {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ticket-sign .name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin-top: 3px;
+}
+.ticket-sign .date {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* rubber-ink stamp (replaces the wax coin) — matte vermilion, pressed on entry */
+.stamp {
+  position: absolute;
+  z-index: 4;
+  right: 18px;
+  top: 60px;
+  width: 96px;
+  height: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--stake);
+  transform: rotate(-11deg);
+  opacity: 0.75;
+  pointer-events: none;
+  -webkit-mask:
+    radial-gradient(circle at 18% 30%, #000 92%, #0006 100%),
+    radial-gradient(120% 120% at 70% 80%, #000 78%, #0000 100%);
+  mask:
+    radial-gradient(circle at 18% 30%, #000 92%, #0006 100%),
+    radial-gradient(120% 120% at 70% 80%, #000 78%, #0000 100%);
+  animation: stampthump 1s cubic-bezier(0.2, 0.7, 0.2, 1.2) 0.5s both;
+}
+.stamp::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--stake);
+  border-radius: 9px;
+  opacity: 0.92;
+}
+.stamp::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--stake);
+  border-radius: 6px;
+  opacity: 0.6;
+}
+.stamp .s-main {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 19px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: scaleX(0.86);
+}
+.stamp .s-sub {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 3px;
+  opacity: 0.9;
+}
+@keyframes stampthump {
+  0% {
+    opacity: 0;
+    transform: rotate(7deg) scale(2.3);
+  }
+  55% {
+    opacity: 0.75;
+    transform: rotate(-14deg) scale(0.88);
+  }
+  72% {
+    transform: rotate(-9deg) scale(1.05);
+  }
+  86% {
+    transform: rotate(-12deg) scale(0.98);
+  }
+  100% {
+    opacity: 0.75;
+    transform: rotate(-11deg) scale(1);
+  }
+}
+
+/* ---- join: "you're in" confirmation ---------------------------------------- */
+.confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 6px;
+}
+.confirm-seal-stage {
+  position: relative;
+  width: 100%;
+  height: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+}
+.big-seal {
+  position: relative;
+  width: 172px;
+  height: 118px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--stake);
+  text-align: center;
+  transform: rotate(-9deg);
+  opacity: 0.8;
+  -webkit-mask:
+    radial-gradient(circle at 22% 26%, #000 90%, #0005 100%),
+    radial-gradient(130% 130% at 70% 84%, #000 78%, #0000 100%);
+  mask:
+    radial-gradient(circle at 22% 26%, #000 90%, #0005 100%),
+    radial-gradient(130% 130% at 70% 84%, #000 78%, #0000 100%);
+  animation: sealthump 1s cubic-bezier(0.2, 0.7, 0.2, 1.2) 0.2s both;
+}
+.big-seal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--stake);
+  border-radius: 14px;
+  opacity: 0.92;
+}
+.big-seal::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid var(--stake);
+  border-radius: 10px;
+  opacity: 0.58;
+}
+.big-seal .e {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 34px;
+  letter-spacing: 0.02em;
+  line-height: 0.9;
+  text-transform: uppercase;
+  transform: scaleX(0.88);
+}
+.big-seal .t {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 6px;
+  opacity: 0.9;
+}
+@keyframes sealthump {
+  0% {
+    opacity: 0;
+    transform: rotate(11deg) scale(2.5);
+  }
+  55% {
+    opacity: 0.8;
+    transform: rotate(-12deg) scale(0.85);
+  }
+  72% {
+    transform: rotate(-6deg) scale(1.06);
+  }
+  86% {
+    transform: rotate(-10deg) scale(0.98);
+  }
+  100% {
+    opacity: 0.8;
+    transform: rotate(-9deg) scale(1);
+  }
+}
+.confirm-dust {
+  position: absolute;
+  width: 150px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 45, 6, 0.2) 0%, rgba(239, 45, 6, 0) 70%);
+  transform: scale(0.2) rotate(-9deg);
+  opacity: 0;
+  animation: dust 0.6s ease-out 0.35s both;
+  pointer-events: none;
+}
+@keyframes dust {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-9deg);
+  }
+  40% {
+    opacity: 0.9;
+    transform: scale(1.05) rotate(-9deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6) rotate(-9deg);
+  }
+}
+.confirm-kick {
+  text-align: center;
+}
+.confirm-h1 {
+  text-align: center;
+  margin-top: 6px;
+}
+.reveal {
+  opacity: 0;
+  animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.reveal.d1 {
+  animation-delay: 0.9s;
+}
+.reveal.d2 {
+  animation-delay: 1.04s;
+}
+.reveal.d3 {
+  animation-delay: 1.2s;
+}
+.reveal.d4 {
+  animation-delay: 1.38s;
+}
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.crew-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 22px auto 0;
+  width: max-content;
+  max-width: 100%;
+  background: var(--paper-card);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  box-shadow: var(--shadow-card);
+}
+.crew-line .s-av {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  margin-left: -10px;
+  border-color: var(--paper-card);
+}
+.crew-line .s-av:first-child {
+  margin-left: 0;
+}
+.crew-line .txt {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.reshare-card {
+  margin: 24px auto 0;
+  width: 100%;
+  background: var(--paper-card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px 18px;
+  text-align: center;
+}
+.reshare-card .quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.32;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.later {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.later:active {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-wrap,
+  .reveal {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .stamp,
+  .big-seal {
+    animation: none !important;
+  }
+  .confirm-dust {
+    display: none;
+  }
+  .clock .dot,
+  .clock-echo .dot,
+  .live-kicker .pulse {
+    animation: none !important;
+  }
+  .s-cta--share::after {
+    display: none;
+  }
+}
