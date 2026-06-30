@@ -174,10 +174,10 @@ export const copy = {
     shareWrap: 'Share the wrap',
     crewLabel: 'The crew',
     you: 'You',
-    burnedSummary: (amt: string, asset: Asset) => `🔥 ${amt} ${asset} burned`,
+    burnedSummary: (amt: string, asset: Asset) => `${amt} ${asset} gone for good`,
     burnedSub: (finishers: number) =>
-      `Removed from circulation. ${finishers} in the perfect-week club.`,
-    burnedTag: (amt: string) => `−${amt} burned`,
+      `Missed days aren't pocketed by anyone. ${finishers} in the perfect-week club.`,
+    burnedTag: (amt: string) => `−${amt} lost`,
     runItBack: 'Run it back →',
     none: 'No results yet.',
     home: 'Home',

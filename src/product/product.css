@@ -1887,3 +1887,8 @@ textarea.s-field {
   font-weight: 700;
   transform: translateY(-8px);
 }
+
+/* ---- Create: live pledge preview ------------------------------------------- */
+.create-preview {
+  margin: 14px auto 6px;
+}

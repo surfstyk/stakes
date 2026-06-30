@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Asset } from '../vault/types.ts'
 import { copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
+import { PledgeTicket, type TicketData } from './PledgeTicket.tsx'
 import {
   TEMPLATES,
   WINDOW_PRESETS,
@@ -37,11 +38,25 @@ export function CreateScreen({
   const [windowPreset, setWindowPreset] = useState<WindowPreset>('tomorrow')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [previewCreatedAt] = useState(() => Date.now())
 
   const template = TEMPLATES.find((t) => t.id === templateId)!
   const isCustom = templateId === 'custom'
   const goal = isCustom ? customGoal.trim() : template.goal
   const canCreate = goal.length > 1
+
+  // Live preview of the pledge being built — the artifact is the product, so show it
+  // forming as you pick goal / stake / days (primes the share, "designing your pledge").
+  const preview: TicketData = {
+    id: 'preview',
+    emoji: template.emoji,
+    goal: goal || 'your goal here',
+    durationDays: days,
+    stake,
+    asset,
+    creatorName: name.trim() || 'You',
+    createdAt: previewCreatedAt,
+  }
 
   async function create() {
     if (busy) return
@@ -88,6 +103,10 @@ export function CreateScreen({
       <p className="s-kicker">{copy.create.kicker}</p>
       <Headline h={copy.create.h1} />
       <p className="s-sub">{copy.create.sub}</p>
+
+      <div className="create-preview">
+        <PledgeTicket rec={preview} />
+      </div>
 
       <div className="s-templates">
         {TEMPLATES.map((t) => (
