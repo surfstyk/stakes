@@ -246,11 +246,15 @@ export function ProgressScreen({
         )}
       </ul>
 
-      <div className="s-sticky">
-        <button className="s-cta" onClick={() => onResults(challengeId)}>
-          {ds.over ? copy.progress.seeResults : copy.progress.finishResults}
-        </button>
-      </div>
+      {/* Results are time-gated — you can't finish early. Only offer the results view
+          once the challenge is actually over; during the run, checking in is the action. */}
+      {ds.over && (
+        <div className="s-sticky">
+          <button className="s-cta" data-variant="go" onClick={() => onResults(challengeId)}>
+            {copy.progress.seeResults}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

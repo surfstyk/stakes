@@ -153,7 +153,6 @@ export const copy = {
     feedEmpty: 'No check-ins yet. Be the first.',
     feedDay: (day: number) => `Day ${day}`,
     seeResults: 'See results →',
-    finishResults: 'Finish & see results →',
     shareLabel: 'Show your streak',
     shareCta: 'Share my progress',
     notFoundH1: 'Challenge not found.',
