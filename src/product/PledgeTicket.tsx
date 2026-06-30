@@ -1,5 +1,17 @@
 import { copy } from '../brand/index.ts'
-import type { ChallengeRecord } from './store.ts'
+
+// Just the fields the ticket renders — so it works for a real challenge (ChallengeRecord
+// is structurally assignable) AND for a sample pledge on the welcome hero.
+export interface TicketData {
+  id: string
+  emoji: string
+  goal: string
+  durationDays: number
+  stake: number
+  asset: string
+  creatorName: string
+  createdAt: number
+}
 
 // The pledge as a tactile DOM "ticket" — the in-app sibling of the canvas share card.
 // Same visual language (paper, inset ink frame, vermilion rubber stamp, dashed
@@ -22,7 +34,7 @@ function sealedDate(ms: number): string {
   return `${MON[d.getMonth()]} ${d.getDate()} ’${String(d.getFullYear()).slice(-2)}`
 }
 
-export function PledgeTicket({ rec }: { rec: ChallengeRecord }) {
+export function PledgeTicket({ rec }: { rec: TicketData }) {
   const c = copy.cards
   return (
     <div className="ticket-wrap">

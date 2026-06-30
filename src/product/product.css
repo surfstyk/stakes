@@ -1839,3 +1839,51 @@ textarea.s-field {
   line-height: 1.4;
   color: var(--ink-faint);
 }
+
+/* ---- Welcome v2 — artifact-led first impression ---------------------------- */
+.welcome-v2 {
+  align-items: center;
+  text-align: center;
+}
+.welcome-stage {
+  margin: 14px auto 2px;
+}
+.welcome-v2 .welcome-kicker {
+  margin-top: 20px;
+}
+.welcome-v2 .welcome-h1 {
+  font-size: clamp(26px, 8vw, 34px);
+  line-height: 1.05;
+  margin: 8px 0 2px;
+  text-align: center;
+}
+.welcome-loop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 18px 0 6px;
+}
+.loop-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 62px;
+}
+.loop-step .le {
+  font-size: 24px;
+  line-height: 1;
+}
+.loop-step .ll {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+.loop-arrow {
+  color: var(--ink-faint);
+  font-size: 15px;
+  font-weight: 700;
+  transform: translateY(-8px);
+}
