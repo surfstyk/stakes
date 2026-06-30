@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Asset } from '../vault/types.ts'
 import { copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
@@ -7,7 +7,9 @@ import {
   TEMPLATES,
   WINDOW_PRESETS,
   createChallenge,
+  dayState,
   deleteChallenge,
+  getChallenge,
   getMyName,
   isTestMode,
   joinChallenge,
@@ -58,6 +60,31 @@ export function CreateScreen({
     createdAt: previewCreatedAt,
   }
 
+  // Resume only a challenge that's still LIVE (not finished). The local breadcrumb is
+  // state-blind, so verify against the backend — otherwise a finished challenge would
+  // sit at the top forever. No live one → lead cleanly with the new-challenge flow.
+  const [resumable, setResumable] = useState<{ id: string; emoji: string; goal: string } | null>(null)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      for (const m of myChallenges().slice(0, 6)) {
+        const rec = await getChallenge(m.id)
+        if (!rec) {
+          deleteChallenge(m.id) // prune challenges that no longer exist
+          continue
+        }
+        if (!dayState(rec).over) {
+          if (alive) setResumable({ id: rec.id, emoji: rec.emoji, goal: rec.goal })
+          return
+        }
+      }
+      if (alive) setResumable(null)
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
   async function create() {
     if (busy) return
     setBusy(true)
@@ -89,7 +116,6 @@ export function CreateScreen({
   }
 
   // ---- Create form ----
-  const resumable = myChallenges()[0] ?? null
   return (
     <div>
       {resumable && (
