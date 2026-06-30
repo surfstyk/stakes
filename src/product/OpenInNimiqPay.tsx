@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
+import { PledgeTicket } from './PledgeTicket.tsx'
 import { NIMIQ_PAY_INSTALL_URL, openInNimiqPay } from '../lib/context.ts'
 import { getChallenge, type ChallengeRecord } from './store.ts'
 
@@ -49,21 +50,10 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
           <p className="s-kicker" style={{ marginTop: 20 }}>
             {g.invitedKicker(rec.creatorName)}
           </p>
-          {/* compact pledge preview — mirrors JoinScreen's PledgeMini so the invitee sees
-              exactly what they're being pulled into before crossing into Nimiq Pay */}
-          <div className="pledge" style={{ padding: '20px 22px', margin: '6px auto 0', maxWidth: 360 }}>
-            <div className="pledge-emoji" style={{ marginTop: 0, fontSize: 34 }}>
-              {rec.emoji}
-            </div>
-            <h2 className="pledge-goal" style={{ fontSize: 24 }}>
-              <em>{rec.goal}</em> {copy.cards.pledgeForDays(rec.durationDays)}
-            </h2>
-            <div className="pledge-stake">
-              <span className="amt">
-                {rec.stake} {rec.asset}
-              </span>{' '}
-              <span className="lbl">{copy.join.miniToPlay}</span>
-            </div>
+          {/* the real pledge ticket — the same artifact they saw shared and will meet again
+              on the Join screen, so the invitee sees exactly what they're crossing over for */}
+          <div className="stage">
+            <PledgeTicket rec={rec} />
           </div>
           <p className="s-sub" style={{ margin: '14px auto 6px' }}>
             {g.invitedSub}
@@ -81,17 +71,22 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         </>
       )}
 
-      <div className="s-spacer" />
-      <button className="s-cta" data-variant="go" onClick={() => openInNimiqPay()}>
+      {/* reassurance — defuse the fear before the cross-over (no jargon) */}
+      <div className="gate-trust">
+        <ShieldCheck />
+        {copy.join.guarantee}
+      </div>
+      <button className="s-cta s-cta--share" data-variant="go" onClick={() => openInNimiqPay()}>
         {g.open}
       </button>
-      <div style={{ height: 10 }} />
+      {/* gently pre-empt Nimiq Pay's first-access confirm + unlock so it doesn't feel broken */}
+      <p className="gate-reassure">{g.reassure}</p>
       <a
         className="s-ghost"
         href={NIMIQ_PAY_INSTALL_URL}
         target="_blank"
         rel="noopener noreferrer"
-        style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}
+        style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 12 }}
       >
         {g.get}
       </a>
@@ -99,5 +94,14 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         {g.foot}
       </p>
     </motion.div>
+  )
+}
+
+function ShieldCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2l7 3v6c0 4.5-3 8.3-7 9.5C8 19.3 5 15.5 5 11V5l7-3z" stroke="var(--ink-soft)" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M9 11.5l2 2 4-4.5" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

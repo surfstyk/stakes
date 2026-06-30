@@ -2,11 +2,13 @@ import type { CardStyle } from './types.ts'
 import { pledgeTicket } from './styles/pledgeTicket.ts'
 import { billboard } from './styles/billboard.ts'
 import { midnight } from './styles/midnight.ts'
+import { receipt } from './styles/receipt.ts'
+import { polaroid_ } from './styles/polaroid.ts'
 
 // The style library. THIS ARRAY is the extension seam: a downloadable / remote /
 // bring-your-own style is just another CardStyle pushed in here, and an A/B test is
 // a swap of the default-pick logic below. Order = display order in the picker.
-export const CARD_STYLES: CardStyle[] = [pledgeTicket, billboard, midnight]
+export const CARD_STYLES: CardStyle[] = [pledgeTicket, billboard, midnight, receipt, polaroid_]
 
 export function getStyle(id: string | null | undefined): CardStyle {
   return CARD_STYLES.find((s) => s.id === id) ?? CARD_STYLES[0]

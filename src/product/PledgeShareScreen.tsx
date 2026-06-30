@@ -53,6 +53,8 @@ export function PledgeShareScreen({
   const shareUrl = `${location.origin}${location.pathname}?c=${rec.id}`
   const cardData: PledgeCardData = {
     kind: 'pledge',
+    id: rec.id,
+    createdAt: rec.createdAt,
     emoji: rec.emoji,
     goal: rec.goal,
     durationDays: rec.durationDays,
@@ -65,31 +67,38 @@ export function PledgeShareScreen({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <p className="s-kicker">{copy.pledged.kicker}</p>
-      <Headline h={copy.pledged.h1} className="s-h1 s-h1-tight" />
+      <div className="hype">
+        <div className="live-kicker">
+          <span className="pulse" />
+          {copy.pledged.kicker}
+        </div>
+        <Headline h={copy.pledged.h1} className="s-h1 s-h1-tight hype-h1" />
+        <p className="s-sub hype-sub">{copy.pledged.sub}</p>
+      </div>
 
       <ShareComposer data={cardData} cta={copy.pledged.share} shareText={shareText} shareUrl={shareUrl} />
 
-      {/* Direct invite: shares the join LINK (url-only → reliable on iOS, where attaching the
-          card image drops the caption text), with a clipboard fallback. */}
-      <button
-        className="s-cta"
-        data-variant="go"
-        style={{ marginTop: 10 }}
-        onClick={async () => {
-          if (navigator.share) {
-            try {
-              await navigator.share({ title: brand.name, text: shareText, url: shareUrl })
-              return
-            } catch (e) {
-              if ((e as { name?: string })?.name === 'AbortError') return // user cancelled the sheet
+      {/* secondary, demoted: send the join LINK instead (url-only → reliable on iOS, where
+          attaching the card image drops the caption text), with a clipboard fallback. */}
+      <div className="invite-row">
+        <span>{copy.pledged.inviteLead}</span>
+        <button
+          onClick={async () => {
+            if (navigator.share) {
+              try {
+                await navigator.share({ title: brand.name, text: shareText, url: shareUrl })
+                return
+              } catch (e) {
+                if ((e as { name?: string })?.name === 'AbortError') return // user cancelled the sheet
+              }
             }
-          }
-          setInvited(await copyText(shareUrl))
-        }}
-      >
-        {invited ? copy.pledged.inviteCopied : copy.pledged.invite}
-      </button>
+            setInvited(await copyText(shareUrl))
+          }}
+        >
+          {invited ? copy.pledged.inviteCopied : copy.pledged.invite}
+          <CopyIcon />
+        </button>
+      </div>
 
       <div className="s-share-nav">
         <button className="s-link" onClick={() => onOpenJoin(rec.id)}>
@@ -100,5 +109,14 @@ export function PledgeShareScreen({
         </button>
       </div>
     </motion.div>
+  )
+}
+
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="2" stroke="var(--ink)" strokeWidth="2" />
+      <path d="M5 15V5a2 2 0 012-2h10" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }

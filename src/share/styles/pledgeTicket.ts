@@ -1,5 +1,7 @@
 // Style: "The Pledge" — the app's signature warm-editorial ticket, on canvas.
-// Reads the brand layer (theme + copy) so it stays in lock-step with the app's CI.
+// Reads the brand layer (theme + copy) so it stays in lock-step with the app's CI and
+// the in-app DOM ticket (src/product/PledgeTicket.tsx): same language — rubber-ink
+// stamp, "No." ticket number, clean dashed perforation, signed/sealed footer.
 // Other styles deliberately do NOT — they bring their own look.
 
 import { theme, copy } from '../../brand/index.ts'
@@ -11,14 +13,29 @@ const C = theme.color
 const DISPLAY = theme.font.displayFamily
 const UI = theme.font.uiFamily
 
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Stable 4-digit ticket "No." from the challenge id (matches PledgeTicket.tsx). */
+function ticketNo(id: string): string {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return `No. ${String((h % 9000) + 1000)}`
+}
+
+/** "JUN 29 ’26" */
+function sealedDate(ms: number): string {
+  const d = new Date(ms)
+  return `${MON[d.getMonth()]} ${d.getDate()} ’${String(d.getFullYear()).slice(-2)}`
+}
+
 function whosInLine(names: string[]): string {
   if (names.length <= 1) return copy.join.whosInOne(names[0] ?? 'You')
   if (names.length === 2) return copy.join.whosInTwo(names[0], names[1])
   return copy.join.whosInMany(names[0], names[1], names.length - 2)
 }
 
-/** Shared frame: paper background, drop-shadowed card, inset ink rule, brand row. */
-function frame(ctx: CanvasRenderingContext2D, size: Size, s: (n: number) => number, meta: string) {
+/** Shared frame: paper background, drop-shadowed card, inset ink rule, brand row + No. */
+function frame(ctx: CanvasRenderingContext2D, size: Size, s: (n: number) => number, no: string) {
   ctx.fillStyle = C.paper
   ctx.fillRect(0, 0, size.w, size.h)
 
@@ -44,52 +61,70 @@ function frame(ctx: CanvasRenderingContext2D, size: Size, s: (n: number) => numb
 
   const px = m + s(80)
   const pw = cw - s(160)
+  // brand mark with the vermilion dot
+  ctx.fillStyle = C.stake
+  ctx.beginPath()
+  ctx.arc(px + s(11), m + s(98), s(11), 0, Math.PI * 2)
+  ctx.fill()
   ctx.fillStyle = C.ink
   ctx.textAlign = 'left'
   ctx.font = `900 ${s(42)}px ${DISPLAY}`
-  ctx.fillText(copy.cards.brand, px, m + s(110))
+  ctx.fillText(copy.cards.brand, px + s(36), m + s(110))
+  // ticket number, right
   ctx.fillStyle = C.inkFaint
   ctx.font = `700 ${s(24)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
   ctx.textAlign = 'right'
-  ctx.fillText(meta.toUpperCase(), px + pw, m + s(110))
+  ctx.fillText(no.toUpperCase(), px + pw, m + s(110))
   ctx.letterSpacing = '0px'
   ctx.textAlign = 'left'
   return { m, cw, ch, px, pw }
 }
 
-function waxSeal(
+/** Rubber-ink stamp — matte, double rounded-rect border + condensed display word. */
+function rubberStamp(
   ctx: CanvasRenderingContext2D,
   s: (n: number) => number,
   cx: number,
   cy: number,
-  top: string,
-  bottom: string,
+  main: string,
+  sub: string,
+  color: string,
 ) {
   ctx.save()
   ctx.translate(cx, cy)
-  ctx.rotate((-13 * Math.PI) / 180)
-  ctx.beginPath()
-  ctx.arc(0, 0, s(118), 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(251,246,236,0.5)'
-  ctx.fill()
-  ctx.lineWidth = s(6)
-  ctx.strokeStyle = C.stake
+  ctx.rotate((-11 * Math.PI) / 180)
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  const w = s(250)
+  const h = s(150)
+  ctx.globalAlpha = 0.85
+  roundRectPath(ctx, -w / 2, -h / 2, w, h, s(20))
+  ctx.lineWidth = s(7)
   ctx.stroke()
-  ctx.fillStyle = C.stake
+  ctx.globalAlpha = 0.5
+  roundRectPath(ctx, -w / 2 + s(11), -h / 2 + s(11), w - s(22), h - s(22), s(14))
+  ctx.lineWidth = s(3)
+  ctx.stroke()
+  ctx.globalAlpha = 0.82
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.font = `900 ${s(40)}px ${UI}`
-  ctx.fillText(top, 0, -s(14))
-  ctx.font = `800 ${s(22)}px ${UI}`
-  ctx.letterSpacing = `${s(5)}px`
-  ctx.fillText(bottom, 0, s(34))
+  ctx.save()
+  ctx.scale(0.9, 1) // condensed feel
+  ctx.font = `900 ${s(66)}px ${DISPLAY}`
+  ctx.fillText(main, 0, -s(12))
+  ctx.restore()
+  ctx.font = `800 ${s(24)}px ${UI}`
+  ctx.letterSpacing = `${s(4)}px`
+  ctx.fillText(sub, 0, s(40))
   ctx.letterSpacing = '0px'
   ctx.restore()
+  ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
 }
 
-function perforation(ctx: CanvasRenderingContext2D, s: (n: number) => number, m: number, cw: number, y: number) {
+/** A clean dashed perforation rule (no notches — matches the in-app ticket). */
+function dashedTear(ctx: CanvasRenderingContext2D, s: (n: number) => number, m: number, cw: number, y: number) {
   ctx.save()
   ctx.strokeStyle = C.line
   ctx.lineWidth = s(3)
@@ -98,17 +133,38 @@ function perforation(ctx: CanvasRenderingContext2D, s: (n: number) => number, m:
   ctx.moveTo(m + s(44), y)
   ctx.lineTo(m + cw - s(44), y)
   ctx.stroke()
-  ctx.setLineDash([])
-  ctx.fillStyle = C.paper
-  for (const nx of [m, m + cw]) {
-    ctx.beginPath()
-    ctx.arc(nx, y, s(22), 0, Math.PI * 2)
-    ctx.fill()
-    ctx.lineWidth = s(3)
-    ctx.strokeStyle = C.line
-    ctx.stroke()
-  }
   ctx.restore()
+}
+
+/** Signed-by / sealed footer (matches the in-app ticket stub). */
+function signedFoot(
+  ctx: CanvasRenderingContext2D,
+  s: (n: number) => number,
+  px: number,
+  rightX: number,
+  fy: number,
+  name: string,
+  createdAt: number,
+) {
+  ctx.textAlign = 'left'
+  ctx.fillStyle = C.inkFaint
+  ctx.font = `700 ${s(24)}px ${UI}`
+  ctx.letterSpacing = `${s(3)}px`
+  ctx.fillText(copy.cards.ticketSignedBy.toUpperCase(), px, fy - s(38))
+  ctx.letterSpacing = '0px'
+  ctx.fillStyle = C.ink
+  ctx.font = `italic 600 ${s(52)}px ${DISPLAY}`
+  ctx.fillText(name, px, fy + s(10))
+
+  ctx.textAlign = 'right'
+  ctx.fillStyle = C.inkFaint
+  ctx.font = `700 ${s(24)}px ${UI}`
+  ctx.letterSpacing = `${s(3)}px`
+  ctx.fillText(copy.cards.ticketSealed.toUpperCase(), rightX, fy - s(38))
+  ctx.font = `700 ${s(28)}px ${UI}`
+  ctx.fillText(sealedDate(createdAt).toUpperCase(), rightX, fy + s(4))
+  ctx.letterSpacing = '0px'
+  ctx.textAlign = 'left'
 }
 
 function avatarRow(
@@ -135,15 +191,18 @@ function avatarRow(
 function drawPledge(ctx: CanvasRenderingContext2D, d: PledgeCardData, size: Size) {
   const u = size.w / 1080
   const s = (n: number) => n * u
-  const { m, cw, ch, px, pw } = frame(ctx, size, s, copy.cards.pledgeMeta)
+  const { m, cw, ch, px, pw } = frame(ctx, size, s, ticketNo(d.id))
 
   // emoji
   ctx.textAlign = 'left'
   ctx.font = `${s(150)}px ${UI}`
-  ctx.fillText(d.emoji, px, m + s(310))
+  ctx.fillText(d.emoji, px, m + s(320))
+
+  // rubber-ink stamp (top-right whitespace)
+  rubberStamp(ctx, s, m + cw - s(168), m + s(296), copy.cards.pledgeStamp, `· ${copy.cards.pledgeStampSub} ·`, C.stake)
 
   // kicker
-  let y = m + s(420)
+  let y = m + s(430)
   ctx.fillStyle = C.stake
   ctx.font = `800 ${s(34)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
@@ -161,9 +220,9 @@ function drawPledge(ctx: CanvasRenderingContext2D, d: PledgeCardData, size: Size
   ctx.font = `italic 500 ${s(56)}px ${DISPLAY}`
   ctx.fillText(copy.cards.pledgeForDays(d.durationDays), px, y + s(8))
 
-  // stake
+  // stake — green (money), matching the in-app ticket
   y += s(124)
-  ctx.fillStyle = C.stake
+  ctx.fillStyle = C.go
   ctx.font = `700 ${s(94)}px ${DISPLAY}`
   const stakeStr = `${d.stake} ${d.asset}`
   ctx.fillText(stakeStr, px, y)
@@ -172,11 +231,7 @@ function drawPledge(ctx: CanvasRenderingContext2D, d: PledgeCardData, size: Size
   ctx.font = `600 ${s(38)}px ${UI}`
   ctx.fillText(`  ${copy.cards.pledgeOnLine}`, px + sw, y)
 
-  // wax seal (top-right)
-  waxSeal(ctx, s, m + cw - s(150), m + s(330), copy.cards.pledgeStamp, copy.cards.pledgeStampSub)
-
-  // who's-in, grouped right under the stake (the info clusters up top, the lower
-  // third becomes the "ticket stub": perforation + CTA + signature)
+  // who's-in, grouped under the stake
   const whoY = y + s(96)
   const ax = avatarRow(ctx, s, d.whosIn, px, whoY)
   ctx.fillStyle = C.ink
@@ -185,39 +240,32 @@ function drawPledge(ctx: CanvasRenderingContext2D, d: PledgeCardData, size: Size
   ctx.fillText(whosInLine(d.whosIn), ax, whoY)
   ctx.textBaseline = 'alphabetic'
 
-  perforation(ctx, s, m, cw, m + ch - s(280))
+  dashedTear(ctx, s, m, cw, m + ch - s(280))
 
   // baked-in CTA — the invite *is* the image
   ctx.fillStyle = C.stake
   ctx.font = `800 ${s(44)}px ${UI}`
-  ctx.fillText('Doors are open — tap in 👀', px, m + ch - s(170))
+  ctx.fillText('Doors are open — tap in 👀', px, m + ch - s(176))
 
-  // footer: creator + line
-  const fy = m + ch - s(92)
-  drawAvatar(ctx, initials(d.creatorName), px + s(28), fy - s(8), s(28), avatarColor(d.creatorName), '#fff', UI)
-  ctx.fillStyle = C.ink
-  ctx.font = `800 ${s(36)}px ${UI}`
-  ctx.textBaseline = 'middle'
-  ctx.fillText(d.creatorName, px + s(72), fy - s(8))
-  ctx.fillStyle = C.inkSoft
-  ctx.font = `700 ${s(32)}px ${UI}`
-  ctx.textAlign = 'right'
-  ctx.fillText(copy.cards.pledgeFoot, m + cw - s(80), fy - s(8))
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'alphabetic'
+  signedFoot(ctx, s, px, m + cw - s(80), m + ch - s(92), d.creatorName, d.createdAt)
 }
 
 function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Size) {
   const u = size.w / 1080
   const s = (n: number) => n * u
   const perfect = d.isPerfectFinisher
-  const { m, cw, ch, px, pw } = frame(ctx, size, s, perfect ? 'PERFECT WEEK' : 'THE WRAP')
+  const { m, cw, ch, px, pw } = frame(ctx, size, s, ticketNo(d.id))
 
   ctx.textAlign = 'left'
   ctx.font = `${s(150)}px ${UI}`
-  ctx.fillText(d.emoji, px, m + s(310))
+  ctx.fillText(d.emoji, px, m + s(320))
 
-  let y = m + s(420)
+  // a green "KEPT" stamp for a perfect week — the parallel of the pledge stamp
+  if (perfect) {
+    rubberStamp(ctx, s, m + cw - s(168), m + s(296), 'PERFECT', '· KEPT IT ·', C.go)
+  }
+
+  let y = m + s(430)
   ctx.fillStyle = perfect ? C.go : C.stake
   ctx.font = `800 ${s(34)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
@@ -239,30 +287,18 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.font = `600 ${s(40)}px ${UI}`
   ctx.fillText(copy.results.back(d.asset), px, y + s(58))
 
-  // days pill
+  // days kept
   ctx.fillStyle = C.inkSoft
   ctx.font = `700 ${s(40)}px ${UI}`
   ctx.fillText(`${d.daysCompleted}/${d.durationDays} days kept`, px, y + s(150))
 
-  if (perfect) {
-    ctx.fillStyle = C.gold
-    ctx.font = `800 ${s(40)}px ${UI}`
-    ctx.fillText('🏅 perfect-week club', px, y + s(214))
-  }
-
-  perforation(ctx, s, m, cw, m + ch - s(280))
+  dashedTear(ctx, s, m, cw, m + ch - s(280))
 
   ctx.fillStyle = C.stake
   ctx.font = `800 ${s(44)}px ${UI}`
-  ctx.fillText('Run it back with me — tap in 👀', px, m + ch - s(170))
+  ctx.fillText('Run it back with me — tap in 👀', px, m + ch - s(176))
 
-  const fy = m + ch - s(92)
-  drawAvatar(ctx, initials(d.creatorName), px + s(28), fy - s(8), s(28), avatarColor(d.creatorName), '#fff', UI)
-  ctx.fillStyle = C.ink
-  ctx.font = `800 ${s(36)}px ${UI}`
-  ctx.textBaseline = 'middle'
-  ctx.fillText(d.creatorName, px + s(72), fy - s(8))
-  ctx.textBaseline = 'alphabetic'
+  signedFoot(ctx, s, px, m + cw - s(80), m + ch - s(92), d.creatorName, d.createdAt)
 }
 
 export const pledgeTicket: CardStyle = {
