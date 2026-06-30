@@ -7,7 +7,7 @@
 import { theme, copy } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
-import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
+import type { CardStyle, PledgeCardData, ProgressCardData, ResultsCardData, Size } from '../types.ts'
 
 const C = theme.color
 const DISPLAY = theme.font.displayFamily
@@ -301,12 +301,97 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   signedFoot(ctx, s, px, m + cw - s(80), m + ch - s(92), d.creatorName, d.createdAt)
 }
 
+/** Row of day-cells: filled green (✓) for kept days, outlined for the rest. */
+function drawStreak(
+  ctx: CanvasRenderingContext2D,
+  s: (n: number) => number,
+  px: number,
+  pw: number,
+  y: number,
+  total: number,
+  kept: number,
+) {
+  const gap = s(12)
+  const cell = Math.min(s(74), (pw - (total - 1) * gap) / total)
+  for (let i = 0; i < total; i++) {
+    const cx = px + i * (cell + gap)
+    roundRectPath(ctx, cx, y, cell, cell, s(12))
+    if (i < kept) {
+      ctx.fillStyle = C.go
+      ctx.fill()
+      if (cell > s(40)) {
+        ctx.fillStyle = '#fff'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.font = `800 ${cell * 0.5}px ${UI}`
+        ctx.fillText('✓', cx + cell / 2, y + cell / 2 + s(2))
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'alphabetic'
+      }
+    } else {
+      ctx.strokeStyle = C.line
+      ctx.lineWidth = s(3)
+      ctx.stroke()
+    }
+  }
+  return y + cell
+}
+
+function drawProgress(ctx: CanvasRenderingContext2D, d: ProgressCardData, size: Size) {
+  const u = size.w / 1080
+  const s = (n: number) => n * u
+  const { m, cw, ch, px, pw } = frame(ctx, size, s, ticketNo(d.id))
+
+  ctx.textAlign = 'left'
+  ctx.font = `${s(150)}px ${UI}`
+  ctx.fillText(d.emoji, px, m + s(320))
+
+  // day stamp (top-right)
+  rubberStamp(ctx, s, m + cw - s(168), m + s(296), `DAY ${d.currentDay}`, `· OF ${d.durationDays} ·`, C.stake)
+
+  let y = m + s(430)
+  ctx.fillStyle = C.stake
+  ctx.font = `800 ${s(34)}px ${UI}`
+  ctx.letterSpacing = `${s(4)}px`
+  ctx.fillText('STILL IN IT', px, y)
+  ctx.letterSpacing = '0px'
+
+  ctx.fillStyle = C.ink
+  ctx.font = `600 ${s(104)}px ${DISPLAY}`
+  const goalLines = wrapText(ctx, d.goal, pw).slice(0, 2)
+  y = drawLines(ctx, goalLines, px, y + s(110), s(108))
+
+  // streak row
+  y += s(72)
+  const cellBottom = drawStreak(ctx, s, px, pw, y, d.durationDays, d.daysKept)
+
+  // days kept
+  y = cellBottom + s(96)
+  ctx.fillStyle = C.go
+  ctx.font = `700 ${s(110)}px ${DISPLAY}`
+  const kept = `${d.daysKept}/${d.durationDays}`
+  ctx.fillText(kept, px, y)
+  const kw = ctx.measureText(kept).width
+  ctx.fillStyle = C.inkSoft
+  ctx.font = `600 ${s(40)}px ${UI}`
+  ctx.fillText('  days kept', px + kw, y)
+
+  dashedTear(ctx, s, m, cw, m + ch - s(280))
+
+  ctx.fillStyle = C.stake
+  ctx.font = `800 ${s(44)}px ${UI}`
+  ctx.fillText('Keep me honest — tap in 👀', px, m + ch - s(176))
+
+  signedFoot(ctx, s, px, m + cw - s(80), m + ch - s(92), d.creatorName, d.createdAt)
+}
+
 export const pledgeTicket: CardStyle = {
   id: 'ticket',
   name: 'The Pledge',
   swatch: { bg: C.paperCard, fg: C.ink, accent: C.stake },
   render(ctx, data, size) {
     if (data.kind === 'pledge') drawPledge(ctx, data, size)
-    else drawResults(ctx, data, size)
+    else if (data.kind === 'results') drawResults(ctx, data, size)
+    else drawProgress(ctx, data, size)
   },
 }

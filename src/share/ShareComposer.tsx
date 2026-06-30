@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { renderCard } from './renderCard.ts'
-import { CARD_STYLES, getStyle, lastStyleId, rememberStyle } from './registry.ts'
+import { CARD_STYLES, lastStyleId, rememberStyle } from './registry.ts'
 import { canvasToPngUrl, copyText, shareImageNative } from './shareCard.ts'
 import type { CardData, CardStyle } from './types.ts'
 
@@ -26,21 +26,27 @@ export function ShareComposer({
   cta,
   shareText,
   shareUrl,
+  styles,
 }: {
   data: CardData
   cta: string
   shareText: string
   shareUrl: string
+  /** Override the style set (e.g. a single style → no picker). Defaults to all CARD_STYLES. */
+  styles?: CardStyle[]
 }) {
-  const [styleId, setStyleId] = useState<string>(() => lastStyleId())
+  const styleList = styles ?? CARD_STYLES
+  const single = styleList.length <= 1
+  const [styleId, setStyleId] = useState<string>(() => (single ? styleList[0].id : lastStyleId()))
   const [postUrl, setPostUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const mainRef = useRef<HTMLCanvasElement>(null)
+  const style = styleList.find((s) => s.id === styleId) ?? styleList[0]
 
   useEffect(() => {
     const c = mainRef.current
-    if (c) void renderCard(c, getStyle(styleId), data)
-  }, [styleId, data])
+    if (c) void renderCard(c, style, data)
+  }, [style, data])
 
   function pick(id: string) {
     setStyleId(id)
@@ -97,26 +103,30 @@ export function ShareComposer({
         <canvas ref={mainRef} className="composer-canvas" />
       </div>
 
-      <div className="picker-head">
-        <span className="picker-lbl">Try a different look</span>
-        <span className="picker-hint">tap to flip ↺</span>
-      </div>
-      <div className="composer-styles" role="radiogroup" aria-label="Card style">
-        {CARD_STYLES.map((st) => (
-          <button
-            key={st.id}
-            type="button"
-            className="style-chip"
-            role="radio"
-            aria-checked={st.id === styleId}
-            data-on={st.id === styleId}
-            onClick={() => pick(st.id)}
-          >
-            <StyleThumb style={st} data={data} />
-            <span className="style-name">{st.name}</span>
-          </button>
-        ))}
-      </div>
+      {!single && (
+        <>
+          <div className="picker-head">
+            <span className="picker-lbl">Try a different look</span>
+            <span className="picker-hint">tap to flip ↺</span>
+          </div>
+          <div className="composer-styles" role="radiogroup" aria-label="Card style">
+            {styleList.map((st) => (
+              <button
+                key={st.id}
+                type="button"
+                className="style-chip"
+                role="radio"
+                aria-checked={st.id === styleId}
+                data-on={st.id === styleId}
+                onClick={() => pick(st.id)}
+              >
+                <StyleThumb style={st} data={data} />
+                <span className="style-name">{st.name}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <button className="s-cta s-cta--share" onClick={onShare}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -34,7 +34,21 @@ export interface ResultsCardData {
   creatorName: string
 }
 
-export type CardData = PledgeCardData | ResultsCardData
+export interface ProgressCardData {
+  kind: 'progress'
+  id: string
+  createdAt: number
+  emoji: string
+  goal: string
+  durationDays: number
+  currentDay: number // 1-indexed — the day you're on
+  daysKept: number // check-ins so far
+  stake: number
+  asset: string
+  creatorName: string
+}
+
+export type CardData = PledgeCardData | ResultsCardData | ProgressCardData
 
 export interface Size {
   w: number

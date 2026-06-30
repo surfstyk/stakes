@@ -154,6 +154,8 @@ export const copy = {
     feedDay: (day: number) => `Day ${day}`,
     seeResults: 'See results →',
     finishResults: 'Finish & see results →',
+    shareLabel: 'Show your streak',
+    shareCta: 'Share my progress',
     notFoundH1: 'Challenge not found.',
     notFoundCta: 'Start one',
   },
@@ -192,6 +194,8 @@ export const copy = {
     resultsWin: (emoji: string, goal: string) =>
       `Perfect week ✅ ${emoji} ${goal}. Run it back?`,
     resultsWrap: (emoji: string) => `Wrapped my ${emoji} week on ${brand.name}.`,
+    progress: (emoji: string, goal: string, day: number, total: number) =>
+      `Day ${day}/${total} of ${goal} ${emoji} — still in. Watch me 👀`,
   },
 
   // On-card lettering (pledge ticket + results card). Shared by the live DOM cards

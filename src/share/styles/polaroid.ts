@@ -153,6 +153,6 @@ export const polaroid_: CardStyle = {
   swatch: { bg: '#d7c9b0', fg: INK, accent: '#ff9d7c' },
   render(ctx, data, size) {
     if (data.kind === 'pledge') drawPledge(ctx, data, size)
-    else drawResults(ctx, data, size)
+    else if (data.kind === 'results') drawResults(ctx, data, size)
   },
 }

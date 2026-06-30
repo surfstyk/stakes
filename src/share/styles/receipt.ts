@@ -261,6 +261,6 @@ export const receipt: CardStyle = {
   swatch: { bg: BG, fg: PAPER, accent: INK },
   render(ctx, data, size) {
     if (data.kind === 'pledge') drawPledge(ctx, data, size)
-    else drawResults(ctx, data, size)
+    else if (data.kind === 'results') drawResults(ctx, data, size)
   },
 }

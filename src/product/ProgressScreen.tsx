@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import { Loading } from './Loading.tsx'
+import { ShareComposer, getStyle, type ProgressCardData } from '../share/index.ts'
 import {
   avatarColor,
   checkIn,
@@ -16,6 +17,9 @@ import {
 } from './store.ts'
 
 const MOODS = ['💪', '🔥', '😮‍💨', '😌', '🙌']
+// The daily progress card uses the single house "Pledge" style (the flippable variety
+// lives at the big pledge/results moments; the mid-week share is one consistent artifact).
+const PROGRESS_STYLES = [getStyle('ticket')]
 
 /** Compact h/m/s countdown — minutes/seconds in test, hours/days in production. */
 function fmtDur(ms: number): string {
@@ -89,6 +93,24 @@ export function ProgressScreen({
   const checkedToday = ds.started && !ds.over && checked.has(ds.currentDay)
   const canCheckIn = ds.started && !ds.over && !checkedToday
   const feed = [...rec.checkins].sort((a, b) => b.at - a.at)
+
+  const shareUrl = `${location.origin}${location.pathname}?c=${rec.id}`
+  const progressData: ProgressCardData | null =
+    ds.started && !ds.over
+      ? {
+          kind: 'progress',
+          id: rec.id,
+          createdAt: rec.createdAt,
+          emoji: rec.emoji,
+          goal: rec.goal,
+          durationDays: D,
+          currentDay: ds.currentDay + 1,
+          daysKept: checked.size,
+          stake: rec.stake,
+          asset: rec.asset,
+          creatorName: nameFor(rec, me),
+        }
+      : null
 
   async function submit() {
     if (posting || !rec || !canCheckIn) return
@@ -197,6 +219,19 @@ export function ProgressScreen({
             {posting ? copy.progress.checkinBusy : copy.progress.checkinCta(ds.currentDay + 1)}
           </button>
         </div>
+      )}
+
+      {checkedToday && progressData && (
+        <>
+          <p className="s-label">{copy.progress.shareLabel}</p>
+          <ShareComposer
+            styles={PROGRESS_STYLES}
+            data={progressData}
+            cta={copy.progress.shareCta}
+            shareText={copy.share.progress(rec.emoji, rec.goal, ds.currentDay + 1, D)}
+            shareUrl={shareUrl}
+          />
+        </>
       )}
 
       <p className="s-label">{copy.progress.crewLabel}</p>

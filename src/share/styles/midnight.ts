@@ -180,6 +180,6 @@ export const midnight: CardStyle = {
   swatch: { bg: BG1, fg: FG, accent: MINT },
   render(ctx, data, size) {
     if (data.kind === 'pledge') drawPledge(ctx, data, size)
-    else drawResults(ctx, data, size)
+    else if (data.kind === 'results') drawResults(ctx, data, size)
   },
 }
