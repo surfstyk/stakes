@@ -1,20 +1,14 @@
-# Stakes settlement backend (Phase B)
-
-> **STATUS (2026-06-24): WIP.** The settlement *logic* + offline signing are done and
-> verified. The *transport* in `client.ts` uses the `@nimiq/core` P2P client, which is
-> **broken in plain Node** (worker `addEventListener` error → never reaches consensus).
-> The proven path is **offline-sign + HTTP JSON-RPC** (`sendRawTransaction` to a node —
-> verified against `rpc.nimiqwatch.com`). Swap the transport before deploy. Details in
-> `surfstyk-notes/FRAMEWORK-FACTS.md` → "Settlement broadcast".
-
+# Stakes settlement backend
 
 Operator-run service that settles a challenge on-chain: it reads the stake deposits,
 returns each participant their **retained** NIM (+ an optional finisher bonus), and
 **burns** the forfeited remainder to Nimiq's all-zero address. The settlement *rules*
 are the same `computeSettlement` the app uses — single source of truth.
 
-> Runs against the **live Nimiq testnet** via `@nimiq/core` (P2P), so run it on a
-> machine with normal network access, not inside a restricted sandbox.
+Transactions are built and signed **offline** with `@nimiq/core` and broadcast by POSTing
+the raw signed hex to a node's `sendRawTransaction` over **HTTP JSON-RPC** (`client.ts` →
+`rpc.ts`); no P2P connection is opened. The target network is set by `STAKES_NETWORK_ID`
+(5 = testnet, the default; 24 = mainnet). Run it on a machine with normal network access.
 
 ## Prerequisites
 `.env.local` (git-ignored) at the repo root with:
