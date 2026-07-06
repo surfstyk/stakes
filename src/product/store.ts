@@ -70,8 +70,8 @@ export interface Participant {
   address: string // the participant id (Nimiq wallet address, or a dev pseudo-address)
   name: string // display only
   joinedAt: number
-  depositTxHash?: string | null
-  depositConfirmed: number
+  // Note: the deposit tx hash + confirmation flag are deliberately NOT exposed by the API
+  // (server-internal verification data — see server/api.ts publicChallenge / SEC-06).
 }
 
 export interface CheckIn {

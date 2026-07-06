@@ -46,6 +46,18 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : NaN)
 
+// Public serialization of a challenge view. Strips server-internal deposit fields
+// (depositTxHash, depositConfirmed): the UI never reads them, and exposing a participant's
+// depositTxHash let another participant claim that on-chain deposit as their own
+// (SEC-06 → SEC-01). Verify/settle read these straight from the DB, not the wire.
+function publicChallenge(view: ReturnType<typeof getChallenge>) {
+  if (!view) return view
+  return {
+    ...view,
+    participants: view.participants.map(({ depositTxHash, depositConfirmed, ...rest }) => rest),
+  }
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', 'http://localhost')
@@ -92,7 +104,7 @@ const server = createServer(async (req, res) => {
       // GET /api/challenges/:id
       if (method === 'GET' && seg.length === 3) {
         const view = getChallenge(id)
-        return view ? send(res, 200, view) : send(res, 404, { error: 'challenge not found' })
+        return view ? send(res, 200, publicChallenge(view)) : send(res, 404, { error: 'challenge not found' })
       }
 
       // GET /api/challenges/:id/settlement (verify deposits first → count confirmed only)
@@ -105,7 +117,7 @@ const server = createServer(async (req, res) => {
       // POST /api/challenges/:id/verify (confirm stake deposits landed on-chain)
       if (method === 'POST' && seg[3] === 'verify' && seg.length === 4) {
         const result = await verifyChallenge(id)
-        return result ? send(res, 200, { ...result, challenge: getChallenge(id) }) : send(res, 404, { error: 'challenge not found' })
+        return result ? send(res, 200, { ...result, challenge: publicChallenge(getChallenge(id)) }) : send(res, 404, { error: 'challenge not found' })
       }
 
       // POST /api/challenges/:id/join
@@ -115,7 +127,7 @@ const server = createServer(async (req, res) => {
         const address = str(b.address)
         if (!address) return send(res, 400, { error: 'address required' })
         joinChallenge(id, { address, name: str(b.name) || 'You', depositTxHash: str(b.depositTxHash) || undefined })
-        return send(res, 200, getChallenge(id))
+        return send(res, 200, publicChallenge(getChallenge(id)))
       }
 
       // POST /api/challenges/:id/checkins

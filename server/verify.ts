@@ -10,8 +10,9 @@
 // Best-effort: if the treasury isn't configured or the RPC is unreachable, real
 // deposits simply stay unconfirmed (settlement skips them) — never throws.
 
+import { attributeDeposits } from './attribute.ts'
 import { confirmDeposit, getChallenge } from './db.ts'
-import { listStakeDeposits, normAddr } from './rpc.ts'
+import { listStakeDeposits } from './rpc.ts'
 
 // Public treasury address only — the API never holds the treasury KEY (it stays off the
 // internet-facing box; see DEPLOYMENT.md). Verification is read-only chain access.
@@ -24,6 +25,7 @@ export interface VerifyResult {
   confirmed: number
   total: number
   onChain: boolean // whether an on-chain lookup was performed
+  confirmedLuna: number // total on-chain value backing confirmations (for the settlement invariant)
 }
 
 /** Confirm a challenge's stake deposits and persist the result. */
@@ -44,26 +46,27 @@ export async function verifyChallenge(challengeId: string): Promise<VerifyResult
   }
 
   let confirmed = 0
-  for (const p of view.participants) {
-    if (isMock(p.depositTxHash)) {
-      confirmDeposit(challengeId, p.address, p.depositTxHash ?? null, true)
+  let confirmedLuna = 0
+
+  // Mock/dev deposits have nothing on-chain to check → auto-confirm (keeps the whole
+  // loop runnable in a plain browser). Count their nominal value toward the invariant.
+  const mock = view.participants.filter((p) => isMock(p.depositTxHash))
+  for (const p of mock) {
+    confirmDeposit(challengeId, p.address, p.depositTxHash ?? null, true)
+    confirmed++
+    confirmedLuna += expectedLuna
+  }
+
+  // Real deposits: attribute on-chain deposits to participants, consuming each once
+  // (server/attribute.ts). This is what stops one real deposit confirming two people.
+  const real = view.participants.filter((p) => !isMock(p.depositTxHash))
+  for (const m of attributeDeposits(real, deposits, expectedLuna)) {
+    confirmDeposit(challengeId, m.address, m.hash, m.confirmed)
+    if (m.confirmed) {
       confirmed++
-      continue
-    }
-    // Match by the tx hash the participant reported on join — robust even when the
-    // wallet's identity address (listAccounts) differs from the address that actually
-    // sent the stake (real Nimiq Pay wallets do this). Fall back to a sender match.
-    const match = deposits.find(
-      (d) =>
-        Math.abs(d.valueLuna - expectedLuna) <= 1 &&
-        (d.hash === p.depositTxHash || normAddr(d.from) === normAddr(p.address)),
-    )
-    if (match) {
-      confirmDeposit(challengeId, p.address, match.hash, true) // persist the canonical chain hash
-      confirmed++
-    } else {
-      confirmDeposit(challengeId, p.address, null, false)
+      confirmedLuna += m.valueLuna
     }
   }
-  return { confirmed, total: view.participants.length, onChain }
+
+  return { confirmed, total: view.participants.length, onChain, confirmedLuna }
 }

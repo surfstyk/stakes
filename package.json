@@ -10,6 +10,7 @@
     "build:public": "tsc --noEmit && VITE_PUBLIC_BUILD=1 vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test server/*.test.ts",
     "api": "node --env-file-if-exists=.env.local --import tsx server/api.ts",
     "treasury:check": "node --env-file=.env.local --import tsx server/check.ts",
     "deposits": "node --env-file=.env.local --import tsx server/deposits.ts",

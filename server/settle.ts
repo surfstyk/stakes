@@ -61,6 +61,22 @@ async function main() {
     process.exit(1)
   }
 
+  // Integrity backstop (SEC-01): total stake PRINCIPAL returned to participants must never
+  // exceed the confirmed on-chain deposit value. The finisher bonus is sponsor-funded and
+  // paid on top, so it's excluded. Consume-once verification already guarantees this — this
+  // is the last gate before real money moves, and it refuses rather than overpay.
+  const principalOutNim = settlement.perParticipant.reduce((s, p) => s + p.payout, 0)
+  const principalOutLuna = nimToLuna(principalOutNim)
+  const confirmedLuna = v?.confirmedLuna ?? 0
+  const tolerance = (v?.confirmed ?? 0) + 1 // per-deposit ±1 luna rounding across confirmations
+  if (principalOutLuna > confirmedLuna + tolerance) {
+    console.error(
+      `INTEGRITY CHECK FAILED: principal payout ${fmt(principalOutNim)} NIM (${principalOutLuna} luna) ` +
+        `exceeds confirmed deposits ${fmt(lunaToNim(confirmedLuna))} NIM (${confirmedLuna} luna). Refusing to settle.`,
+    )
+    process.exit(1)
+  }
+
   // Build the tx plan from the computed settlement. One head height for the whole batch.
   const height = await getBlockNumber()
   const plan: { kind: 'payout' | 'burn'; to: string; nim: number; signed: SignedTx }[] = []
