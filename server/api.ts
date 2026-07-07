@@ -13,7 +13,9 @@
 // hardening fast-follow (see surfstyk-notes/MVP.md).
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { openDay } from '../src/vault/schedule.ts'
 import { addCheckin, cheer, createChallenge, getChallenge, getSettlement, joinChallenge } from './db.ts'
+import { normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
 
 const PORT = Number(process.env.STAKES_API_PORT ?? 8787)
@@ -83,6 +85,20 @@ const server = createServer(async (req, res) => {
       if (!goal || !creatorAddress || !Number.isFinite(durationDays) || !Number.isFinite(stake)) {
         return send(res, 400, { error: 'goal, creatorAddress, durationDays, stake required' })
       }
+      // SEC-05: bound the numbers server-side (the client clamps, but the API is the trust
+      // boundary). durationDays: 0 crashes settlement; negative/huge values corrupt the math.
+      if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 60) {
+        return send(res, 400, { error: 'durationDays must be a whole number between 1 and 60' })
+      }
+      if (!(stake > 0) || stake > 1_000_000) {
+        return send(res, 400, { error: 'stake must be greater than 0 and at most 1000000' })
+      }
+      if (Number.isFinite(windowMs) && (windowMs < 0 || windowMs > 60 * 86400_000)) {
+        return send(res, 400, { error: 'windowMs must be between 0 and 60 days' })
+      }
+      if (Number.isFinite(dayLengthMs) && (dayLengthMs <= 0 || dayLengthMs > 90 * 86400_000)) {
+        return send(res, 400, { error: 'dayLengthMs must be between 0 and 90 days' })
+      }
       const id = createChallenge({
         goal,
         emoji: str(b.emoji) || '🔥',
@@ -132,13 +148,27 @@ const server = createServer(async (req, res) => {
 
       // POST /api/challenges/:id/checkins
       if (method === 'POST' && seg[3] === 'checkins' && seg.length === 4) {
-        if (!getChallenge(id)) return send(res, 404, { error: 'challenge not found' })
+        const view = getChallenge(id)
+        if (!view) return send(res, 404, { error: 'challenge not found' })
         const b = await readJson(req)
         const address = str(b.address)
         const day = num(b.day)
         const note = str(b.note)
         if (!address || !Number.isFinite(day) || (!note && !str(b.emoji))) {
           return send(res, 400, { error: 'address, day and a note or emoji required' })
+        }
+        // SEC-03: enforce the check-in window server-side — the browser's "closing door" is
+        // not a trust boundary. Only a member can check in, and only for the day whose
+        // window is open right now (no backfilling missed days, no pre-filling future ones).
+        if (!view.participants.some((p) => normAddr(p.address) === normAddr(address))) {
+          return send(res, 403, { error: 'not a participant in this challenge' })
+        }
+        const open = openDay(view, Date.now())
+        if (open < 0) {
+          return send(res, 409, { error: 'check-ins are closed (the challenge has not started or has ended)' })
+        }
+        if (day !== open) {
+          return send(res, 409, { error: `only today's check-in (day ${open + 1}) is open` })
         }
         const checkinId = addCheckin(id, { address, day, note, emoji: str(b.emoji) || undefined })
         return send(res, 201, { id: checkinId })
