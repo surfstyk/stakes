@@ -50,6 +50,7 @@ export function ProgressScreen({
   const [note, setNote] = useState('')
   const [mood, setMood] = useState<string | undefined>(undefined)
   const [posting, setPosting] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
@@ -116,11 +117,16 @@ export function ProgressScreen({
     if (posting || !rec || !canCheckIn) return
     if (!note.trim() && !mood) return
     setPosting(true)
+    setErr(null)
     try {
       const updated = await checkIn(challengeId, { address: me, day: ds.currentDay, note: note.trim(), emoji: mood })
       setRec(updated)
       setNote('')
       setMood(undefined)
+    } catch (e) {
+      // Surface the failure instead of silently resetting (UX-02). The server's message is
+      // user-facing (e.g. "only today's check-in is open" if the window closed mid-compose).
+      setErr((e as Error).message || copy.progress.errFallback)
     } finally {
       setPosting(false)
     }
@@ -209,6 +215,11 @@ export function ProgressScreen({
               </button>
             ))}
           </div>
+          {err && (
+            <p className="s-note" role="alert" style={{ color: 'var(--stake)', marginTop: 10 }}>
+              {err}
+            </p>
+          )}
           <button
             className="s-cta"
             data-variant="go"

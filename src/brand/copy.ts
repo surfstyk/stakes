@@ -105,6 +105,8 @@ export const copy = {
     namePlaceholder: 'your first name',
     cta: (stake: number, asset: Asset) => `Put ${stake} ${asset} in — I'm in`,
     ctaBusy: 'Locking it in…',
+    errCancel: "You didn't confirm the stake — tap to try again.",
+    errFallback: 'Could not lock in your stake. Check your connection and try again.',
     guarantee: 'Free to move · held safe · back in your pocket',
     heldSafe: (stake: number, asset: Asset) =>
       `Your ${stake} ${asset} is held safe until the week's up. Keep every day and it all comes back.`,
@@ -147,6 +149,7 @@ export const copy = {
     checkinPlaceholder: 'proof + a line… your crew sees this',
     checkinCta: (day: number) => `Check in for day ${day}`,
     checkinBusy: 'Posting your check-in…',
+    errFallback: 'Could not post your check-in. Try again.',
     doneTitle: 'You did the week.',
     doneSub: 'See how everyone landed.',
     crewLabel: 'The crew',

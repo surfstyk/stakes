@@ -48,6 +48,12 @@ function Avatars({ names, extraLabel = true }: { names: string[]; extraLabel?: b
   )
 }
 
+/** Did the user back out (declined the wallet dialog / dismissed a sheet), vs a real failure? */
+function isUserCancel(e: unknown): boolean {
+  const err = e as { name?: string; message?: string }
+  return err?.name === 'AbortError' || /cancel|declin|reject|denied|abort/i.test(err?.message ?? '')
+}
+
 function whosInLine(names: string[]): string {
   if (names.length === 1) return copy.join.whosInOne(names[0])
   if (names.length === 2) return copy.join.whosInTwo(names[0], names[1])
@@ -88,6 +94,7 @@ export function JoinScreen({
   const [name, setName] = useState(known === 'You' ? '' : known)
   const askName = known === 'You'
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
   const [joined, setJoined] = useState(false)
   const countdown = useCountdown(rec?.lockAt ?? 0)
 
@@ -190,10 +197,15 @@ export function JoinScreen({
   // ---- join offer ----
   async function join() {
     setBusy(true)
+    setErr(null)
     try {
       const updated = await joinChallenge(rec!.id, name.trim() || 'You')
       setRec(updated)
       setJoined(true)
+    } catch (e) {
+      // Don't fail silently at the single highest-anxiety moment in the funnel (UX-02):
+      // a gentle nudge if they backed out of the wallet, the real reason otherwise.
+      setErr(isUserCancel(e) ? copy.join.errCancel : (e as Error).message || copy.join.errFallback)
     } finally {
       setBusy(false)
     }
@@ -259,6 +271,11 @@ export function JoinScreen({
           <span className="dot" />
           {copy.join.countdown} <span>{countdown.text}</span>
         </div>
+        {err && (
+          <p className="s-foothint" role="alert" style={{ color: 'var(--stake)' }}>
+            {err}
+          </p>
+        )}
         <button className="s-cta" data-variant="go" disabled={busy} onClick={join}>
           {busy ? copy.join.ctaBusy : copy.join.cta(rec.stake, rec.asset)}
         </button>
