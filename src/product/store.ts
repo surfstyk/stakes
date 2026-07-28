@@ -46,8 +46,8 @@ export const WINDOW_PRESETS: { id: WindowPreset; label: string; sub: string; ms:
 // whole arc is testable in minutes instead of days. Persisted so it survives the
 // router rewriting the query string.
 const TEST_KEY = 'stakes.testmode'
-const TEST_WINDOW_MS = 10 * 60_000 // TEMP(filming): 10-min join window for the demo-video shoot
-const TEST_DAY_MS = 1 * 60_000 // TEMP(filming): 1-min "day" for the demo-video shoot
+const TEST_WINDOW_MS = 2 * 60_000 // 2-minute join window in test mode
+const TEST_DAY_MS = 3 * 60_000 // 3-minute "day" in test mode → run the whole arc in minutes
 export function isTestMode(): boolean {
   if (!DEV_TOOLS) return false // test mode doesn't exist in the public build
   try {
