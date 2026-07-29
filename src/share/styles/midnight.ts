@@ -150,7 +150,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.fillStyle = perfect ? MINT : FAINT
   ctx.font = `800 ${s(32)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
-  ctx.fillText(perfect ? 'PERFECT WEEK ✅' : 'THAT WAS MY WEEK', px, y)
+  ctx.fillText(perfect ? 'PERFECT WEEK ✅' : 'THAT WAS MY RUN', px, y)
   ctx.letterSpacing = '0px'
 
   ctx.fillStyle = FG

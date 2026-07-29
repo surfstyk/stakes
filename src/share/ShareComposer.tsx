@@ -86,7 +86,12 @@ export function ShareComposer({
     openFallback(c)
   }
 
-  // ---- fallback panel (no native share): save the image + copy the caption ----
+  // ---- fallback panel (no native share) ----
+  // The WebView couldn't hand the image to a share sheet. Two things matter here: (1) the
+  // link is the viral payload and it's ALREADY on the clipboard (openFallback copied it), so
+  // the loop survives even if the image never leaves; (2) give the image a real way out — a
+  // download link (works where the host WebView wires up downloads) PLUS long-press as a
+  // backstop. We don't over-promise long-press, since many WebViews don't offer that menu.
   if (postUrl) {
     return (
       <div className="composer">
@@ -95,10 +100,14 @@ export function ShareComposer({
           <img className="composer-canvas post-img" src={postUrl} alt="Your card" />
         </div>
         <p className="composer-hint">
-          Press &amp; hold the image to save it, then post it to your story 👀
+          Your caption + link are copied ✓ — save the card, then paste it into your story 👀
         </p>
-        <button className="s-cta" onClick={async () => setCopied(await copyText(caption))}>
-          {copied ? 'Caption + link copied ✓' : 'Copy caption + link'}
+        <a className="s-cta s-cta--save" href={postUrl} download="stakes.png">
+          Save the card
+        </a>
+        <p className="composer-subhint">…or press &amp; hold the image above to save it</p>
+        <button className="s-link" onClick={async () => setCopied(await copyText(caption))}>
+          {copied ? 'Caption + link copied ✓' : 'Copy caption + link again'}
         </button>
         <button className="s-link composer-back" onClick={() => setPostUrl(null)}>
           ← Back to styles

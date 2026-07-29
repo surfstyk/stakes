@@ -30,11 +30,11 @@ export const copy = {
   welcome: {
     kicker: 'Put your money where your mouth is',
     headline: { lead: 'Stake on a goal. ', em: 'Keep your word.' } as Headline,
-    sub: 'Put a little on the line, show up daily, and get it all back when you finish — kept honest by your friends, not a camera.',
+    sub: 'Put a little on the line and show up daily. Keep every day and it all comes back — plus a NIM bonus. Kept honest by your friends, not a camera.',
     steps: [
-      { emoji: '🤝', title: 'Pledge', text: 'Stake on a goal for the week.' },
+      { emoji: '🤝', title: 'Pledge', text: 'Stake on a goal for a set run of days.' },
       { emoji: '🔥', title: 'Show up', text: 'Check in daily — your crew’s watching.' },
-      { emoji: '🏅', title: 'Get it back', text: 'Finish and reclaim your stake, plus a little NIM.' },
+      { emoji: '🏅', title: 'Get it back', text: 'Keep every day and reclaim your stake — plus a NIM bonus.' },
     ],
     cta: 'Start a challenge →',
     foot: 'A commitment game built on trust, not surveillance.',
@@ -65,7 +65,7 @@ export const copy = {
     durationLabel: 'For how long?',
     daysUnit: 'days',
     stakeLabel: 'The stake',
-    stakeNote: 'Staked in NIM. Gasless and instant, and you get it all back if you finish.',
+    stakeNote: 'Staked in NIM — no fees. Keep every day and it all comes back, plus a NIM bonus.',
     windowLabel: 'Doors close…',
     testWindowNote: '⚡ Test mode on — doors close ~2 min after you create.',
     nameLabel: 'Sign it as',
@@ -78,29 +78,29 @@ export const copy = {
   pledged: {
     kicker: 'Your pledge is live',
     h1: { lead: 'Now go ', em: 'show', tail: ' them.' } as Headline,
-    sub: 'The first friend who taps in starts your week.',
+    sub: 'The first friend who taps in starts your run.',
     share: 'Share to your story',
-    shareCopied: 'Link copied ✓',
     inviteLead: 'Rather just send the link?',
     invite: 'Copy invite',
     inviteCopied: 'Copied ✓',
     goChallenge: 'Go to the challenge →',
     preview: 'Preview what friends see',
+    // shown if a share link is opened for a pledge that no longer exists
+    notFoundH1: 'This pledge is gone.',
+    notFoundSub: "It expired or was never finished. Start a fresh one — it takes 30 seconds.",
+    notFoundCta: 'Start a new pledge',
   },
 
   join: {
     kickerDared: (creator: string) => `${creator} dared you in`,
     h1Lead: "Money's on the line.",
     h1: { lead: 'Are ', em: 'you', tail: ' in?' } as Headline,
-    sub: 'Match the stake to join the week. Show up daily, get it all back.',
+    sub: 'Match the stake to join the run. Keep every day, get it all back.',
     whosInOne: (a: string) => `${a} is in`,
     whosInTwo: (a: string, b: string) => `${a} & ${b} are in`,
     whosInMany: (a: string, b: string, extra: number) => `${a}, ${b} +${extra} are in`,
     crewRunning: "the crew's already running",
-    stakingLine: (n: number, stake: number, asset: Asset) =>
-      `${n} ${n === 1 ? 'person' : 'people'} staking ${stake} ${asset}`,
     countdown: 'Doors close in',
-    miniToPlay: 'to play',
     nameLabel: 'Join as',
     namePlaceholder: 'your first name',
     cta: (stake: number, asset: Asset) => `Put ${stake} ${asset} in — I'm in`,
@@ -108,9 +108,9 @@ export const copy = {
     errCancel: "You didn't confirm the stake — tap to try again.",
     errFallback: 'Could not lock in your stake. Check your connection and try again.',
     guarantee: 'Free to move · held safe · back in your pocket',
+    offerExit: 'Not ready? Start your own instead',
     heldSafe: (stake: number, asset: Asset) =>
-      `Your ${stake} ${asset} is held safe until the week's up. Keep every day and it all comes back.`,
-    foothint: 'You get it all back if you finish the week.',
+      `Your ${stake} ${asset} is held safe until your run's up. Keep every day and it all comes back, plus a NIM bonus.`,
 
     joinedKicker: "You're locked in",
     joinedH1: { lead: "You're ", em: 'in', tail: '.' } as Headline,
@@ -119,12 +119,12 @@ export const copy = {
     youMake: (n: number) => `You make ${n}`,
     reshareQuote: 'The more people watching, the harder it is to quit.',
     pullFriend: 'Pull in a friend',
-    later: 'Maybe later — take me to my week',
-    goChallenge: 'Go to the challenge →',
+    pullFriendCopied: 'Link copied ✓ — send it over',
+    later: 'Maybe later — take me to my challenge',
 
     closedH1: 'Doors closed on this one.',
     closedSub: (creator: string, emoji: string) =>
-      `${creator}'s ${emoji} week already kicked off. But you don't have to miss out.`,
+      `${creator}'s ${emoji} run already kicked off. But you don't have to miss out.`,
     closedCta: 'Start the same challenge',
     closedFoot: (whosIn: string) => `${whosIn} on the last one.`,
 
@@ -163,7 +163,7 @@ export const copy = {
   },
 
   results: {
-    kicker: (emoji: string, goal: string) => `${emoji} ${goal} · the week's up`,
+    kicker: (emoji: string, goal: string) => `${emoji} ${goal} · the run's up`,
     h1Perfect: { lead: 'Perfect ', em: 'week.' } as Headline,
     h1Landed: { lead: 'How it ', em: 'landed.' } as Headline,
     daysMeta: (done: number, total: number) => `${done}/${total} days`,
@@ -195,7 +195,7 @@ export const copy = {
       `I just joined ${creator}'s ${emoji} challenge. You in?`,
     resultsWin: (emoji: string, goal: string) =>
       `Perfect week ✅ ${emoji} ${goal}. Run it back?`,
-    resultsWrap: (emoji: string) => `Wrapped my ${emoji} week on ${brand.name}.`,
+    resultsWrap: (emoji: string) => `Wrapped my ${emoji} run on ${brand.name}.`,
     progress: (emoji: string, goal: string, day: number, total: number) =>
       `Day ${day}/${total} of ${goal} ${emoji} — still in. Watch me 👀`,
   },

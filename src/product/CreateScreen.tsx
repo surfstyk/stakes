@@ -45,7 +45,9 @@ export function CreateScreen({
   const template = TEMPLATES.find((t) => t.id === templateId)!
   const isCustom = templateId === 'custom'
   const goal = isCustom ? customGoal.trim() : template.goal
-  const canCreate = goal.length > 1
+  // Require a name: it's the signature on the shared pledge card + the crew avatar, so a
+  // blank "You" would degrade the artifact everyone else sees. (Name field is last, below.)
+  const canCreate = goal.length > 1 && name.trim().length > 0
 
   // Live preview of the pledge being built — the artifact is the product, so show it
   // forming as you pick goal / stake / days (primes the share, "designing your pledge").
@@ -224,7 +226,7 @@ export function CreateScreen({
 
       <div className="s-sticky">
         {err && (
-          <p className="s-foothint" style={{ color: 'var(--stake)' }}>
+          <p className="s-foothint" role="alert" style={{ color: 'var(--stake)' }}>
             {err}
           </p>
         )}

@@ -55,26 +55,34 @@ function isUserCancel(e: unknown): boolean {
 }
 
 function whosInLine(names: string[]): string {
+  if (names.length === 0) return '' // defensive: a 0-participant challenge must never render "undefined…"
   if (names.length === 1) return copy.join.whosInOne(names[0])
   if (names.length === 2) return copy.join.whosInTwo(names[0], names[1])
   return copy.join.whosInMany(names[0], names[1], names.length - 2)
 }
 
-async function shareInvite(rec: ChallengeRecord) {
+/**
+ * Send the invite. Returns `true` only when we fell back to copying the link to the
+ * clipboard — so the caller can surface a "copied ✓" confirmation. The native share sheet
+ * (and a user cancel) provide their own feedback, so those return `false`.
+ */
+async function shareInvite(rec: ChallengeRecord): Promise<boolean> {
   const url = `${location.origin}${location.pathname}?c=${rec.id}`
   const text = copy.share.joined(rec.creatorName, rec.emoji)
   if (navigator.share) {
     try {
       await navigator.share({ title: brand.name, text, url })
-      return
-    } catch {
-      /* cancelled / unsupported → fall through */
+      return false // native sheet handled it — no in-app confirmation needed
+    } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') return false // user cancelled
+      /* unsupported → fall through to clipboard */
     }
   }
   try {
     await navigator.clipboard.writeText(url)
+    return true
   } catch {
-    /* ignore */
+    return false
   }
 }
 
@@ -96,6 +104,7 @@ export function JoinScreen({
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [joined, setJoined] = useState(false)
+  const [pulled, setPulled] = useState(false) // "invite link copied" confirmation
   const countdown = useCountdown(rec?.lockAt ?? 0)
 
   useEffect(() => {
@@ -116,7 +125,7 @@ export function JoinScreen({
   if (!rec) {
     return (
       <div className="s-center" style={{ paddingTop: 40 }}>
-        <div className="pledge-emoji" style={{ fontSize: 48 }}>
+        <div className="pledge-emoji" style={{ fontSize: 48 }} aria-hidden="true">
           🤷
         </div>
         <h1 className="s-h1">{copy.join.notFoundH1}</h1>
@@ -162,9 +171,14 @@ export function JoinScreen({
         </div>
 
         <div className="s-sticky">
-          <button className="s-cta s-cta--share" onClick={() => shareInvite(rec)}>
+          <button
+            className="s-cta s-cta--share"
+            onClick={async () => {
+              if (await shareInvite(rec)) setPulled(true)
+            }}
+          >
             <ShareIcon />
-            {copy.join.pullFriend}
+            {pulled ? copy.join.pullFriendCopied : copy.join.pullFriend}
           </button>
           <button className="later" onClick={() => onEnter(rec.id)}>
             {copy.join.later}
@@ -178,7 +192,7 @@ export function JoinScreen({
   if (countdown.over) {
     return (
       <div className="s-center" style={{ paddingTop: 28 }}>
-        <div className="pledge-emoji" style={{ fontSize: 48 }}>
+        <div className="pledge-emoji" style={{ fontSize: 48 }} aria-hidden="true">
           🚪
         </div>
         <h1 className="s-h1">{copy.join.closedH1}</h1>
@@ -230,14 +244,16 @@ export function JoinScreen({
         <p className="s-sub hook-sub">{copy.join.sub}</p>
       </div>
 
-      {/* social proof — loud, high */}
-      <div className="proof">
-        <Avatars names={names} />
-        <div className="proof-txt">
-          {whosInLine(names)}
-          <span>{copy.join.crewRunning}</span>
+      {/* social proof — loud, high (only once someone's actually in) */}
+      {names.length > 0 && (
+        <div className="proof">
+          <Avatars names={names} />
+          <div className="proof-txt">
+            {whosInLine(names)}
+            <span>{copy.join.crewRunning}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* the clock — the engine, the one vermilion thing */}
       <div className="clock" role="timer" aria-label={`${copy.join.countdown} ${countdown.text}`}>
@@ -276,13 +292,21 @@ export function JoinScreen({
             {err}
           </p>
         )}
-        <button className="s-cta" data-variant="go" disabled={busy} onClick={join}>
+        <button
+          className="s-cta"
+          data-variant="go"
+          disabled={busy || (askName && !name.trim())}
+          onClick={join}
+        >
           {busy ? copy.join.ctaBusy : copy.join.cta(rec.stake, rec.asset)}
         </button>
         <div className="join-meta">
           <ShieldCheck />
           {copy.join.guarantee}
         </div>
+        <button className="s-link join-exit" onClick={onCreateOwn}>
+          {copy.join.offerExit}
+        </button>
       </div>
     </motion.div>
   )

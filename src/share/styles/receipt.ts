@@ -225,7 +225,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   y += s(54)
   ctx.fillStyle = INK
   ctx.font = `700 ${s(46)}px ${MONO}`
-  const goalLines = wrapText(ctx, (d.goal || 'my week').toUpperCase(), iw).slice(0, 2)
+  const goalLines = wrapText(ctx, (d.goal || 'my run').toUpperCase(), iw).slice(0, 2)
   goalLines.forEach((ln) => {
     ctx.fillText(ln, px, y)
     y += s(54)
@@ -246,7 +246,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.textAlign = 'center'
   ctx.fillStyle = INK
   ctx.font = `700 ${s(30)}px ${MONO}`
-  ctx.fillText(perfect ? '*** PERFECT WEEK ***' : '*** THAT WAS MY WEEK ***', cx, y)
+  ctx.fillText(perfect ? '*** PERFECT WEEK ***' : '*** THAT WAS MY RUN ***', cx, y)
 
   barcode(ctx, s, cx, bot - s(250), iw * 0.82, s(120), d.id)
   ctx.fillStyle = INK

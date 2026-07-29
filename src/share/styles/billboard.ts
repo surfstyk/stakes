@@ -132,7 +132,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
 
   ctx.fillStyle = WHITE
   ctx.font = `900 ${s(132)}px ${UI}`
-  const head = perfect ? 'PERFECT WEEK' : (d.goal || 'MY WEEK').toUpperCase()
+  const head = perfect ? 'PERFECT WEEK' : (d.goal || 'MY RUN').toUpperCase()
   const lines = wrapText(ctx, head, pw).slice(0, 3)
   let y = drawLines(ctx, lines, px, s(640), s(126))
 

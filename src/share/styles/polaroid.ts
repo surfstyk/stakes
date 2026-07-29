@@ -132,7 +132,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.textAlign = 'center'
   ctx.fillStyle = INK
   ctx.font = `italic 600 ${s(58)}px ${DISPLAY}`
-  ctx.fillText(perfect ? 'Perfect week ✅' : (wrapText(ctx, d.goal || 'my week', s(640))[0] ?? 'my week'), 0, y)
+  ctx.fillText(perfect ? 'Perfect week ✅' : (wrapText(ctx, d.goal || 'my run', s(640))[0] ?? 'my run'), 0, y)
 
   y += s(58)
   ctx.fillStyle = SOFT

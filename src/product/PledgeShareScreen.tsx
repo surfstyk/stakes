@@ -42,9 +42,12 @@ export function PledgeShareScreen({
   if (!rec) {
     return (
       <div className="s-center" style={{ paddingTop: 40 }}>
-        <h1 className="s-h1">{copy.progress.notFoundH1}</h1>
+        <h1 className="s-h1">{copy.pledged.notFoundH1}</h1>
+        <p className="s-sub" style={{ margin: '0 auto 22px' }}>
+          {copy.pledged.notFoundSub}
+        </p>
         <button className="s-cta" onClick={onCreate}>
-          {copy.progress.notFoundCta}
+          {copy.pledged.notFoundCta}
         </button>
       </div>
     )
