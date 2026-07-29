@@ -145,7 +145,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   // payout pill
   y += s(60)
   ctx.font = `900 ${s(58)}px ${UI}`
-  const payTxt = `${fmtAmount(d.payout)} ${d.asset} BACK`
+  const payTxt = `${fmtAmount(d.payout)} ${d.asset} ${perfect ? 'BANKED' : 'BACK'}`
   const tw = ctx.measureText(payTxt).width
   const padX = s(48)
   const pillH = s(120)

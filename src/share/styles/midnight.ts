@@ -164,7 +164,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.fillText(`${fmtAmount(d.payout)} ${d.asset}`, px, y)
   ctx.fillStyle = FAINT
   ctx.font = `600 ${s(40)}px ${UI}`
-  ctx.fillText('back in your pocket', px, y + s(58))
+  ctx.fillText(perfect ? 'banked in full' : 'back in your pocket', px, y + s(58))
 
   ctx.fillStyle = FAINT
   ctx.font = `700 ${s(40)}px ${UI}`

@@ -138,7 +138,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   y += s(58)
   ctx.fillStyle = SOFT
   ctx.font = `600 ${s(30)}px ${UI}`
-  ctx.fillText(`${fmtAmount(d.payout)} ${d.asset} back · ${d.daysCompleted}/${d.durationDays} days`, 0, y)
+  ctx.fillText(`${fmtAmount(d.payout)} ${d.asset} ${perfect ? 'banked' : 'back'} · ${d.daysCompleted}/${d.durationDays} days`, 0, y)
 
   y += s(62)
   ctx.fillStyle = INK

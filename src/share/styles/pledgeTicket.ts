@@ -285,7 +285,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.fillText(payStr, px, y)
   ctx.fillStyle = C.inkSoft
   ctx.font = `600 ${s(40)}px ${UI}`
-  ctx.fillText(copy.results.back(d.asset), px, y + s(58))
+  ctx.fillText(perfect ? copy.results.banked(d.asset) : copy.results.back(d.asset), px, y + s(58))
 
   // streak grid — each miss lands on its own day (✕), then the count beneath it
   const gridBottom = drawStreak(ctx, s, px, pw, y + s(120), d.days)

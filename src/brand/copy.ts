@@ -176,6 +176,7 @@ export const copy = {
     h1Landed: { lead: 'How it ', em: 'landed.' } as Headline,
     daysMeta: (done: number, total: number) => `${done}/${total} days`,
     back: (asset: string) => `${asset} back`,
+    banked: (asset: string) => `${asset} banked`, // perfect finishers: stake + bonus = banked
     // Personal payout hero — the "what you got" moment (stake back + the NIM finisher bonus).
     yoursKicker: 'Yours',
     backPart: (amt: string, asset: string) => `${amt} ${asset} back`,
