@@ -176,6 +176,13 @@ export const copy = {
     h1Landed: { lead: 'How it ', em: 'landed.' } as Headline,
     daysMeta: (done: number, total: number) => `${done}/${total} days`,
     back: (asset: string) => `${asset} back`,
+    // Personal payout hero — the "what you got" moment (stake back + the NIM finisher bonus).
+    yoursKicker: 'Yours',
+    backPart: (amt: string, asset: string) => `${amt} ${asset} back`,
+    bonusPart: (amt: string, asset: string) => `+${amt} ${asset} bonus`,
+    lostPart: (amt: string, asset: string) => `−${amt} ${asset} lost`,
+    landed: 'Landed in your wallet',
+    settling: 'Settling — lands in about a minute',
     perfectBadgeTitle: 'banked in full',
     shareWin: 'Share the win',
     shareWrap: 'Share the wrap',

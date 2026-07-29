@@ -23,14 +23,22 @@ export function ResultsScreen({
 
   useEffect(() => {
     let alive = true
-    Promise.all([getChallenge(challengeId), getMyAddress()]).then(([view, addr]) => {
+    let polls = 0
+    let timer: ReturnType<typeof setInterval>
+    getMyAddress().then((addr) => alive && setMe(addr))
+    const load = async () => {
+      const view = await getChallenge(challengeId)
       if (!alive) return
       setRec(view)
-      setMe(addr)
       setLoading(false)
-    })
+      // Poll until the payout lands (the settler runs ~1 min after the run ends), then stop.
+      if (view?.settlement?.status === 'done' || ++polls > 20) clearInterval(timer)
+    }
+    load()
+    timer = setInterval(load, 8000)
     return () => {
       alive = false
+      clearInterval(timer)
     }
   }, [challengeId])
 
@@ -69,6 +77,11 @@ export function ResultsScreen({
   const mine = settlement.perParticipant.find((p) => p.account === me)
   const finishers = rows.filter((r) => r.isPerfectFinisher)
 
+  // The personal payout: stake back + the sponsor-funded finisher bonus = what actually lands.
+  const myTotal = mine ? mine.payout + mine.nimBonus : 0
+  const settled = rec.settlement?.status === 'done'
+  const settling = rec.settlement?.status === 'broadcasting'
+
   const cardData: ResultsCardData | null = mine
     ? {
         kind: 'results',
@@ -79,7 +92,7 @@ export function ResultsScreen({
         durationDays: rec.durationDays,
         daysCompleted: mine.daysCompleted,
         days: dayMarks(rec, me),
-        payout: mine.payout,
+        payout: mine.payout + mine.nimBonus, // the true total that lands (stake back + bonus)
         asset: rec.asset,
         isPerfectFinisher: mine.isPerfectFinisher,
         creatorName: rec.creatorName,
@@ -91,6 +104,34 @@ export function ResultsScreen({
       {mine?.isPerfectFinisher && <Confetti />}
       <p className="s-kicker">{copy.results.kicker(rec.emoji, rec.goal)}</p>
       <Headline h={mine?.isPerfectFinisher ? copy.results.h1Perfect(unit) : copy.results.h1Landed} />
+
+      {mine && (
+        <div className="payout-hero">
+          <div className="payout-kicker">{copy.results.yoursKicker}</div>
+          <div className="payout-amount">
+            {fmtAmount(myTotal)} {rec.asset}
+          </div>
+          <div className="payout-parts">
+            {mine.payout > 0 && <span>{copy.results.backPart(fmtAmount(mine.payout), rec.asset)}</span>}
+            {mine.nimBonus > 0 && (
+              <span className="part-bonus">{copy.results.bonusPart(fmtAmount(mine.nimBonus), rec.asset)}</span>
+            )}
+            {mine.forfeited > 0 && (
+              <span className="part-lost">{copy.results.lostPart(fmtAmount(mine.forfeited), rec.asset)}</span>
+            )}
+          </div>
+          {settled && myTotal > 0 && (
+            <div className="payout-status is-paid" role="status">
+              ✓ {copy.results.landed}
+            </div>
+          )}
+          {settling && (
+            <div className="payout-status is-settling" role="status">
+              {copy.results.settling}
+            </div>
+          )}
+        </div>
+      )}
 
       {mine && cardData && (
         <ShareComposer
@@ -167,8 +208,13 @@ function BoardRow({
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>
-          {fmtAmount(r.payout)} {asset}
+          {fmtAmount(r.payout + r.nimBonus)} {asset}
         </div>
+        {r.nimBonus > 0 && (
+          <div style={{ fontSize: 11.5, color: 'var(--gold)', fontWeight: 700 }}>
+            +{fmtAmount(r.nimBonus)} bonus
+          </div>
+        )}
         {r.forfeited > 0 && (
           <div style={{ fontSize: 11.5, color: 'var(--stake)' }}>{copy.results.burnedTag(fmtAmount(r.forfeited))}</div>
         )}

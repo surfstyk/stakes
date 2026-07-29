@@ -923,6 +923,65 @@ textarea.s-field {
   padding: 11px 13px;
 }
 
+/* Personal payout hero — the "what you got" moment: stake back + the NIM finisher bonus,
+   and (once the settler has run) a receipt that it actually landed in the wallet. */
+.payout-hero {
+  text-align: center;
+  margin: 10px 0 16px;
+  padding: 18px 16px 16px;
+  background: var(--paper-card);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+}
+.payout-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.payout-amount {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(34px, 11vw, 46px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--go);
+  margin-top: 4px;
+}
+.payout-parts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.payout-parts .part-bonus {
+  color: var(--gold);
+  font-weight: 700;
+}
+.payout-parts .part-lost {
+  color: var(--stake);
+}
+.payout-status {
+  display: inline-block;
+  margin-top: 13px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.payout-status.is-paid {
+  background: var(--go-tint);
+  color: var(--go);
+}
+.payout-status.is-settling {
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+}
+
 /* ============================================================================
    Share composer — the pluggable card + TikTok-style picker (the star asset)
    ============================================================================ */

@@ -85,6 +85,21 @@ export interface CheckIn {
   cheers: number
 }
 
+/** A settlement transaction that has been broadcast (or is about to be) — public on-chain. */
+export interface SettlementTx {
+  kind: 'payout' | 'burn'
+  to: string
+  nim: number
+  hash: string
+}
+
+/** Real settlement state for the results receipt (null until the settler has touched it). */
+export interface SettlementView {
+  status: 'broadcasting' | 'done'
+  at: number
+  txs: SettlementTx[]
+}
+
 export interface ChallengeRecord {
   id: string
   goal: string
@@ -100,6 +115,7 @@ export interface ChallengeRecord {
   status: string
   participants: Participant[]
   checkins: CheckIn[]
+  settlement?: SettlementView | null // real payout state once the run has settled
 }
 
 // ---- API client ------------------------------------------------------------

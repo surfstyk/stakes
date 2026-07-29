@@ -14,7 +14,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { openDay } from '../src/vault/schedule.ts'
-import { addCheckin, cheer, createChallenge, getChallenge, getSettlement, joinChallenge } from './db.ts'
+import { addCheckin, cheer, createChallenge, getChallenge, getSettlement, getSettlementRecord, joinChallenge } from './db.ts'
 import { normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
 
@@ -52,11 +52,29 @@ const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : N
 // (depositTxHash, depositConfirmed): the UI never reads them, and exposing a participant's
 // depositTxHash let another participant claim that on-chain deposit as their own
 // (SEC-06 → SEC-01). Verify/settle read these straight from the DB, not the wire.
+// Public settlement state for the results receipt: whether payouts have landed, and the
+// on-chain txs (all public info — amounts/addresses/hashes are visible on-chain anyway).
+// The hex-serialized tx bodies are stripped; failures aren't surfaced (they just retry).
+function settlementView(id: string) {
+  const rec = getSettlementRecord(id)
+  if (!rec || rec.status === 'failed') return null
+  let txs: { kind: string; to: string; nim: number; hash: string }[] = []
+  try {
+    txs = (JSON.parse(rec.sent ?? rec.plan ?? '[]') as { kind: string; to: string; nim: number; hash: string }[]).map(
+      (t) => ({ kind: t.kind, to: t.to, nim: t.nim, hash: t.hash }),
+    )
+  } catch {
+    txs = []
+  }
+  return { status: rec.status, at: rec.at, txs }
+}
+
 function publicChallenge(view: ReturnType<typeof getChallenge>) {
   if (!view) return view
   return {
     ...view,
     participants: view.participants.map(({ depositTxHash, depositConfirmed, ...rest }) => rest),
+    settlement: settlementView(view.id),
   }
 }
 
