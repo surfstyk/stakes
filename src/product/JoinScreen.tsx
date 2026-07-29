@@ -271,8 +271,11 @@ export function JoinScreen({
 
       {askName && (
         <>
-          <p className="s-label">{copy.join.nameLabel}</p>
+          <label className="s-label" htmlFor="join-name">
+            {copy.join.nameLabel}
+          </label>
           <input
+            id="join-name"
             className="s-field"
             placeholder={copy.join.namePlaceholder}
             value={name}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
+import { Loading } from './Loading.tsx'
 import { PledgeTicket } from './PledgeTicket.tsx'
 import { NIMIQ_PAY_INSTALL_URL, openInNimiqPay } from '../lib/context.ts'
 import { getChallenge, type ChallengeRecord } from './store.ts'
@@ -19,6 +20,8 @@ import { getChallenge, type ChallengeRecord } from './store.ts'
 
 export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
   const [rec, setRec] = useState<ChallengeRecord | null>(null)
+  const [loading, setLoading] = useState(!!challengeId)
+  const [expired, setExpired] = useState(false)
   const g = copy.gate
 
   useEffect(() => {
@@ -27,12 +30,23 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
     // Same-origin /api works from a plain browser too, so we can show the invite preview
     // before the user crosses over into Nimiq Pay.
     getChallenge(challengeId).then((r) => {
-      if (alive) setRec(r)
+      if (!alive) return
+      if (r) setRec(r)
+      else setExpired(true) // link points at a challenge that's over / gone
+      setLoading(false)
     })
     return () => {
       alive = false
     }
   }, [challengeId])
+
+  // Hold on a spinner while an invite is fetched, so we never flash the generic gate and
+  // then snap to the invite preview (the layout shift the audit flagged).
+  if (loading) return <Loading />
+
+  // For an expired invite, cross over to a CLEAN url (no ?c=) so they land on Create and can
+  // start their own — not back on the dead invite's "This one's gone".
+  const cleanUrl = location.origin + location.pathname
 
   return (
     <motion.div
@@ -45,7 +59,17 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         {brand.hasDot && <span className="dot" />} {brand.name}
       </span>
 
-      {rec ? (
+      {expired ? (
+        <>
+          <p className="s-kicker" style={{ marginTop: 20 }}>
+            {g.expiredKicker}
+          </p>
+          <Headline h={g.expiredH1} className="s-h1" />
+          <p className="s-sub" style={{ margin: '0 auto 6px' }}>
+            {g.expiredSub}
+          </p>
+        </>
+      ) : rec ? (
         <>
           <p className="s-kicker" style={{ marginTop: 20 }}>
             {g.invitedKicker(rec.creatorName)}
@@ -76,8 +100,12 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         <ShieldCheck />
         {copy.join.guarantee}
       </div>
-      <button className="s-cta s-cta--share" data-variant="go" onClick={() => openInNimiqPay()}>
-        {g.open}
+      <button
+        className="s-cta s-cta--share"
+        data-variant="go"
+        onClick={() => openInNimiqPay(expired ? cleanUrl : undefined)}
+      >
+        {expired ? g.expiredOpen : g.open}
       </button>
       {/* gently pre-empt Nimiq Pay's first-access confirm + unlock so it doesn't feel broken */}
       <p className="gate-reassure">{g.reassure}</p>

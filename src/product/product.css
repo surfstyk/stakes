@@ -131,12 +131,21 @@ button {
   max-width: 34ch;
 }
 .s-label {
+  display: block; /* so it lays out identically whether a <p> or a <label htmlFor> */
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin: 18px 0 9px;
+}
+
+/* Keyboard focus ring — shows for keyboard/switch users, stays out of the way on tap.
+   Text fields keep their border-darken focus (see .s-field:focus); everything else
+   clickable gets a clear ring where before it had none. */
+.stakes :where(button, a, [role='radio']):focus-visible {
+  outline: 2.5px solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* ---- Template chips --------------------------------------------------------- */

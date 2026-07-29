@@ -78,7 +78,7 @@ export function ProgressScreen({
   if (!rec) {
     return (
       <div className="s-center" style={{ paddingTop: 40 }}>
-        <div className="pledge-emoji" style={{ fontSize: 48 }}>
+        <div className="pledge-emoji" style={{ fontSize: 48 }} aria-hidden="true">
           🤷
         </div>
         <h1 className="s-h1">{copy.progress.notFoundH1}</h1>
@@ -168,7 +168,7 @@ export function ProgressScreen({
       {/* ---- the state-appropriate panel ---- */}
       {!ds.started ? (
         <div className="s-card s-center" style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 28 }}>⏳</div>
+          <div style={{ fontSize: 28 }} aria-hidden="true">⏳</div>
           <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.startsTitle}</p>
           <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>
             {copy.progress.startsSub(fmtDur(ds.msUntilStart))}
@@ -176,13 +176,13 @@ export function ProgressScreen({
         </div>
       ) : ds.over ? (
         <div className="s-card s-center" style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 28 }}>🏁</div>
+          <div style={{ fontSize: 28 }} aria-hidden="true">🏁</div>
           <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.overTitle}</p>
           <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>{copy.progress.overSub}</p>
         </div>
       ) : checkedToday ? (
         <div className="s-card s-center" style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 28 }}>✅</div>
+          <div style={{ fontSize: 28 }} aria-hidden="true">✅</div>
           <p style={{ fontWeight: 800, margin: '6px 0 2px' }}>{copy.progress.checkedTitle}</p>
           <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>
             {copy.progress.checkedSub(fmtDur(ds.msLeftInDay))}
@@ -190,11 +190,12 @@ export function ProgressScreen({
         </div>
       ) : (
         <div className="composer">
-          <p className="s-label" style={{ margin: '16px 0 4px' }}>
+          <label className="s-label" htmlFor="checkin-note" style={{ margin: '16px 0 4px' }}>
             {copy.progress.checkinLabel}
-          </p>
+          </label>
           <p className="s-note" style={{ color: 'var(--stake)' }}>{copy.progress.windowLeft(fmtDur(ds.msLeftInDay))}</p>
           <textarea
+            id="checkin-note"
             className="s-field"
             rows={2}
             placeholder={copy.progress.checkinPlaceholder}
@@ -202,9 +203,15 @@ export function ProgressScreen({
             onChange={(e) => setNote(e.target.value)}
             maxLength={140}
           />
-          <div className="moods">
+          <div className="moods" role="group" aria-label="Add a mood">
             {MOODS.map((m) => (
-              <button key={m} className="mood" data-on={m === mood} onClick={() => setMood(m === mood ? undefined : m)}>
+              <button
+                key={m}
+                className="mood"
+                data-on={m === mood}
+                aria-pressed={m === mood}
+                onClick={() => setMood(m === mood ? undefined : m)}
+              >
                 {m}
               </button>
             ))}

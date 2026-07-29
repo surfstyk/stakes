@@ -136,12 +136,13 @@ export function CreateScreen({
         <PledgeTicket rec={preview} />
       </div>
 
-      <div className="s-templates">
+      <div className="s-templates" role="group" aria-label="Pick a goal">
         {TEMPLATES.map((t) => (
           <button
             key={t.id}
             className="s-chip"
             data-on={t.id === templateId}
+            aria-pressed={t.id === templateId}
             onClick={() => setTemplateId(t.id)}
           >
             <span className="emoji">{t.emoji}</span>
@@ -156,8 +157,11 @@ export function CreateScreen({
 
       {isCustom && (
         <>
-          <p className="s-label">{copy.create.customLabel}</p>
+          <label className="s-label" htmlFor="create-goal">
+            {copy.create.customLabel}
+          </label>
           <input
+            id="create-goal"
             className="s-field"
             placeholder={copy.create.customPlaceholder}
             value={customGoal}
@@ -200,10 +204,15 @@ export function CreateScreen({
         </button>
       </div>
 
-      <p className="s-label">{copy.create.windowLabel}</p>
-      <div className="s-seg">
+      <p className="s-label" id="window-label">{copy.create.windowLabel}</p>
+      <div className="s-seg" role="group" aria-labelledby="window-label">
         {WINDOW_PRESETS.map((w) => (
-          <button key={w.id} data-on={w.id === windowPreset} onClick={() => setWindowPreset(w.id)}>
+          <button
+            key={w.id}
+            data-on={w.id === windowPreset}
+            aria-pressed={w.id === windowPreset}
+            onClick={() => setWindowPreset(w.id)}
+          >
             {w.label}
             <small>{w.sub}</small>
           </button>
@@ -215,8 +224,11 @@ export function CreateScreen({
         </p>
       )}
 
-      <p className="s-label">{copy.create.nameLabel}</p>
+      <label className="s-label" htmlFor="create-name">
+        {copy.create.nameLabel}
+      </label>
       <input
+        id="create-name"
         className="s-field"
         placeholder={copy.create.namePlaceholder}
         value={name}

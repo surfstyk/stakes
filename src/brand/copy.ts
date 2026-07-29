@@ -49,6 +49,12 @@ export const copy = {
     sub: 'Stakes runs inside Nimiq Pay — tap to open it and you’re in.',
     invitedKicker: (creator: string) => `${creator} dared you in`,
     invitedSub: 'Open it in Nimiq Pay to lock in your spot.',
+    // shown when an invite link (?c=…) points at a challenge that's over / gone — so the
+    // invitee learns it here instead of crossing into Nimiq Pay only to hit a dead end.
+    expiredKicker: 'That invite’s gone',
+    expiredH1: { lead: 'This one ', em: 'expired.' } as Headline,
+    expiredSub: 'The challenge is over or the link’s dead — but you can start your own in seconds.',
+    expiredOpen: 'Start your own in Nimiq Pay →',
     open: 'Open in Nimiq Pay →',
     reassure: 'First time? Nimiq Pay may ask you to confirm — that’s normal.',
     get: "Don't have it? Get Nimiq Pay",
