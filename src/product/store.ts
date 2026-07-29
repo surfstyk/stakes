@@ -1,5 +1,6 @@
 import type { Asset, CompletionResult } from '../vault/types.ts'
-import { DAY_MS } from '../vault/schedule.ts'
+import type { DayMark } from '../share/types.ts'
+import { DAY_MS, dayState } from '../vault/schedule.ts'
 import { getVault } from '../vault/index.ts'
 import { getNimiq } from '../lib/nimiq.ts'
 import { safeRandomId } from '../lib/id.ts'
@@ -350,6 +351,26 @@ export function daysCompletedFor(rec: ChallengeRecord, address: string): number 
 /** Which days a participant has checked in (set of 0-indexed day numbers). */
 export function checkedDaysFor(rec: ChallengeRecord, address: string): Set<number> {
   return new Set(rec.checkins.filter((c) => c.address === address).map((c) => c.day))
+}
+
+/**
+ * Per-day streak state for a participant, in day order (length durationDays). The SINGLE
+ * source of truth for both the in-app streak board and the share-card grids — so a missed
+ * day shows in the same position everywhere. A day is `done` if checked, else `today` if
+ * its window is open now, else `missed` if its window has already closed, else `todo`.
+ */
+export function dayMarks(rec: ChallengeRecord, address: string, now: number = Date.now()): DayMark[] {
+  const ds = dayState(rec, now)
+  const checked = checkedDaysFor(rec, address)
+  return Array.from({ length: rec.durationDays }, (_, i) =>
+    checked.has(i)
+      ? 'done'
+      : ds.started && !ds.over && i === ds.currentDay
+        ? 'today'
+        : ds.over || (ds.started && i < ds.currentDay)
+          ? 'missed'
+          : 'todo',
+  )
 }
 
 // The "closing door" engine (dayState / openDay) now lives in ../vault/schedule.ts so the

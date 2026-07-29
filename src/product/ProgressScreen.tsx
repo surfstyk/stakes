@@ -7,6 +7,7 @@ import {
   checkIn,
   checkedDaysFor,
   cheer,
+  dayMarks,
   dayState,
   getChallenge,
   getMyAddress,
@@ -91,6 +92,7 @@ export function ProgressScreen({
   const D = rec.durationDays
   const ds = dayState(rec, now)
   const checked = checkedDaysFor(rec, me)
+  const marks = dayMarks(rec, me, now)
   const checkedToday = ds.started && !ds.over && checked.has(ds.currentDay)
   const canCheckIn = ds.started && !ds.over && !checkedToday
   const feed = [...rec.checkins].sort((a, b) => b.at - a.at)
@@ -107,6 +109,7 @@ export function ProgressScreen({
           durationDays: D,
           currentDay: ds.currentDay + 1,
           daysKept: checked.size,
+          days: marks,
           stake: rec.stake,
           asset: rec.asset,
           creatorName: nameFor(rec, me),
@@ -155,20 +158,11 @@ export function ProgressScreen({
       </h1>
 
       <div className="streak">
-        {Array.from({ length: D }).map((_, i) => {
-          const state = checked.has(i)
-            ? 'done'
-            : ds.started && !ds.over && i === ds.currentDay
-              ? 'today'
-              : ds.over || (ds.started && i < ds.currentDay)
-                ? 'missed'
-                : 'todo'
-          return (
-            <span key={i} className={`cell ${state}`}>
-              {state === 'done' ? '✓' : state === 'missed' ? '✕' : i + 1}
-            </span>
-          )
-        })}
+        {marks.map((state, i) => (
+          <span key={i} className={`cell ${state}`}>
+            {state === 'done' ? '✓' : state === 'missed' ? '✕' : i + 1}
+          </span>
+        ))}
       </div>
 
       {/* ---- the state-appropriate panel ---- */}

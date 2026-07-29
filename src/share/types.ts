@@ -7,6 +7,13 @@
 
 export type CardKind = 'pledge' | 'results'
 
+/**
+ * Per-day state of a participant's streak, in day order. The single shared vocabulary
+ * for BOTH the in-app streak board (ProgressScreen) and the share-card grids, so a
+ * missed day lands in the SAME position everywhere (not just "first N filled").
+ */
+export type DayMark = 'done' | 'missed' | 'today' | 'todo'
+
 export interface PledgeCardData {
   kind: 'pledge'
   id: string // challenge id → the ticket "No." (cosmetic, stable)
@@ -28,6 +35,7 @@ export interface ResultsCardData {
   goal: string
   durationDays: number
   daysCompleted: number
+  days: DayMark[] // per-day pattern (length durationDays) → grid places misses correctly
   payout: number
   asset: string
   isPerfectFinisher: boolean
@@ -43,6 +51,7 @@ export interface ProgressCardData {
   durationDays: number
   currentDay: number // 1-indexed — the day you're on
   daysKept: number // check-ins so far
+  days: DayMark[] // per-day pattern (length durationDays) → grid places misses correctly
   stake: number
   asset: string
   creatorName: string

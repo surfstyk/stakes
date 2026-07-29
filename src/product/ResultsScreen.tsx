@@ -6,7 +6,7 @@ import { Loading } from './Loading.tsx'
 import { ShareComposer, fmtAmount } from '../share/index.ts'
 import type { ResultsCardData } from '../share/index.ts'
 import { computeSettlement, type ParticipantPayout } from '../vault/settlement.ts'
-import { avatarColor, buildResults, getChallenge, getMyAddress, initials, nameFor, type ChallengeRecord } from './store.ts'
+import { avatarColor, buildResults, dayMarks, getChallenge, getMyAddress, initials, nameFor, type ChallengeRecord } from './store.ts'
 
 const NIM_BONUS = 10 // sponsor/treasury-funded completion bonus (matches the backend)
 
@@ -77,6 +77,7 @@ export function ResultsScreen({
         goal: rec.goal,
         durationDays: rec.durationDays,
         daysCompleted: mine.daysCompleted,
+        days: dayMarks(rec, me),
         payout: mine.payout,
         asset: rec.asset,
         isPerfectFinisher: mine.isPerfectFinisher,

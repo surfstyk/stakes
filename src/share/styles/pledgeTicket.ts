@@ -7,7 +7,7 @@
 import { theme, copy } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
-import type { CardStyle, PledgeCardData, ProgressCardData, ResultsCardData, Size } from '../types.ts'
+import type { CardStyle, DayMark, PledgeCardData, ProgressCardData, ResultsCardData, Size } from '../types.ts'
 
 const C = theme.color
 const DISPLAY = theme.font.displayFamily
@@ -269,7 +269,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.fillStyle = perfect ? C.go : C.stake
   ctx.font = `800 ${s(34)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
-  ctx.fillText(perfect ? 'PERFECT WEEK ✅' : 'THAT WAS MY WEEK', px, y)
+  ctx.fillText(perfect ? 'PERFECT WEEK ✅' : 'THAT WAS MY RUN', px, y)
   ctx.letterSpacing = '0px'
 
   ctx.fillStyle = C.ink
@@ -287,10 +287,11 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.font = `600 ${s(40)}px ${UI}`
   ctx.fillText(copy.results.back(d.asset), px, y + s(58))
 
-  // days kept
+  // streak grid — each miss lands on its own day (✕), then the count beneath it
+  const gridBottom = drawStreak(ctx, s, px, pw, y + s(120), d.days)
   ctx.fillStyle = C.inkSoft
   ctx.font = `700 ${s(40)}px ${UI}`
-  ctx.fillText(`${d.daysCompleted}/${d.durationDays} days kept`, px, y + s(150))
+  ctx.fillText(`${d.daysCompleted}/${d.durationDays} days kept`, px, gridBottom + s(64))
 
   dashedTear(ctx, s, m, cw, m + ch - s(280))
 
@@ -301,39 +302,64 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   signedFoot(ctx, s, px, m + cw - s(80), m + ch - s(92), d.creatorName, d.createdAt)
 }
 
-/** Row of day-cells: filled green (✓) for kept days, outlined for the rest. */
+/** Row of day-cells painted from the ACTUAL per-day pattern — so a missed day lands on its
+ *  own cell (✕), not "first N filled". Mirrors the in-app streak board (.cell states):
+ *  done = green ✓, missed = red ✕, today = ink-outlined number, todo = faint-outlined number. */
 function drawStreak(
   ctx: CanvasRenderingContext2D,
   s: (n: number) => number,
   px: number,
   pw: number,
   y: number,
-  total: number,
-  kept: number,
+  days: DayMark[],
 ) {
+  const total = days.length
   const gap = s(12)
   const cell = Math.min(s(74), (pw - (total - 1) * gap) / total)
-  for (let i = 0; i < total; i++) {
+  const glyph = cell > s(40)
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  const midX = (i: number) => px + i * (cell + gap) + cell / 2
+  const midY = y + cell / 2 + s(2)
+  days.forEach((mark, i) => {
     const cx = px + i * (cell + gap)
     roundRectPath(ctx, cx, y, cell, cell, s(12))
-    if (i < kept) {
+    if (mark === 'done') {
       ctx.fillStyle = C.go
       ctx.fill()
-      if (cell > s(40)) {
+      if (glyph) {
         ctx.fillStyle = '#fff'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
         ctx.font = `800 ${cell * 0.5}px ${UI}`
-        ctx.fillText('✓', cx + cell / 2, y + cell / 2 + s(2))
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'alphabetic'
+        ctx.fillText('✓', midX(i), midY)
+      }
+    } else if (mark === 'missed') {
+      ctx.fillStyle = C.stakeTint
+      ctx.fill()
+      ctx.strokeStyle = C.stake
+      ctx.lineWidth = s(3)
+      ctx.globalAlpha = 0.5
+      ctx.stroke()
+      ctx.globalAlpha = 1
+      if (glyph) {
+        ctx.fillStyle = C.stake
+        ctx.font = `800 ${cell * 0.5}px ${UI}`
+        ctx.fillText('✕', midX(i), midY)
       }
     } else {
-      ctx.strokeStyle = C.line
-      ctx.lineWidth = s(3)
+      // today (emphasised) / todo (faint) — outlined with the day number
+      const today = mark === 'today'
+      ctx.strokeStyle = today ? C.lineStrong : C.line
+      ctx.lineWidth = today ? s(4) : s(3)
       ctx.stroke()
+      if (glyph) {
+        ctx.fillStyle = today ? C.ink : C.inkFaint
+        ctx.font = `700 ${cell * 0.42}px ${UI}`
+        ctx.fillText(String(i + 1), midX(i), midY)
+      }
     }
-  }
+  })
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
   return y + cell
 }
 
@@ -363,7 +389,7 @@ function drawProgress(ctx: CanvasRenderingContext2D, d: ProgressCardData, size: 
 
   // streak row
   y += s(72)
-  const cellBottom = drawStreak(ctx, s, px, pw, y, d.durationDays, d.daysKept)
+  const cellBottom = drawStreak(ctx, s, px, pw, y, d.days)
 
   // days kept
   y = cellBottom + s(96)
