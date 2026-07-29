@@ -15,6 +15,9 @@ import { isInsideNimiqPay, isRealMoney, watchInsideNimiqPay } from './lib/contex
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product. The
 // inline DEV_TOOLS literal lets the bundler drop the recon chunk entirely in the public build.
 const Recon = DEV_TOOLS ? lazy(() => import('./recon/Recon.tsx').then((m) => ({ default: m.Recon }))) : null
+// TEMP on-device share diagnostic at ?diag — kept in the PUBLIC build (unlike recon) so it
+// loads inside Nimiq Pay on Android via a root-query deeplink. Remove once share is confirmed.
+const ShareDiag = lazy(() => import('./product/ShareDiag.tsx').then((m) => ({ default: m.ShareDiag })))
 
 type View =
   | { name: 'create' }
@@ -23,10 +26,12 @@ type View =
   | { name: 'progress'; id: string }
   | { name: 'results'; id: string }
   | { name: 'recon' }
+  | { name: 'diag' }
 
 function readView(): View {
   const p = new URLSearchParams(location.search)
   if (DEV_TOOLS && p.has('recon')) return { name: 'recon' }
+  if (p.has('diag')) return { name: 'diag' }
   const r = p.get('r')
   if (r) return { name: 'results', id: r }
   const pg = p.get('p')
@@ -97,6 +102,15 @@ export function App() {
     return (
       <Suspense fallback={null}>
         <Recon />
+      </Suspense>
+    )
+  }
+
+  // ?diag — the temporary on-device share probe, before the gate so it always loads.
+  if (view.name === 'diag') {
+    return (
+      <Suspense fallback={null}>
+        <ShareDiag />
       </Suspense>
     )
   }
