@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { copy } from '../brand/index.ts'
+import { copy, milestone } from '../brand/index.ts'
 import { Confetti } from './Confetti.tsx'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
@@ -62,6 +62,7 @@ export function ResultsScreen({
     )
   }
 
+  const unit = milestone(rec.durationDays) // "the week" / "two weeks" / "19 days"
   const rows = [...settlement.perParticipant].sort(
     (a, b) => b.daysCompleted - a.daysCompleted || b.payout - a.payout,
   )
@@ -89,7 +90,7 @@ export function ResultsScreen({
     <div>
       {mine?.isPerfectFinisher && <Confetti />}
       <p className="s-kicker">{copy.results.kicker(rec.emoji, rec.goal)}</p>
-      <Headline h={mine?.isPerfectFinisher ? copy.results.h1Perfect : copy.results.h1Landed} />
+      <Headline h={mine?.isPerfectFinisher ? copy.results.h1Perfect(unit) : copy.results.h1Landed} />
 
       {mine && cardData && (
         <ShareComposer
@@ -97,7 +98,7 @@ export function ResultsScreen({
           cta={mine.isPerfectFinisher ? copy.results.shareWin : copy.results.shareWrap}
           shareText={
             mine.isPerfectFinisher
-              ? copy.share.resultsWin(rec.emoji, rec.goal)
+              ? copy.share.resultsWin(rec.emoji, rec.goal, unit)
               : copy.share.resultsWrap(rec.emoji)
           }
           shareUrl={`${location.origin}${location.pathname}?c=${rec.id}`}

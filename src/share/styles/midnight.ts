@@ -1,7 +1,7 @@
 // Style: "Midnight" — dark, modern, neon-mint accent with a serif headline. A wholly
 // different feeling from the warm Pledge ticket — proof the system spans aesthetics.
 
-import { brand } from '../../brand/index.ts'
+import { brand, milestone } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, wrapText } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
@@ -140,7 +140,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   const pw = size.w - 2 * px
   const perfect = d.isPerfectFinisher
   backdrop(ctx, size, perfect ? 'rgba(95,240,168,0.14)' : 'rgba(243,236,224,0.06)')
-  header(ctx, s, px, perfect ? 'perfect week' : 'the wrap')
+  header(ctx, s, px, perfect ? `banked ${milestone(d.durationDays)}` : 'the wrap')
 
   ctx.textAlign = 'left'
   ctx.font = `${s(160)}px ${UI}`
@@ -150,7 +150,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.fillStyle = perfect ? MINT : FAINT
   ctx.font = `800 ${s(32)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
-  ctx.fillText(perfect ? 'PERFECT WEEK ✅' : 'THAT WAS MY RUN', px, y)
+  ctx.fillText(perfect ? `BANKED ${milestone(d.durationDays).toUpperCase()} ✅` : 'THAT WAS MY RUN', px, y)
   ctx.letterSpacing = '0px'
 
   ctx.fillStyle = FG

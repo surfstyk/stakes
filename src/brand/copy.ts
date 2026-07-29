@@ -164,23 +164,20 @@ export const copy = {
 
   results: {
     kicker: (emoji: string, goal: string) => `${emoji} ${goal} · the run's up`,
-    h1Perfect: { lead: 'Perfect ', em: 'week.' } as Headline,
+    // "Banked <unit>." — the seal for a flawless run (every day kept). Unit-aware, so a
+    // 7-day run reads "Banked the week." and a 30-day one "Banked the month." See milestone().
+    h1Perfect: (unit: string) => ({ lead: 'Banked ', em: `${unit}.` }) as Headline,
     h1Landed: { lead: 'How it ', em: 'landed.' } as Headline,
     daysMeta: (done: number, total: number) => `${done}/${total} days`,
     back: (asset: string) => `${asset} back`,
-    burnedRow: '🔥 burned',
-    finisherRow: '🎉 finisher bonus',
-    perfectClubRow: '🏅 perfect-week club',
-    perfectClubJoined: 'joined',
-    finisherBonus: (amt: string) => `+${amt} NIM`,
-    perfectBadgeTitle: 'perfect week',
+    perfectBadgeTitle: 'banked in full',
     shareWin: 'Share the win',
     shareWrap: 'Share the wrap',
     crewLabel: 'The crew',
     you: 'You',
     burnedSummary: (amt: string, asset: Asset) => `${amt} ${asset} gone for good`,
     burnedSub: (finishers: number) =>
-      `Missed days aren't pocketed by anyone. ${finishers} in the perfect-week club.`,
+      `Missed days aren't pocketed by anyone. ${finishers} banked it in full.`,
     burnedTag: (amt: string) => `−${amt} lost`,
     runItBack: 'Run it back →',
     none: 'No results yet.',
@@ -193,8 +190,8 @@ export const copy = {
       `${emoji} I'm ${goal} for ${days} days, ${stake} ${asset} on the line. Watch me 👀`,
     joined: (creator: string, emoji: string) =>
       `I just joined ${creator}'s ${emoji} challenge. You in?`,
-    resultsWin: (emoji: string, goal: string) =>
-      `Perfect week ✅ ${emoji} ${goal}. Run it back?`,
+    resultsWin: (emoji: string, goal: string, unit: string) =>
+      `Banked ${unit} ✅ ${emoji} ${goal}. Run it back?`,
     resultsWrap: (emoji: string) => `Wrapped my ${emoji} run on ${brand.name}.`,
     progress: (emoji: string, goal: string, day: number, total: number) =>
       `Day ${day}/${total} of ${goal} ${emoji} — still in. Watch me 👀`,

@@ -3,4 +3,5 @@
 export { theme, type Theme } from './theme.ts'
 export { brand, type Brand } from './brand.ts'
 export { copy, type Headline } from './copy.ts'
+export { milestone } from './milestone.ts'
 export { applyBrand } from './apply.ts'

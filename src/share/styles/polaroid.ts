@@ -3,6 +3,7 @@
 // a faux duotone "photo" with the goal emoji as the subject). The big emoji keeps it
 // legible at thumbnail size.
 
+import { milestone } from '../../brand/index.ts'
 import { roundRectPath, wrapText, fmtAmount } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
 
@@ -132,7 +133,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.textAlign = 'center'
   ctx.fillStyle = INK
   ctx.font = `italic 600 ${s(58)}px ${DISPLAY}`
-  ctx.fillText(perfect ? 'Perfect week ✅' : (wrapText(ctx, d.goal || 'my run', s(640))[0] ?? 'my run'), 0, y)
+  ctx.fillText(perfect ? `Banked ${milestone(d.durationDays)} ✅` : (wrapText(ctx, d.goal || 'my run', s(640))[0] ?? 'my run'), 0, y)
 
   y += s(58)
   ctx.fillStyle = SOFT

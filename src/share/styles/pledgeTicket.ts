@@ -4,7 +4,7 @@
 // stamp, "No." ticket number, clean dashed perforation, signed/sealed footer.
 // Other styles deliberately do NOT — they bring their own look.
 
-import { theme, copy } from '../../brand/index.ts'
+import { theme, copy, milestone } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
 import type { CardStyle, DayMark, PledgeCardData, ProgressCardData, ResultsCardData, Size } from '../types.ts'
@@ -260,16 +260,16 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // a green "KEPT" stamp for a perfect week — the parallel of the pledge stamp
+  // a green "BANKED" stamp for a flawless run — the parallel of the pledge stamp
   if (perfect) {
-    rubberStamp(ctx, s, m + cw - s(168), m + s(296), 'PERFECT', '· KEPT IT ·', C.go)
+    rubberStamp(ctx, s, m + cw - s(168), m + s(296), 'BANKED', '· IN FULL ·', C.go)
   }
 
   let y = m + s(430)
   ctx.fillStyle = perfect ? C.go : C.stake
   ctx.font = `800 ${s(34)}px ${UI}`
   ctx.letterSpacing = `${s(4)}px`
-  ctx.fillText(perfect ? 'PERFECT WEEK ✅' : 'THAT WAS MY RUN', px, y)
+  ctx.fillText(perfect ? `BANKED ${milestone(d.durationDays).toUpperCase()} ✅` : 'THAT WAS MY RUN', px, y)
   ctx.letterSpacing = '0px'
 
   ctx.fillStyle = C.ink

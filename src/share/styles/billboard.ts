@@ -2,7 +2,7 @@
 // (not the app theme) on purpose: variety is what earns reach. Only the product name
 // stays constant (brand.name); the rest of the voice is this skin's own.
 
-import { brand } from '../../brand/index.ts'
+import { brand, milestone } from '../../brand/index.ts'
 import { initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
@@ -124,7 +124,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   const pw = size.w - 2 * px
   const perfect = d.isPerfectFinisher
   flood(ctx, size, perfect ? GREEN : RED, perfect ? GREEN_DEEP : RED_DEEP)
-  header(ctx, s, px, perfect ? 'perfect week' : 'the wrap')
+  header(ctx, s, px, perfect ? `banked ${milestone(d.durationDays)}` : 'the wrap')
 
   ctx.textAlign = 'left'
   ctx.font = `${s(176)}px ${UI}`
@@ -132,7 +132,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
 
   ctx.fillStyle = WHITE
   ctx.font = `900 ${s(132)}px ${UI}`
-  const head = perfect ? 'PERFECT WEEK' : (d.goal || 'MY RUN').toUpperCase()
+  const head = perfect ? `BANKED ${milestone(d.durationDays).toUpperCase()}` : (d.goal || 'MY RUN').toUpperCase()
   const lines = wrapText(ctx, head, pw).slice(0, 3)
   let y = drawLines(ctx, lines, px, s(640), s(126))
 

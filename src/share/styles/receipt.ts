@@ -2,7 +2,7 @@
 // Brings its OWN look (dark surround + a white receipt) — variety is what earns reach.
 // Leans hard into the betting-slip metaphor; novel and high-contrast, reads at thumb size.
 
-import { brand } from '../../brand/index.ts'
+import { brand, milestone } from '../../brand/index.ts'
 import { fmtAmount, wrapText } from '../draw.ts'
 import type { CardStyle, PledgeCardData, ResultsCardData, Size } from '../types.ts'
 
@@ -246,7 +246,7 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.textAlign = 'center'
   ctx.fillStyle = INK
   ctx.font = `700 ${s(30)}px ${MONO}`
-  ctx.fillText(perfect ? '*** PERFECT WEEK ***' : '*** THAT WAS MY RUN ***', cx, y)
+  ctx.fillText(perfect ? `*** BANKED ${milestone(d.durationDays).toUpperCase()} ***` : '*** THAT WAS MY RUN ***', cx, y)
 
   barcode(ctx, s, cx, bot - s(250), iw * 0.82, s(120), d.id)
   ctx.fillStyle = INK
