@@ -6,10 +6,11 @@ import { canvasToPngUrl, copyText, shareImageNative } from './shareCard.ts'
 import type { CardData, CardStyle } from './types.ts'
 
 // The share moment, TikTok-text-post style: a live preview, a horizontal strip of
-// complete *skins* you flip in one tap, then "share". On HTTPS that opens the native
-// share sheet (image + caption + link → straight to a story). If the WebView lacks
-// file-sharing, we fall back to a clean in-app panel: save the image (long-press) +
-// copy the caption. Content is fixed; the look is what you play with.
+// complete *skins* you flip in one tap, then "share". On iOS the native share sheet opens
+// with the image + caption + link (→ straight to a story). Android's Nimiq Pay WebView has
+// NO Web Share API and no working download (on-device confirmed 2026-07-29), so there we
+// fall back to a LINK-FIRST panel: the caption+link are auto-copied (the link is the viral
+// payload and clipboard works), and the card is shown to screenshot. No dead "save" button.
 
 const THUMB = { w: 144, h: 256 } // 9:16
 
@@ -86,28 +87,24 @@ export function ShareComposer({
     openFallback(c)
   }
 
-  // ---- fallback panel (no native share) ----
-  // The WebView couldn't hand the image to a share sheet. Two things matter here: (1) the
-  // link is the viral payload and it's ALREADY on the clipboard (openFallback copied it), so
-  // the loop survives even if the image never leaves; (2) give the image a real way out — a
-  // download link (works where the host WebView wires up downloads) PLUS long-press as a
-  // backstop. We don't over-promise long-press, since many WebViews don't offer that menu.
+  // ---- fallback panel (no native share — i.e. Android) ----
+  // The WebView can't hand the image to a share sheet AND downloads are dead — but clipboard
+  // works, so the caption+link are already copied (openFallback did it). The link IS the
+  // invite, so lead with that; the card is shown to screenshot for the visual. No dead
+  // "save" button (confirmed to do nothing on Android), no over-promised long-press.
   if (postUrl) {
     return (
       <div className="composer">
-        <p className="composer-ready">Your card’s ready 🎉</p>
+        <p className="composer-ready">Your link’s copied ✓</p>
         <div className="composer-stage">
           <img className="composer-canvas post-img" src={postUrl} alt="Your card" />
         </div>
         <p className="composer-hint">
-          Your caption + link are copied ✓ — save the card, then paste it into your story 👀
+          Paste it into your story or a chat — that’s the invite. Want the card in there too?
+          Screenshot it 👆
         </p>
-        <a className="s-cta s-cta--save" href={postUrl} download="stakes.png">
-          Save the card
-        </a>
-        <p className="composer-subhint">…or press &amp; hold the image above to save it</p>
-        <button className="s-link" onClick={async () => setCopied(await copyText(caption))}>
-          {copied ? 'Caption + link copied ✓' : 'Copy caption + link again'}
+        <button className="s-cta" onClick={async () => setCopied(await copyText(caption))}>
+          {copied ? 'Copied ✓ — paste it anywhere' : 'Copy caption + link'}
         </button>
         <button className="s-link composer-back" onClick={() => setPostUrl(null)}>
           ← Back to styles

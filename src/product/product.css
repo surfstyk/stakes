@@ -1009,18 +1009,6 @@ textarea.s-field {
   margin: 12px auto 14px;
   max-width: 30ch;
 }
-/* Save-the-card button in the no-native-share fallback (an <a download> styled as a CTA). */
-.s-cta--save {
-  text-decoration: none;
-  background: var(--go);
-  box-shadow: 0 22px 50px -26px rgba(15, 122, 68, 0.7);
-}
-.composer-subhint {
-  text-align: center;
-  font-size: 12px;
-  color: var(--ink-faint);
-  margin: 9px auto 2px;
-}
 .composer-back {
   display: block;
   margin: 10px auto 0;
