@@ -53,6 +53,23 @@ db.exec(`
     at          INTEGER NOT NULL,
     cheers      INTEGER NOT NULL DEFAULT 0
   );
+  -- One row per challenge that settlement has touched. This is the DURABLE idempotency
+  -- guard (the automated settler refuses to re-pay a 'done' challenge) AND the source of
+  -- truth for a future "paid to your wallet" receipt in the UI. status:
+  --   'broadcasting' → a signed plan was persisted; txs may be in flight (crash-recovery
+  --                    re-broadcasts the SAME hashes — network-idempotent, never double-pays)
+  --   'done'         → all txs broadcast
+  --   'failed'       → a transient error (RPC down / underfunded); retried next tick
+  CREATE TABLE IF NOT EXISTS settlements (
+    challengeId TEXT PRIMARY KEY,
+    status      TEXT NOT NULL,
+    at          INTEGER NOT NULL,
+    plan        TEXT NOT NULL DEFAULT '[]',
+    sent        TEXT,
+    error       TEXT,
+    burnedPot   REAL NOT NULL DEFAULT 0,
+    totalOut    REAL NOT NULL DEFAULT 0
+  );
 `)
 
 // Migration: add dayLengthMs to challenges tables created before timed days (the
@@ -144,6 +161,80 @@ export function confirmDeposit(
             depositTxHash = COALESCE(?, depositTxHash)
       WHERE challengeId = ? AND address = ?`,
   ).run(confirmed ? 1 : 0, depositTxHash, challengeId, address)
+}
+
+// ---- settlement state -----------------------------------------------------
+// The durable record of what settlement has done, so the automated settler is idempotent
+// across restarts and can recover an interrupted broadcast. See the `settlements` table.
+
+export interface SettlementRecord {
+  challengeId: string
+  status: 'broadcasting' | 'done' | 'failed'
+  at: number
+  plan: string // JSON: [{ kind, to, nim, hash, hex }]
+  sent: string | null // JSON: [{ kind, to, nim, hash }] once broadcast
+  error: string | null
+  burnedPot: number
+  totalOut: number
+}
+
+export function getSettlementRecord(id: string): SettlementRecord | undefined {
+  return db.prepare(`SELECT * FROM settlements WHERE challengeId = ?`).get(id) as SettlementRecord | undefined
+}
+
+/**
+ * Persist the SIGNED plan and flip to 'broadcasting' BEFORE any tx goes out, so an
+ * interrupted run recovers by re-broadcasting the very same (hash-idempotent) txs — it can
+ * never re-sign at a fresh height and double-pay.
+ */
+export function startSettlement(id: string, planJson: string, burnedPot: number, totalOut: number) {
+  db.prepare(
+    `INSERT INTO settlements (challengeId, status, at, plan, burnedPot, totalOut)
+     VALUES (?, 'broadcasting', ?, ?, ?, ?)
+     ON CONFLICT(challengeId) DO UPDATE SET
+       status='broadcasting', at=excluded.at, plan=excluded.plan,
+       burnedPot=excluded.burnedPot, totalOut=excluded.totalOut, error=NULL`,
+  ).run(id, Date.now(), planJson, burnedPot, totalOut)
+}
+
+export function finishSettlement(id: string, sentJson: string) {
+  db.prepare(`UPDATE settlements SET status='done', at=?, sent=?, error=NULL WHERE challengeId=?`).run(
+    Date.now(),
+    sentJson,
+    id,
+  )
+}
+
+/**
+ * Record a PRE-broadcast failure (verify/compute/build/underfunded) — retried on the next
+ * tick as a fresh settle. Guarded to never downgrade a 'broadcasting' row (whose signed
+ * plan must be preserved for crash-recovery, not overwritten).
+ */
+export function failSettlement(id: string, error: string) {
+  db.prepare(
+    `INSERT INTO settlements (challengeId, status, at, error) VALUES (?, 'failed', ?, ?)
+     ON CONFLICT(challengeId) DO UPDATE SET status='failed', at=excluded.at, error=excluded.error
+       WHERE settlements.status != 'broadcasting'`,
+  ).run(id, Date.now(), error)
+}
+
+/**
+ * Challenge ids whose run has fully elapsed and that are NOT yet settled ('done') — the
+ * work queue for the automated settler. Includes never-touched, 'failed' (retry), and
+ * 'broadcasting' (recover) challenges; excludes 'done'. Oldest-first.
+ */
+export function listEndedUnsettled(now = Date.now()): string[] {
+  return (
+    db
+      .prepare(
+        `SELECT c.id FROM challenges c
+           LEFT JOIN settlements s ON s.challengeId = c.id
+          WHERE (c.lockAt + c.durationDays * c.dayLengthMs) <= ?
+            AND (s.status IS NULL OR s.status != 'done')
+          ORDER BY c.lockAt ASC`,
+      )
+      .all(now) as { id: string }[]
+  ).map((r) => r.id)
 }
 
 // ---- reads ----------------------------------------------------------------

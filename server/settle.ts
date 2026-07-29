@@ -1,21 +1,21 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { broadcast, buildSignedNim, type SignedTx } from './client.ts'
-import { getChallenge, getSettlement } from './db.ts'
-import { getBalanceLuna, getBlockNumber } from './rpc.ts'
-import { verifyChallenge } from './verify.ts'
-import { BURN_ADDRESS, loadTreasury, lunaToNim, nimToLuna, treasuryAddress } from './treasury.ts'
+// Manual single-challenge settlement (break-glass / one-off). Thin CLI over the shared core
+// (server/settle-core.ts), so it moves money the EXACT same way the automated settler does —
+// there is only one copy of the money logic. Idempotency + crash-recovery now live in the DB
+// (the `settlements` table), so re-running never double-pays.
+//
+//   node --env-file=.env.local --import tsx server/settle.ts <challengeId> [--execute] [--force] [--no-burn]
+//
+// Default is a DRY RUN: prints the plan (and pre-signs every tx, so any error surfaces) but
+// broadcasts NOTHING. Re-run with --execute to actually move funds. This touches the treasury
+// KEY — run it only where the key lives, never the internet-facing API box.
+//
+// NOTE: once the automated settler is live on the box, run this against the LIVE DB (set
+// STAKES_DB to the box's DB, or run it on the box) — the DB is the shared idempotency guard.
 
-// Operator-triggered settlement, computed from REAL data in the shared DB:
-//   - who staked  = participants whose deposit is CONFIRMED on-chain (server/verify.ts)
-//   - completion  = distinct check-in days per participant
-// Each participant gets their retained NIM back (+ a sponsor-funded finisher bonus); the
-// forfeited remainder is BURNED. Builds + signs offline, broadcasts via HTTP-RPC.
-//
-//   node --env-file=.env.local --import tsx server/settle.ts <challengeId> [--execute] [--force]
-//
-// Default is a DRY RUN: it prints the exact plan (and pre-signs every tx, so any error
-// surfaces) but broadcasts NOTHING. Re-run with --execute to actually move funds. This is
-// the only place the treasury KEY is used — run it on a trusted machine, never the API box.
+import { getBalanceLuna } from './rpc.ts'
+import { getChallenge } from './db.ts'
+import { settleChallenge } from './settle-core.ts'
+import { loadTreasury, lunaToNim, treasuryAddress } from './treasury.ts'
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2))
 
@@ -24,11 +24,7 @@ async function main() {
   const id = args.find((a) => !a.startsWith('--'))
   const execute = args.includes('--execute')
   const force = args.includes('--force')
-  // --no-burn: skip the burn tx so the forfeited pot stays in the treasury (recoverable)
-  // instead of going to the dead burn address. For testing with real NIM — the per-
-  // participant outcome is identical, we just don't destroy the forfeits. (Also avoids the
-  // "sender == recipient" error a treasury→treasury "refund" tx would throw.)
-  const noBurn = args.includes('--no-burn')
+  const burn = !args.includes('--no-burn')
   if (!id) {
     console.error('usage: node --env-file=.env.local --import tsx server/settle.ts <challengeId> [--execute] [--force] [--no-burn]')
     process.exit(1)
@@ -36,120 +32,46 @@ async function main() {
 
   const kp = loadTreasury()
   const treasury = treasuryAddress(kp)
-  console.log(`treasury: ${treasury}  ${execute ? '(EXECUTE)' : '(dry run)'}`)
-
   const view = getChallenge(id)
   if (!view) {
-    console.error(`challenge ${id} not found in DB (STAKES_DB=${process.env.STAKES_DB ?? 'server/stakes.db'})`)
+    console.error(`challenge ${id} not found (STAKES_DB=${process.env.STAKES_DB ?? 'server/stakes.db'})`)
     process.exit(1)
   }
+  console.log(`treasury: ${treasury}  ${execute ? '(EXECUTE)' : '(dry run)'}`)
   console.log(`challenge ${id}: "${view.goal}" · ${view.durationDays}d · ${view.stake} ${view.asset} stake`)
 
-  const endAt = view.lockAt + view.durationDays * view.dayLengthMs
-  if (Date.now() < endAt && !force) {
-    console.error(`Challenge still running (ends ${new Date(endAt).toISOString()}). Re-run with --force to settle now.`)
+  const r = await settleChallenge(id, { execute, force, burn, kp, log: (m) => console.log(m) })
+
+  if (r.status === 'already-settled') {
+    console.log('already settled — nothing to do.')
+    process.exit(0)
+  }
+  if (r.status === 'skipped' || r.status === 'failed') {
+    console.error(`${r.status}: ${r.reason}`)
     process.exit(1)
   }
 
-  console.log('verifying deposits on-chain…')
-  const v = await verifyChallenge(id)
-  console.log(`  ${v?.confirmed ?? 0}/${v?.total ?? 0} deposits confirmed${v?.onChain ? ' (on-chain)' : ' (mock/dev)'}`)
-
-  const settlement = getSettlement(id)
-  if (!settlement || settlement.perParticipant.length === 0) {
-    console.error('No confirmed deposits to settle.')
-    process.exit(1)
+  const rows = r.sent ?? r.planned ?? []
+  console.log(`\nsettlement plan — ${rows.length} tx, ${fmt(r.totalOut ?? 0)} NIM out:`)
+  for (const t of rows) {
+    console.log(`  ${t.kind === 'burn' ? '🔥 burn ' : 'payout '} ${fmt(t.nim)} NIM → ${t.to}  ${t.hash}`)
   }
-
-  // Integrity backstop (SEC-01): total stake PRINCIPAL returned to participants must never
-  // exceed the confirmed on-chain deposit value. The finisher bonus is sponsor-funded and
-  // paid on top, so it's excluded. Consume-once verification already guarantees this — this
-  // is the last gate before real money moves, and it refuses rather than overpay.
-  const principalOutNim = settlement.perParticipant.reduce((s, p) => s + p.payout, 0)
-  const principalOutLuna = nimToLuna(principalOutNim)
-  const confirmedLuna = v?.confirmedLuna ?? 0
-  const tolerance = (v?.confirmed ?? 0) + 1 // per-deposit ±1 luna rounding across confirmations
-  if (principalOutLuna > confirmedLuna + tolerance) {
-    console.error(
-      `INTEGRITY CHECK FAILED: principal payout ${fmt(principalOutNim)} NIM (${principalOutLuna} luna) ` +
-        `exceeds confirmed deposits ${fmt(lunaToNim(confirmedLuna))} NIM (${confirmedLuna} luna). Refusing to settle.`,
-    )
-    process.exit(1)
+  for (const s of r.skippedParticipants ?? []) {
+    console.log(`  ⚠️ skipped ${s.name} (${s.account}) — ${fmt(s.nim)} NIM unpayable`)
   }
-
-  // Build the tx plan from the computed settlement. One head height for the whole batch.
-  const height = await getBlockNumber()
-  const plan: { kind: 'payout' | 'burn'; to: string; nim: number; signed: SignedTx }[] = []
-  for (const p of settlement.perParticipant) {
-    const amount = p.payout + p.nimBonus // retained stake + finisher bonus
-    if (amount <= 0) {
-      console.log(`  ${p.name}: ${p.daysCompleted}/${view.durationDays} → nothing back (all forfeited)`)
-      continue
-    }
-    plan.push({ kind: 'payout', to: p.account, nim: amount, signed: buildSignedNim(kp, p.account, nimToLuna(amount), height) })
-  }
-  if (settlement.burnedPot > 0) {
-    if (noBurn) {
-      console.log(`  🔥 burn SKIPPED (--no-burn): ${fmt(settlement.burnedPot)} NIM stays in the treasury`)
-    } else {
-      plan.push({
-        kind: 'burn',
-        to: BURN_ADDRESS,
-        nim: settlement.burnedPot,
-        signed: buildSignedNim(kp, BURN_ADDRESS, nimToLuna(settlement.burnedPot), height),
-      })
-    }
-  }
-
-  const totalOut = plan.reduce((s, t) => s + t.nim, 0)
-  console.log(`\nsettlement plan — ${plan.length} tx, ${fmt(totalOut)} NIM out:`)
-  for (const t of plan) {
-    console.log(`  ${t.kind === 'burn' ? '🔥 burn ' : 'payout '} ${fmt(t.nim)} NIM → ${t.to}  ${t.signed.hash}`)
+  if (!burn && (r.burnedPot ?? 0) > 0) {
+    console.log(`  🔥 burn SKIPPED (--no-burn): ${fmt(r.burnedPot ?? 0)} NIM stays in the treasury`)
   }
 
   const balance = lunaToNim(await getBalanceLuna(treasury))
-  const funded = balance >= totalOut
-  console.log(`treasury balance: ${fmt(balance)} NIM  (need ${fmt(totalOut)})${funded ? '' : '  ⚠️ UNDERFUNDED'}`)
+  const need = r.totalOut ?? 0
+  console.log(`treasury balance: ${fmt(balance)} NIM  (need ${fmt(need)})${balance >= need ? '' : '  ⚠️ UNDERFUNDED'}`)
 
-  if (!execute) {
+  if (r.status === 'dry-run') {
     console.log('\nDRY RUN — nothing broadcast. Re-run with --execute to send.')
-    process.exit(0)
+  } else {
+    console.log(`\n${r.status}: ${r.sent?.length ?? 0} tx broadcast.`)
   }
-
-  // ---- execute ----
-  const settledDir = 'server/.settled'
-  const marker = `${settledDir}/${id}.json`
-  if (existsSync(marker)) {
-    console.error(`Already settled: ${id}. Refusing to double-pay (delete ${marker} to force).`)
-    process.exit(1)
-  }
-  if (!funded) {
-    console.error('Refusing to execute: treasury underfunded for this settlement.')
-    process.exit(1)
-  }
-
-  // Persist the signed plan BEFORE broadcasting so an interrupted run can't re-sign with a
-  // fresh height (the same signed tx re-sent is network-idempotent by hash).
-  mkdirSync(settledDir, { recursive: true })
-  const record = {
-    at: Date.now(),
-    challengeId: id,
-    status: 'broadcasting',
-    settlement,
-    txs: plan.map((t) => ({ kind: t.kind, to: t.to, nim: t.nim, hash: t.signed.hash, hex: t.signed.hex })),
-  }
-  writeFileSync(marker, JSON.stringify(record, null, 2))
-
-  console.log('\nbroadcasting…')
-  const sent: { kind: string; to: string; nim: number; hash: string }[] = []
-  for (const t of plan) {
-    const hash = await broadcast(t.signed)
-    sent.push({ kind: t.kind, to: t.to, nim: t.nim, hash })
-    console.log(`  sent ${fmt(t.nim)} NIM → ${t.to}  ${hash}`)
-  }
-
-  writeFileSync(marker, JSON.stringify({ ...record, status: 'done', sent }, null, 2))
-  console.log('done. marker:', marker)
   process.exit(0)
 }
 
