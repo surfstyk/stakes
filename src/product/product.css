@@ -1866,10 +1866,10 @@ textarea.s-field {
 /* placements */
 .ticket-seal {
   position: absolute;
-  top: 44px;
-  right: 12px;
-  width: 96px;
-  height: 96px;
+  top: 24px;
+  right: 16px;
+  width: 82px;
+  height: 82px;
   z-index: 4;
 }
 .confirm-seal {
