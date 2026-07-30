@@ -79,6 +79,10 @@ export const copy = {
     cta: (stake: number, asset: Asset) => `Stake ${stake} ${asset} & pledge →`,
     ctaBusy: 'Placing your stake…',
     errFallback: 'Could not place your stake.',
+    // Shown when the CTA is tapped before a required field is filled — we scroll to the
+    // field instead of leaving a dead, greyed-out button.
+    needGoal: 'Add your goal first ↑',
+    needName: 'Add your name to sign the pledge.',
   },
 
   pledged: {

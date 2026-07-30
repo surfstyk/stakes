@@ -342,6 +342,13 @@ button {
   color: var(--ink-faint);
   margin: 10px 0 0;
 }
+/* inline "fill this in" prompt under a required field (Create → name) */
+.s-fieldhint {
+  margin: 8px 2px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--stake);
+}
 .s-note {
   font-size: 12.5px;
   color: var(--ink-soft);
@@ -1403,7 +1410,6 @@ textarea.s-field {
   width: min(300px, 100%);
   margin: 0 auto;
   position: relative;
-  filter: drop-shadow(0 18px 40px rgba(28, 24, 19, 0.26));
   animation: dropin 0.8s cubic-bezier(0.18, 0.9, 0.22, 1.04) both;
 }
 @keyframes dropin {
@@ -1424,6 +1430,11 @@ textarea.s-field {
   position: relative;
   background: var(--paper-card);
   border-radius: 18px;
+  /* box-shadow (not filter: drop-shadow on the animated wrap) — the drop-shadow filter
+     layer intermittently misrasters to a hard rectangular block in the iOS WebView. A
+     rounded-rect box-shadow is WebKit-stable and visually equivalent. The stamp overhang
+     losing its shadow is fine — ink on paper shouldn't cast one anyway. */
+  box-shadow: 0 18px 40px rgba(28, 24, 19, 0.26);
 }
 .ticket .frame {
   position: absolute;
@@ -1583,13 +1594,18 @@ textarea.s-field {
   position: absolute;
   z-index: 4;
   right: 18px;
-  top: 60px;
+  top: 44px;
   width: 96px;
   height: 62px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* flex-start + padding-top (not justify-content:center) so the PLEDGED↔WATCH-ME gap
+     lands on the box's visual centre. The all-caps lines carry no descenders, so pure
+     centring reads top-heavy; 12px was measured to seat the gap on the 31px mid-line. */
+  justify-content: flex-start;
+  padding-top: 12px;
+  line-height: 1;
   color: var(--stake);
   transform: rotate(-11deg);
   opacity: 0.75;
@@ -1621,7 +1637,7 @@ textarea.s-field {
 .stamp .s-main {
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: 19px;
+  font-size: 17px;
   letter-spacing: 0.02em;
   line-height: 1;
   text-transform: uppercase;
@@ -1632,7 +1648,7 @@ textarea.s-field {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  margin-top: 3px;
+  margin-top: 4px;
   opacity: 0.9;
 }
 @keyframes stampthump {

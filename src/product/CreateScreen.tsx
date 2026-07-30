@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { Asset } from '../vault/types.ts'
 import { copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
@@ -40,14 +40,21 @@ export function CreateScreen({
   const [windowPreset, setWindowPreset] = useState<WindowPreset>('tomorrow')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [needName, setNeedName] = useState(false)
   const [previewCreatedAt] = useState(() => Date.now())
+  const goalRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
 
   const template = TEMPLATES.find((t) => t.id === templateId)!
   const isCustom = templateId === 'custom'
   const goal = isCustom ? customGoal.trim() : template.goal
-  // Require a name: it's the signature on the shared pledge card + the crew avatar, so a
-  // blank "You" would degrade the artifact everyone else sees. (Name field is last, below.)
-  const canCreate = goal.length > 1 && name.trim().length > 0
+  // A name is still required — it's the signature on the shared pledge card + the crew
+  // avatar, so a blank "You" would degrade the artifact everyone else sees. But we no
+  // longer DISABLE the CTA for it (the name field is last/below the fold, so a greyed-out
+  // button was a mystery dead-end). Instead the button stays live and, on tap, guides the
+  // user down to the empty field (see create()).
+  const hasGoal = goal.length > 1
+  const hasName = name.trim().length > 0
 
   // Live preview of the pledge being built — the artifact is the product, so show it
   // forming as you pick goal / stake / days (primes the share, "designing your pledge").
@@ -87,8 +94,26 @@ export function CreateScreen({
     }
   }, [])
 
+  function guideTo(ref: RefObject<HTMLInputElement>) {
+    // Just focus (we're inside the tap gesture, so this opens the keyboard) and let the
+    // WebView's NATIVE keyboard-avoidance scroll the field above the keyboard — it handles a
+    // bottom-of-form field by overscrolling past the content bounds, which page-level JS
+    // can't do (window.scrollBy clamps at max scroll → field stays under the keyboard).
+    // The earlier bugs were us FIGHTING that: preventScroll suppressed the native reveal, and
+    // scrollIntoView({block:'center'}) is keyboard-blind (centres in the full layout viewport,
+    // which the keyboard then covers). So the fix is to do neither.
+    ref.current?.focus()
+  }
+
   async function create() {
     if (busy) return
+    // The CTA is always live, so validate on tap and lead the user to the first empty
+    // required field rather than silently doing nothing.
+    if (!hasGoal) return guideTo(goalRef)
+    if (!hasName) {
+      setNeedName(true)
+      return guideTo(nameRef)
+    }
     setBusy(true)
     setErr(null)
     const creatorName = name.trim() || 'You'
@@ -161,6 +186,7 @@ export function CreateScreen({
             {copy.create.customLabel}
           </label>
           <input
+            ref={goalRef}
             id="create-goal"
             className="s-field"
             placeholder={copy.create.customPlaceholder}
@@ -228,13 +254,23 @@ export function CreateScreen({
         {copy.create.nameLabel}
       </label>
       <input
+        ref={nameRef}
         id="create-name"
         className="s-field"
         placeholder={copy.create.namePlaceholder}
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value)
+          if (needName) setNeedName(false)
+        }}
+        aria-invalid={needName && !hasName}
         maxLength={18}
       />
+      {needName && !hasName && (
+        <p className="s-fieldhint" role="alert">
+          {copy.create.needName}
+        </p>
+      )}
 
       <div className="s-sticky">
         {err && (
@@ -242,7 +278,7 @@ export function CreateScreen({
             {err}
           </p>
         )}
-        <button className="s-cta" disabled={!canCreate || busy} onClick={create}>
+        <button className="s-cta" disabled={busy} onClick={create}>
           {busy ? copy.create.ctaBusy : copy.create.cta(stake, asset)}
         </button>
       </div>
