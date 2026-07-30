@@ -123,6 +123,11 @@ export function App() {
     )
   }
 
+  // DELIBERATE: an organic opener lands DIRECTLY on the Create screen — no welcome /
+  // onboarding interstitial before it. A first-run Welcome screen was tried and removed
+  // (it was never in the design and added a needless extra tap; see the git history for
+  // `WelcomeScreen`). Do NOT reintroduce a screen between the gate and Create. The Create
+  // screen is self-explanatory: see the goals, tap to stake, add a name if prompted.
   return (
     <div className="stakes">
       <div className="s-top">
