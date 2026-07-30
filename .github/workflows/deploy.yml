@@ -18,12 +18,10 @@ jobs:
 
       - run: npm ci
       - name: Build
-        # ⚠️ TEMP(filming) 2026-07-30 — shipping the DEV-TOOLS build (`npm run build`, NOT
-        # build:public) so ?test (fast-clock) and ?recon work on the LIVE site for the demo
-        # recording. Pre-launch beta, short window, reverted right after.
-        # REVERT AFTER FILMING: `git revert` this commit → restores `npm run build:public`,
-        # which strips ?recon/?test from the shipped bundle. See surfstyk-notes/DEPLOYMENT.md §9.
-        run: npm run build
+        # build:public sets VITE_PUBLIC_BUILD=1 → the ?recon diagnostics and ?test
+        # fast-clock are compiled out and tree-shaken from the shipped bundle. Use plain
+        # `npm run build` only for dev/testnet deploys where those dev tools are wanted.
+        run: npm run build:public
         env:
           # Public treasury address as a GitHub Actions VARIABLE (not a secret). When set,
           # the app uses the real custodial-NIM vault inside Nimiq Pay; when the variable is
