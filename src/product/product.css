@@ -1970,5 +1970,7 @@ textarea.s-field {
 
 /* ---- Create: live pledge preview ------------------------------------------- */
 .create-preview {
-  margin: 14px auto 6px;
+  /* bottom gap tuned to the page's section rhythm (~18px, cf. .s-label) so the ticket
+     doesn't sit squeezed against the goal chips below it */
+  margin: 14px auto 20px;
 }
