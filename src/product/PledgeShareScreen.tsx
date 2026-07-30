@@ -3,7 +3,6 @@ import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
-import { WaxSeal } from './WaxSeal.tsx'
 import { ShareComposer, copyText } from '../share/index.ts'
 import type { PledgeCardData } from '../share/index.ts'
 import { getChallenge, type ChallengeRecord } from './store.ts'
@@ -71,10 +70,6 @@ export function PledgeShareScreen({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      {/* the pledge is sealed — the create-commit ceremony (pours, then the stamp presses in) */}
-      <div className="pledge-seal-hero">
-        <WaxSeal ceremony twist={15} />
-      </div>
       <div className="hype">
         <div className="live-kicker">
           <span className="pulse" />

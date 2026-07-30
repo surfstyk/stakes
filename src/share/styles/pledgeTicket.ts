@@ -7,7 +7,6 @@
 import { theme, copy, milestone } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
-import { FLAME_PATH, FLAME_SCALE, FLAME_TX, FLAME_TY, WAX_FIELD_PATH, WAX_OUTER_PATH } from '../../lib/waxShape.ts'
 import type { CardStyle, DayMark, PledgeCardData, ProgressCardData, ResultsCardData, Size } from '../types.ts'
 
 const C = theme.color
@@ -82,55 +81,46 @@ function frame(ctx: CanvasRenderingContext2D, size: Size, s: (n: number) => numb
   return { m, cw, ch, px, pw }
 }
 
-/**
- * The wax seal — the pledge mark, drawn natively in canvas (Path2D from the shared seal geometry,
- * so it matches the app's DOM seal + the app icon). A flat-but-organic read of the pressed seal:
- * vermilion wax with a recessed field and the cream flame, stamped ~15° clockwise. Pure canvas
- * (no filters / SVG images) → never taints the export.
- */
-function waxSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  const k = r / 186 // the outline's mean radius ≈ 186 in the 512 design space
+/** Rubber-ink stamp — matte, double rounded-rect border + condensed display word. */
+function rubberStamp(
+  ctx: CanvasRenderingContext2D,
+  s: (n: number) => number,
+  cx: number,
+  cy: number,
+  main: string,
+  sub: string,
+  color: string,
+) {
   ctx.save()
   ctx.translate(cx, cy)
-  ctx.rotate((15 * Math.PI) / 180)
-  ctx.scale(k, k)
-  ctx.translate(-256, -256) // draw in the seal's 512 space, centred on (cx, cy)
-
-  const outer = new Path2D(WAX_OUTER_PATH)
-  const field = new Path2D(WAX_FIELD_PATH)
-
-  // outer wax — a gentle vertical dome
-  const gw = ctx.createLinearGradient(0, 54, 0, 458)
-  gw.addColorStop(0, '#f2401a')
-  gw.addColorStop(0.55, '#e42a06')
-  gw.addColorStop(1, '#bf2004')
-  ctx.fillStyle = gw
-  ctx.fill(outer)
-  ctx.lineWidth = 2.5
-  ctx.strokeStyle = 'rgba(125, 20, 0, 0.4)'
-  ctx.stroke(outer)
-
-  // recessed field — darker under the rim at the top, catching light toward the bottom
-  const gf = ctx.createLinearGradient(0, 96, 0, 416)
-  gf.addColorStop(0, '#9c1a02')
-  gf.addColorStop(0.5, '#c22405')
-  gf.addColorStop(1, '#dc2908')
-  ctx.fillStyle = gf
-  ctx.fill(field)
-
-  // flame — cream, seated into the field (a faint dark backing = occlusion in the well)
-  ctx.translate(FLAME_TX, FLAME_TY)
-  ctx.scale(FLAME_SCALE, FLAME_SCALE)
-  const flame = new Path2D(FLAME_PATH)
+  ctx.rotate((-11 * Math.PI) / 180)
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  const w = s(250)
+  const h = s(150)
+  ctx.globalAlpha = 0.85
+  roundRectPath(ctx, -w / 2, -h / 2, w, h, s(20))
+  ctx.lineWidth = s(7)
+  ctx.stroke()
+  ctx.globalAlpha = 0.5
+  roundRectPath(ctx, -w / 2 + s(11), -h / 2 + s(11), w - s(22), h - s(22), s(14))
+  ctx.lineWidth = s(3)
+  ctx.stroke()
+  ctx.globalAlpha = 0.82
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
   ctx.save()
-  ctx.translate(0, -0.5)
-  ctx.fillStyle = 'rgba(74, 10, 0, 0.32)'
-  ctx.fill(flame)
+  ctx.scale(0.9, 1) // condensed feel
+  ctx.font = `900 ${s(66)}px ${DISPLAY}`
+  ctx.fillText(main, 0, -s(12))
   ctx.restore()
-  ctx.fillStyle = '#fbf6ec'
-  ctx.fill(flame)
-
+  ctx.font = `800 ${s(24)}px ${UI}`
+  ctx.letterSpacing = `${s(4)}px`
+  ctx.fillText(sub, 0, s(40))
+  ctx.letterSpacing = '0px'
   ctx.restore()
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
 }
 
 /** A clean dashed perforation rule (no notches — matches the in-app ticket). */
@@ -208,8 +198,8 @@ function drawPledge(ctx: CanvasRenderingContext2D, d: PledgeCardData, size: Size
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // the wax seal — the pledge mark (top-right whitespace)
-  waxSeal(ctx, m + cw - s(180), m + s(300), s(150))
+  // rubber-ink stamp (top-right whitespace)
+  rubberStamp(ctx, s, m + cw - s(168), m + s(296), copy.cards.pledgeStamp, `· ${copy.cards.pledgeStampSub} ·`, C.stake)
 
   // kicker
   let y = m + s(430)
@@ -270,8 +260,10 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // the wax seal — the pledge mark, consistent on every card
-  waxSeal(ctx, m + cw - s(180), m + s(300), s(150))
+  // a green "BANKED" stamp for a flawless run — the parallel of the pledge stamp
+  if (perfect) {
+    rubberStamp(ctx, s, m + cw - s(168), m + s(296), 'BANKED', '· IN FULL ·', C.go)
+  }
 
   let y = m + s(430)
   ctx.fillStyle = perfect ? C.go : C.stake
@@ -380,8 +372,8 @@ function drawProgress(ctx: CanvasRenderingContext2D, d: ProgressCardData, size: 
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // the wax seal — the pledge mark, consistent on every card
-  waxSeal(ctx, m + cw - s(180), m + s(300), s(150))
+  // day stamp (top-right)
+  rubberStamp(ctx, s, m + cw - s(168), m + s(296), `DAY ${d.currentDay}`, `· OF ${d.durationDays} ·`, C.stake)
 
   let y = m + s(430)
   ctx.fillStyle = C.stake

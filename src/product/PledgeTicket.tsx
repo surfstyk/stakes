@@ -1,5 +1,4 @@
 import { copy } from '../brand/index.ts'
-import { WaxSeal } from './WaxSeal.tsx'
 
 // Just the fields the ticket renders — so it works for a real challenge (ChallengeRecord
 // is structurally assignable) AND for a sample pledge on the welcome hero.
@@ -35,17 +34,18 @@ function sealedDate(ms: number): string {
   return `${MON[d.getMonth()]} ${d.getDate()} ’${String(d.getFullYear()).slice(-2)}`
 }
 
-// `sealed` gates the wax seal: it only belongs once a word has actually been given (a real,
-// committed pledge). The welcome sample and the create preview aren't sealed yet — no seal.
-export function PledgeTicket({ rec, sealed = true }: { rec: TicketData; sealed?: boolean }) {
+export function PledgeTicket({ rec }: { rec: TicketData }) {
   const c = copy.cards
   return (
     <div className="ticket-wrap">
       <article className="ticket" aria-label="Pledge ticket">
         <div className="frame" aria-hidden="true" />
 
-        {/* the wax seal — the pledge mark, pressed slightly askew like a real stamp */}
-        {sealed && <WaxSeal className="ticket-seal" twist={15} />}
+        {/* rubber-ink stamp — thumps down on entry */}
+        <div className="stamp" aria-hidden="true">
+          <span className="s-main">{c.pledgeStamp}</span>
+          <span className="s-sub">· {c.pledgeStampSub} ·</span>
+        </div>
 
         <div className="ticket-inner">
           <div className="ticket-top">

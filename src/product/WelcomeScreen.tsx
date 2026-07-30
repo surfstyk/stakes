@@ -37,9 +37,9 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
         {brand.hasDot && <span className="dot" />} {brand.name}
       </motion.span>
 
-      {/* the artifact — drops in on arrival. No seal: nothing's been pledged yet. */}
+      {/* the artifact — drops in + stamps itself on arrival (its own CSS animation) */}
       <div className="welcome-stage">
-        <PledgeTicket rec={SAMPLE} sealed={false} />
+        <PledgeTicket rec={SAMPLE} />
       </div>
 
       <motion.p className="s-kicker welcome-kicker" variants={rise}>
