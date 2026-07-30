@@ -1,7 +1,7 @@
 import { copy } from '../brand/index.ts'
 
 // Just the fields the ticket renders — so it works for a real challenge (ChallengeRecord
-// is structurally assignable) AND for a sample pledge on the welcome hero.
+// is structurally assignable) AND for a sample pledge (e.g. the live preview on Create).
 export interface TicketData {
   id: string
   emoji: string

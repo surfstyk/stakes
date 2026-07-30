@@ -25,21 +25,6 @@ export const copy = {
     test: '⚡ test',
   },
 
-  // First-run welcome — the <60s first impression for an organic opener (deeplink
-  // arrivals skip straight to join, so they never see this).
-  welcome: {
-    kicker: 'Put your money where your mouth is',
-    headline: { lead: 'Stake on a goal. ', em: 'Keep your word.' } as Headline,
-    sub: 'Put a little on the line and show up daily. Keep every day and it all comes back — plus a NIM bonus. Kept honest by your friends, not a camera.',
-    steps: [
-      { emoji: '🤝', title: 'Pledge', text: 'Stake on a goal for a set run of days.' },
-      { emoji: '🔥', title: 'Show up', text: 'Check in daily — your crew’s watching.' },
-      { emoji: '🏅', title: 'Get it back', text: 'Keep every day and reclaim your stake — plus a NIM bonus.' },
-    ],
-    cta: 'Start a challenge →',
-    foot: 'A commitment game built on trust, not surveillance.',
-  },
-
   // "Open in Nimiq Pay" gate — shown when a real-money build is opened OUTSIDE Nimiq Pay
   // (e.g. an invite link tapped in a normal browser). Routes the user into Nimiq Pay so
   // their real wallet + real stake are in play, instead of silently mock-staking.

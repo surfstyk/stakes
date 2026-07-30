@@ -417,20 +417,3 @@ export function initials(name: string): string {
 export function goalEmoji(templateId: string): string {
   return TEMPLATES.find((t) => t.id === templateId)?.emoji ?? '🔥'
 }
-
-// ---- first-run welcome (per-device, local) ---------------------------------
-const WELCOME_KEY = 'stakes.welcome.seen'
-export function hasSeenWelcome(): boolean {
-  try {
-    return localStorage.getItem(WELCOME_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-export function markWelcomeSeen() {
-  try {
-    localStorage.setItem(WELCOME_KEY, '1')
-  } catch {
-    /* ignore */
-  }
-}

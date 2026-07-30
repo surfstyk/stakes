@@ -4,10 +4,9 @@ import { PledgeShareScreen } from './product/PledgeShareScreen.tsx'
 import { JoinScreen } from './product/JoinScreen.tsx'
 import { ProgressScreen } from './product/ProgressScreen.tsx'
 import { ResultsScreen } from './product/ResultsScreen.tsx'
-import { WelcomeScreen } from './product/WelcomeScreen.tsx'
 import { OpenInNimiqPay } from './product/OpenInNimiqPay.tsx'
 import { Loading } from './product/Loading.tsx'
-import { hasSeenWelcome, isTestMode, markWelcomeSeen, setTestMode } from './product/store.ts'
+import { isTestMode, setTestMode } from './product/store.ts'
 import { brand, copy } from './brand/index.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
 import { isInsideNimiqPay, isRealMoney, watchInsideNimiqPay } from './lib/context.ts'
@@ -52,7 +51,6 @@ function syncUrl(view: View) {
 export function App() {
   const [view, setView] = useState<View>(readView)
   const [testMode, setTestModeState] = useState<boolean>(() => isTestMode())
-  const [seenWelcome, setSeenWelcome] = useState<boolean>(() => hasSeenWelcome())
   // The "Open in Nimiq Pay" gate decision. Mock builds are never gated; a real-money build
   // that already sees the host is OK immediately; otherwise we wait briefly for injection
   // (Android seeds the provider a beat after first render) before concluding we're outside.
@@ -121,20 +119,6 @@ export function App() {
     return (
       <div className="stakes">
         <OpenInNimiqPay challengeId={c ?? undefined} />
-      </div>
-    )
-  }
-
-  // First-run welcome for an organic opener (deeplinks land on their own screen).
-  if (view.name === 'create' && !seenWelcome) {
-    return (
-      <div className="stakes">
-        <WelcomeScreen
-          onStart={() => {
-            markWelcomeSeen()
-            setSeenWelcome(true)
-          }}
-        />
       </div>
     )
   }
