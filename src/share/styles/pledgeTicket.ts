@@ -7,6 +7,7 @@
 import { theme, copy, milestone } from '../../brand/index.ts'
 import { avatarColor, initials } from '../../product/store.ts'
 import { drawAvatar, drawLines, fmtAmount, roundRectPath, wrapText } from '../draw.ts'
+import { FLAME_PATH, FLAME_SCALE, FLAME_TX, FLAME_TY, WAX_FIELD_PATH, WAX_OUTER_PATH } from '../../lib/waxShape.ts'
 import type { CardStyle, DayMark, PledgeCardData, ProgressCardData, ResultsCardData, Size } from '../types.ts'
 
 const C = theme.color
@@ -123,6 +124,57 @@ function rubberStamp(
   ctx.textBaseline = 'alphabetic'
 }
 
+/**
+ * The wax seal — the pledge mark, drawn natively in canvas (Path2D from the shared seal geometry,
+ * so it matches the app's DOM seal + the app icon). A flat-but-organic read of the pressed seal:
+ * vermilion wax with a recessed field and the cream flame, stamped ~15° clockwise. Pure canvas
+ * (no filters / SVG images) → never taints the export.
+ */
+function waxSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  const k = r / 186 // the outline's mean radius ≈ 186 in the 512 design space
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate((15 * Math.PI) / 180)
+  ctx.scale(k, k)
+  ctx.translate(-256, -256) // draw in the seal's 512 space, centred on (cx, cy)
+
+  const outer = new Path2D(WAX_OUTER_PATH)
+  const field = new Path2D(WAX_FIELD_PATH)
+
+  // outer wax — a gentle vertical dome
+  const gw = ctx.createLinearGradient(0, 54, 0, 458)
+  gw.addColorStop(0, '#f2401a')
+  gw.addColorStop(0.55, '#e42a06')
+  gw.addColorStop(1, '#bf2004')
+  ctx.fillStyle = gw
+  ctx.fill(outer)
+  ctx.lineWidth = 2.5
+  ctx.strokeStyle = 'rgba(125, 20, 0, 0.4)'
+  ctx.stroke(outer)
+
+  // recessed field — darker under the rim at the top, catching light toward the bottom
+  const gf = ctx.createLinearGradient(0, 96, 0, 416)
+  gf.addColorStop(0, '#9c1a02')
+  gf.addColorStop(0.5, '#c22405')
+  gf.addColorStop(1, '#dc2908')
+  ctx.fillStyle = gf
+  ctx.fill(field)
+
+  // flame — cream, seated into the field (a faint dark backing = occlusion in the well)
+  ctx.translate(FLAME_TX, FLAME_TY)
+  ctx.scale(FLAME_SCALE, FLAME_SCALE)
+  const flame = new Path2D(FLAME_PATH)
+  ctx.save()
+  ctx.translate(0, -0.5)
+  ctx.fillStyle = 'rgba(74, 10, 0, 0.32)'
+  ctx.fill(flame)
+  ctx.restore()
+  ctx.fillStyle = '#fbf6ec'
+  ctx.fill(flame)
+
+  ctx.restore()
+}
+
 /** A clean dashed perforation rule (no notches — matches the in-app ticket). */
 function dashedTear(ctx: CanvasRenderingContext2D, s: (n: number) => number, m: number, cw: number, y: number) {
   ctx.save()
@@ -198,8 +250,8 @@ function drawPledge(ctx: CanvasRenderingContext2D, d: PledgeCardData, size: Size
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // rubber-ink stamp (top-right whitespace)
-  rubberStamp(ctx, s, m + cw - s(168), m + s(296), copy.cards.pledgeStamp, `· ${copy.cards.pledgeStampSub} ·`, C.stake)
+  // the wax seal — the pledge mark (top-right whitespace)
+  waxSeal(ctx, m + cw - s(180), m + s(300), s(150))
 
   // kicker
   let y = m + s(430)

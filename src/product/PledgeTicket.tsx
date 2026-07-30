@@ -1,4 +1,5 @@
 import { copy } from '../brand/index.ts'
+import { WaxSeal } from './WaxSeal.tsx'
 
 // Just the fields the ticket renders — so it works for a real challenge (ChallengeRecord
 // is structurally assignable) AND for a sample pledge on the welcome hero.
@@ -41,11 +42,8 @@ export function PledgeTicket({ rec }: { rec: TicketData }) {
       <article className="ticket" aria-label="Pledge ticket">
         <div className="frame" aria-hidden="true" />
 
-        {/* rubber-ink stamp — thumps down on entry */}
-        <div className="stamp" aria-hidden="true">
-          <span className="s-main">{c.pledgeStamp}</span>
-          <span className="s-sub">· {c.pledgeStampSub} ·</span>
-        </div>
+        {/* the wax seal — the pledge mark, pressed slightly askew like a real stamp */}
+        <WaxSeal className="ticket-seal" twist={15} />
 
         <div className="ticket-inner">
           <div className="ticket-top">

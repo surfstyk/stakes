@@ -4,6 +4,7 @@ import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
 import { PledgeTicket } from './PledgeTicket.tsx'
+import { WaxSeal } from './WaxSeal.tsx'
 import {
   avatarColor,
   getChallenge,
@@ -146,11 +147,7 @@ export function JoinScreen({
     return (
       <section className="confirm">
         <div className="confirm-seal-stage">
-          <div className="confirm-dust" aria-hidden="true" />
-          <div className="big-seal" aria-hidden="true">
-            <span className="e">{copy.cards.pledgeStamp}</span>
-            <span className="t">{copy.cards.lockedIn}</span>
-          </div>
+          <WaxSeal ceremony twist={15} className="confirm-seal" />
         </div>
 
         <p className="confirm-kick reveal d1" style={{ color: 'var(--go)' }}>

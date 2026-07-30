@@ -220,13 +220,10 @@ export const copy = {
     pledgeGoalFallback: 'doing the thing',
     pledgeForDays: (days: number) => `for ${days} days.`,
     pledgeOnLine: 'on the line',
-    pledgeStamp: 'PLEDGED',
-    pledgeStampSub: 'WATCH ME',
     pledgeFoot: 'hold me to it 🤞',
     // DOM pledge ticket (PledgeTicket.tsx)
     ticketSignedBy: 'Signed by',
     ticketSealed: 'Sealed',
     ticketCta: { lead: 'Doors are open — ', em: 'tap in', tail: ' 👀' } as Headline,
-    lockedIn: '· Locked in ·',
   },
 }
