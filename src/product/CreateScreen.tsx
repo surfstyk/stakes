@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Asset } from '../vault/types.ts'
 import { copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
 import { PledgeTicket, type TicketData } from './PledgeTicket.tsx'
+import { revealField } from './revealField.ts'
 import {
   TEMPLATES,
   WINDOW_PRESETS,
@@ -94,25 +95,14 @@ export function CreateScreen({
     }
   }, [])
 
-  function guideTo(ref: RefObject<HTMLInputElement>) {
-    // Just focus (we're inside the tap gesture, so this opens the keyboard) and let the
-    // WebView's NATIVE keyboard-avoidance scroll the field above the keyboard — it handles a
-    // bottom-of-form field by overscrolling past the content bounds, which page-level JS
-    // can't do (window.scrollBy clamps at max scroll → field stays under the keyboard).
-    // The earlier bugs were us FIGHTING that: preventScroll suppressed the native reveal, and
-    // scrollIntoView({block:'center'}) is keyboard-blind (centres in the full layout viewport,
-    // which the keyboard then covers). So the fix is to do neither.
-    ref.current?.focus()
-  }
-
   async function create() {
     if (busy) return
     // The CTA is always live, so validate on tap and lead the user to the first empty
     // required field rather than silently doing nothing.
-    if (!hasGoal) return guideTo(goalRef)
+    if (!hasGoal) return revealField(goalRef)
     if (!hasName) {
       setNeedName(true)
-      return guideTo(nameRef)
+      return revealField(nameRef)
     }
     setBusy(true)
     setErr(null)

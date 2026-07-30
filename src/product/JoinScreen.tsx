@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
 import { PledgeTicket } from './PledgeTicket.tsx'
+import { revealField } from './revealField.ts'
 import {
   avatarColor,
   getChallenge,
@@ -105,6 +106,8 @@ export function JoinScreen({
   const [err, setErr] = useState<string | null>(null)
   const [joined, setJoined] = useState(false)
   const [pulled, setPulled] = useState(false) // "invite link copied" confirmation
+  const [needName, setNeedName] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
   const countdown = useCountdown(rec?.lockAt ?? 0)
 
   useEffect(() => {
@@ -210,6 +213,13 @@ export function JoinScreen({
 
   // ---- join offer ----
   async function join() {
+    if (busy) return
+    // Keep the CTA live even before a name is entered (the field is below the fold), then
+    // guide the user to it on tap rather than sitting there greyed-out. Same as Create.
+    if (askName && !name.trim()) {
+      setNeedName(true)
+      return revealField(nameRef)
+    }
     setBusy(true)
     setErr(null)
     try {
@@ -275,32 +285,33 @@ export function JoinScreen({
             {copy.join.nameLabel}
           </label>
           <input
+            ref={nameRef}
             id="join-name"
             className="s-field"
             placeholder={copy.join.namePlaceholder}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+              if (needName) setNeedName(false)
+            }}
+            aria-invalid={needName && !name.trim()}
             maxLength={18}
           />
+          {needName && !name.trim() && (
+            <p className="s-fieldhint" role="alert">
+              {copy.join.needName}
+            </p>
+          )}
         </>
       )}
 
       <div className="s-sticky">
-        <div className="clock-echo" aria-hidden="true">
-          <span className="dot" />
-          {copy.join.countdown} <span>{countdown.text}</span>
-        </div>
         {err && (
           <p className="s-foothint" role="alert" style={{ color: 'var(--stake)' }}>
             {err}
           </p>
         )}
-        <button
-          className="s-cta"
-          data-variant="go"
-          disabled={busy || (askName && !name.trim())}
-          onClick={join}
-        >
+        <button className="s-cta" data-variant="go" disabled={busy} onClick={join}>
           {busy ? copy.join.ctaBusy : copy.join.cta(rec.stake, rec.asset)}
         </button>
         <div className="join-meta">

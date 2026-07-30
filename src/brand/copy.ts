@@ -113,6 +113,7 @@ export const copy = {
     countdown: 'Doors close in',
     nameLabel: 'Join as',
     namePlaceholder: 'your first name',
+    needName: 'Add your name to join the run.',
     cta: (stake: number, asset: Asset) => `Put ${stake} ${asset} in — I'm in`,
     ctaBusy: 'Locking it in…',
     errCancel: "You didn't confirm the stake — tap to try again.",

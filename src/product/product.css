@@ -1070,6 +1070,20 @@ textarea.s-field {
 .composer .s-cta {
   margin-top: 10px;
 }
+/* the share CTA, pinned to the viewport bottom so it's visible on load (the card + picker
+   would otherwise push it off-screen). Sticky, not fixed: it releases for the secondary
+   content below the composer. The paper fade lets that content scroll cleanly beneath it. */
+.composer-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: 14px;
+  padding: 12px 0 calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--paper) 72%, transparent);
+}
+.composer-dock .s-cta {
+  margin-top: 0;
+}
 .composer-ready {
   text-align: center;
   font-weight: 800;
@@ -1349,28 +1363,6 @@ textarea.s-field {
   color: var(--stake-deep);
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
-}
-.clock-echo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin: 0 auto 11px;
-  font-size: 12.5px;
-  font-weight: 800;
-  color: var(--stake-deep);
-  font-variant-numeric: tabular-nums;
-}
-.clock-echo .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--stake);
-  animation: pulse-ring 1.7s ease-out infinite;
-}
-.clock-echo span {
-  font-family: var(--font-display);
-  font-weight: 700;
 }
 
 /* ---- join: artifact stage + fineprint + guarantee -------------------------- */
@@ -1897,7 +1889,6 @@ textarea.s-field {
     display: none;
   }
   .clock .dot,
-  .clock-echo .dot,
   .live-kicker .pulse {
     animation: none !important;
   }

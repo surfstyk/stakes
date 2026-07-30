@@ -145,13 +145,18 @@ export function ShareComposer({
         </>
       )}
 
-      <button className="s-cta s-cta--share" onClick={onShare}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3v12M12 3L7.5 7.5M12 3l4.5 4.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5 13v5a2 2 0 002 2h10a2 2 0 002-2v-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
-        </svg>
-        {cta}
-      </button>
+      {/* Pinned to the bottom so the share CTA is visible the instant the screen loads —
+          the tall card would otherwise push it below the fold. Sticky (not fixed): it holds
+          through the share moment, then releases for the content below (nav / crew / feed). */}
+      <div className="composer-dock">
+        <button className="s-cta s-cta--share" onClick={onShare}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v12M12 3L7.5 7.5M12 3l4.5 4.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 13v5a2 2 0 002 2h10a2 2 0 002-2v-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+          {cta}
+        </button>
+      </div>
     </div>
   )
 }
