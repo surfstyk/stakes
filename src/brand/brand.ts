@@ -17,9 +17,10 @@ export interface Brand {
 
 export const brand: Brand = {
   name: 'Stakes',
-  tagline: 'put your money where your mouth is',
+  tagline: 'an app to quit quitting',
   hasDot: true,
   deckLines: [
+    'An app to quit quitting.',
     'Put your money where your mouth is — with your crew.',
     'Proof and content are the same act.',
     "The money's job is to be at risk, not to be won.",
