@@ -80,7 +80,12 @@ function polaroid(
   vg.addColorStop(1, 'rgba(0,0,0,0.16)')
   ctx.fillStyle = vg
   ctx.fill()
-  // emoji subject
+  // emoji subject. IMPORTANT: reset fillStyle to a SOLID colour first. It's still the
+  // near-transparent vignette *gradient* here, and iOS WebKit fills an emoji glyph WITH the
+  // current gradient/pattern instead of drawing the colour emoji — so on device the subject
+  // came out as a faint ghost. A solid fillStyle lets iOS render the colour emoji (and is the
+  // duotone silhouette colour if a platform ever falls back to a monochrome glyph).
+  ctx.fillStyle = INK
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.font = `${s(300)}px ${UI}`
