@@ -35,7 +35,9 @@ function sealedDate(ms: number): string {
   return `${MON[d.getMonth()]} ${d.getDate()} ’${String(d.getFullYear()).slice(-2)}`
 }
 
-export function PledgeTicket({ rec }: { rec: TicketData }) {
+// `sealed` gates the wax seal: it only belongs once a word has actually been given (a real,
+// committed pledge). The welcome sample and the create preview aren't sealed yet — no seal.
+export function PledgeTicket({ rec, sealed = true }: { rec: TicketData; sealed?: boolean }) {
   const c = copy.cards
   return (
     <div className="ticket-wrap">
@@ -43,7 +45,7 @@ export function PledgeTicket({ rec }: { rec: TicketData }) {
         <div className="frame" aria-hidden="true" />
 
         {/* the wax seal — the pledge mark, pressed slightly askew like a real stamp */}
-        <WaxSeal className="ticket-seal" twist={15} />
+        {sealed && <WaxSeal className="ticket-seal" twist={15} />}
 
         <div className="ticket-inner">
           <div className="ticket-top">

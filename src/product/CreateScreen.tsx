@@ -133,7 +133,7 @@ export function CreateScreen({
       <p className="s-sub">{copy.create.sub}</p>
 
       <div className="create-preview">
-        <PledgeTicket rec={preview} />
+        <PledgeTicket rec={preview} sealed={false} />
       </div>
 
       <div className="s-templates" role="group" aria-label="Pick a goal">

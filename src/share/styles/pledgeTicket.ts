@@ -82,48 +82,6 @@ function frame(ctx: CanvasRenderingContext2D, size: Size, s: (n: number) => numb
   return { m, cw, ch, px, pw }
 }
 
-/** Rubber-ink stamp — matte, double rounded-rect border + condensed display word. */
-function rubberStamp(
-  ctx: CanvasRenderingContext2D,
-  s: (n: number) => number,
-  cx: number,
-  cy: number,
-  main: string,
-  sub: string,
-  color: string,
-) {
-  ctx.save()
-  ctx.translate(cx, cy)
-  ctx.rotate((-11 * Math.PI) / 180)
-  ctx.strokeStyle = color
-  ctx.fillStyle = color
-  const w = s(250)
-  const h = s(150)
-  ctx.globalAlpha = 0.85
-  roundRectPath(ctx, -w / 2, -h / 2, w, h, s(20))
-  ctx.lineWidth = s(7)
-  ctx.stroke()
-  ctx.globalAlpha = 0.5
-  roundRectPath(ctx, -w / 2 + s(11), -h / 2 + s(11), w - s(22), h - s(22), s(14))
-  ctx.lineWidth = s(3)
-  ctx.stroke()
-  ctx.globalAlpha = 0.82
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.save()
-  ctx.scale(0.9, 1) // condensed feel
-  ctx.font = `900 ${s(66)}px ${DISPLAY}`
-  ctx.fillText(main, 0, -s(12))
-  ctx.restore()
-  ctx.font = `800 ${s(24)}px ${UI}`
-  ctx.letterSpacing = `${s(4)}px`
-  ctx.fillText(sub, 0, s(40))
-  ctx.letterSpacing = '0px'
-  ctx.restore()
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'alphabetic'
-}
-
 /**
  * The wax seal — the pledge mark, drawn natively in canvas (Path2D from the shared seal geometry,
  * so it matches the app's DOM seal + the app icon). A flat-but-organic read of the pressed seal:
@@ -312,10 +270,8 @@ function drawResults(ctx: CanvasRenderingContext2D, d: ResultsCardData, size: Si
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // a green "BANKED" stamp for a flawless run — the parallel of the pledge stamp
-  if (perfect) {
-    rubberStamp(ctx, s, m + cw - s(168), m + s(296), 'BANKED', '· IN FULL ·', C.go)
-  }
+  // the wax seal — the pledge mark, consistent on every card
+  waxSeal(ctx, m + cw - s(180), m + s(300), s(150))
 
   let y = m + s(430)
   ctx.fillStyle = perfect ? C.go : C.stake
@@ -424,8 +380,8 @@ function drawProgress(ctx: CanvasRenderingContext2D, d: ProgressCardData, size: 
   ctx.font = `${s(150)}px ${UI}`
   ctx.fillText(d.emoji, px, m + s(320))
 
-  // day stamp (top-right)
-  rubberStamp(ctx, s, m + cw - s(168), m + s(296), `DAY ${d.currentDay}`, `· OF ${d.durationDays} ·`, C.stake)
+  // the wax seal — the pledge mark, consistent on every card
+  waxSeal(ctx, m + cw - s(180), m + s(300), s(150))
 
   let y = m + s(430)
   ctx.fillStyle = C.stake
