@@ -6,7 +6,7 @@ import { ProgressScreen } from './product/ProgressScreen.tsx'
 import { ResultsScreen } from './product/ResultsScreen.tsx'
 import { OpenInNimiqPay } from './product/OpenInNimiqPay.tsx'
 import { Loading } from './product/Loading.tsx'
-import { isTestMode, setTestMode } from './product/store.ts'
+import { setTestMode } from './product/store.ts'
 import { brand, copy } from './brand/index.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
 import { isInsideNimiqPay, isRealMoney, watchInsideNimiqPay } from './lib/context.ts'
@@ -50,7 +50,6 @@ function syncUrl(view: View) {
 
 export function App() {
   const [view, setView] = useState<View>(readView)
-  const [testMode, setTestModeState] = useState<boolean>(() => isTestMode())
   // The "Open in Nimiq Pay" gate decision. Mock builds are never gated; a real-money build
   // that already sees the host is OK immediately; otherwise we wait briefly for injection
   // (Android seeds the provider a beat after first render) before concluding we're outside.
@@ -62,8 +61,7 @@ export function App() {
     const params = new URLSearchParams(location.search)
     if (DEV_TOOLS && params.has('test')) {
       const on = params.get('test') !== '0'
-      setTestMode(on)
-      setTestModeState(on)
+      setTestMode(on) // fast-clock still works; the visible test marker is intentionally hidden
     }
     const onPop = () => setView(readView())
     window.addEventListener('popstate', onPop)
@@ -134,18 +132,6 @@ export function App() {
         <span className="s-wordmark" style={{ cursor: 'pointer' }} onClick={() => go({ name: 'create' })}>
           {brand.hasDot && <span className="dot" />} {copy.app.wordmark}
         </span>
-        {DEV_TOOLS && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {testMode && (
-              <span className="s-link" style={{ color: 'var(--stake)' }}>
-                {copy.app.test}
-              </span>
-            )}
-            <button className="s-link" onClick={() => go({ name: 'recon' })}>
-              {copy.app.recon}
-            </button>
-          </span>
-        )}
       </div>
 
       {view.name === 'create' && (

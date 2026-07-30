@@ -12,7 +12,6 @@ import {
   deleteChallenge,
   getChallenge,
   getMyName,
-  isTestMode,
   joinChallenge,
   myChallenges,
   type WindowPreset,
@@ -234,11 +233,6 @@ export function CreateScreen({
           </button>
         ))}
       </div>
-      {isTestMode() && (
-        <p className="s-note" style={{ color: 'var(--stake)' }}>
-          {copy.create.testWindowNote}
-        </p>
-      )}
 
       <label className="s-label" htmlFor="create-name">
         {copy.create.nameLabel}
