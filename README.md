@@ -1,10 +1,19 @@
 # Stakes
 
-> **Put your money where your mouth is — with your crew.**
+![Stakes — an app to quit quitting](public/brand/stakes-banner-2x1.png)
+
+> **An app to quit quitting.**
 
 **Stakes** is a **social commitment game** built as a [Nimiq Pay](https://www.nimiq.com/nimiq-pay/) Mini App. You stake a small amount of NIM on a personal goal for a week, do it daily — kept honest by your friends and social proof, *not* surveillance — and reclaim your stake plus a share of what the quitters forfeit (plus a little NIM) if you follow through. Miss a day, forfeit that day's slice.
 
-Built for the **[Nimiq Mini Apps Competition](https://miniappscompetition.com/)**, Cycle I (build window **6 Jul – ~2 Aug 2026**). Live at **[stakes.surfstyk.com](https://stakes.surfstyk.com)** — open it inside Nimiq Pay.
+Built for the **[Nimiq Mini Apps Competition](https://miniappscompetition.com/)**, Cycle I. Live on **mainnet** at **[stakes.surfstyk.com](https://stakes.surfstyk.com)** (open inside Nimiq Pay) · **[▶ 2-min demo](https://www.youtube.com/watch?v=ptgumWH57r4)**.
+
+<p align="center">
+  <img src="public/screens/stakes-screen-1-create.png" width="22%" alt="Create a challenge">
+  <img src="public/screens/stakes-screen-3-join.png" width="22%" alt="Are you in?">
+  <img src="public/screens/stakes-screen-4-progress.png" width="22%" alt="Daily check-in">
+  <img src="public/screens/stakes-screen-5-results.png" width="22%" alt="Banked the week">
+</p>
 
 ## Two ideas at the core
 - *The money's job is to be **at risk**, not to be **won**.* The stake is working capital for your willpower.
@@ -14,7 +23,7 @@ Built for the **[Nimiq Mini Apps Competition](https://miniappscompetition.com/)*
 1. **Create** a challenge — pick a goal, a per-person stake, and a length (3–30 days).
 2. **Invite your crew.** Everyone opens the link in Nimiq Pay and stakes the same amount to join.
 3. **Check in** once a day, every day. Miss the day's window and that day's slice of your stake is forfeited.
-4. **Settle.** When the week ends, finishers get their stake back, a share of the forfeited pool, and a small NIM completion bonus.
+4. **Settle.** When the challenge ends, finishers get their stake back, a share of the forfeited pool, and a small NIM completion bonus.
 
 ## The money
 Stakes are real NIM, moved inside Nimiq Pay. In this **Cycle-I build the money layer is custodial**: participants deposit their stake to a Stakes-run treasury, and payouts are settled automatically when the challenge ends. It is built behind a swappable `StakeVault` interface (`src/vault/`) so a **trustless on-chain escrow (USDT) can slot in for Cycle II** without changing the product. The settlement math is a single pure function (`src/vault/settlement.ts`) shared by both the app and the settlement job, so the preview you see and the on-chain payout can't diverge. There is **no game of chance** — every outcome is determined purely by who checked in.
@@ -47,4 +56,4 @@ npm run build:public  # submission build — dev tools stripped and tree-shaken 
 The deployed site is the output of `build:public` (`dist/`), served as a static SPA.
 
 ## License
-[MIT](./LICENSE). *(Copyright holder to be finalized once the team is set.)*
+[MIT](./LICENSE) © 2026 Hendrik Bondzio.
