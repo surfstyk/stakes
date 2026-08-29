@@ -45,6 +45,18 @@ Thumbs.db
 surfstyk-notes/
 CLAUDE.md
 
+# Screen recordings. `git add -A` put 211MB of takes into the film repo twice on
+# 2026-07-30, because a rule written as public/device/*.mp4 does not reach into a
+# subdirectory. This repo has never held a video and none belongs in it: the film
+# lives in stakes-pitch-video. These patterns carry no slash, so they match at every
+# level. Nothing here touches images on purpose — public/screens/*.png is served.
+*.mp4
+*.MP4
+*.mov
+*.MOV
+*.webm
+*.avi
+
 # Settlement backend local state
 server/.settled/
 server/plan.json
