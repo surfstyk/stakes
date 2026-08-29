@@ -1,13 +1,67 @@
 import { useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, DayMark, HistoryItem } from './model.ts'
-import { keptDays, payoffOf, weekView } from './model.ts'
+import { currentDay, keptDays, payoffOf, weekView } from './model.ts'
+import { pickLine } from './sphere.ts'
+import { DEV_TOOLS } from '../lib/flags.ts'
 import { TEMPLATES } from './templates.ts'
 import { Cta, Frame, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, WeekFrame, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
 const labelOf = (ch: Challenge) => TEMPLATES.find((t) => t.id === ch.templateId)?.label ?? ch.goal
+
+// ---- the sphere's tap → curated pick (a line for a weak moment) -------------
+function shareText(text: string) {
+  try {
+    if (navigator.share) {
+      void navigator.share({ text, url: location.origin })
+      return
+    }
+  } catch {
+    /* cancelled / unsupported */
+  }
+  try {
+    void navigator.clipboard?.writeText(`${text} ${location.origin}`)
+  } catch {
+    /* ignore */
+  }
+}
+
+export function SpherePickPop({ challenge, tap, onClose }: { challenge: Challenge; tap: number; onClose: () => void }) {
+  const dayIndex = Math.max(0, currentDay(challenge))
+  const pick = pickLine(challenge.templateId, dayIndex, challenge.durationDays || 7, tap)
+  return (
+    <PopOver variant="pick" onClose={onClose}>
+      <span className="ctx">
+        <span className="d" />
+        {c.sphere.pickCtx(labelOf(challenge), dayIndex + 1)}
+      </span>
+      <p className="quote">{pick.text}</p>
+      {pick.source && (
+        <p className="sub" style={{ margin: '8px 0 0', fontStyle: 'italic' }}>
+          — {pick.source}
+        </p>
+      )}
+      <div className="hr" />
+      <button className="share" onClick={() => shareText(pick.text)}>
+        {Icon.share}
+        {c.sphere.pickShare}
+      </button>
+    </PopOver>
+  )
+}
+
+/** The pinned sphere that opens (and re-rolls) the pick on tap. */
+export function SphereWithPick({ challenge, raised }: { challenge: Challenge; raised?: boolean }) {
+  const [tap, setTap] = useState(() => (DEV_TOOLS && new URLSearchParams(location.search).has('pick') ? 1 : 0))
+  return (
+    <>
+      {tap > 0 && <SpherePickPop challenge={challenge} tap={tap} onClose={() => setTap(0)} />}
+      <Sphere raised={raised} onClick={() => setTap((t) => t + 1)} />
+    </>
+  )
+}
 
 const WD: Record<DayMark, string> = { done: 'wd--kept', today: 'wd--today', missed: 'wd--missed', todo: 'wd--future' }
 function WeekDots({ marks, size = 18 }: { marks: DayMark[]; size?: number }) {

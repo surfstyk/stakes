@@ -11,6 +11,7 @@ import {
 } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
 import { ContractCard, Cta, Deck, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, WeekFrame, Wordmark } from './ui.tsx'
+import { SphereWithPick } from './screens2.tsx'
 
 const c = copy.rs
 
@@ -241,11 +242,10 @@ export function DayScreen({
   const streak = streakOf(challenge, now)
   const dayNum = currentDay(challenge, now) + 1
   const remaining = challenge.durationDays - keptDays(challenge).size
-  const [hintOpen, setHintOpen] = useState(false)
 
   return (
     <Frame
-      sphere={<Sphere onClick={() => setHintOpen(true)} />}
+      sphere={<SphereWithPick challenge={challenge} />}
       foot={
         checked ? (
           <Cta label={c.day.shareDay(dayNum)} variant="green" icon={Icon.share} onClick={onShare} />
@@ -293,15 +293,6 @@ export function DayScreen({
         <p className="sub" style={{ color: 'var(--stake)', textAlign: 'center', marginTop: 16 }}>
           {error}
         </p>
-      )}
-      {hintOpen && (
-        <PopOver variant="hint" onClose={() => setHintOpen(false)}>
-          <p className="hintline">
-            {c.taste.hintPre}
-            <em>{c.taste.hintEm}</em>
-            {c.taste.hintPost}
-          </p>
-        </PopOver>
       )}
     </Frame>
   )
