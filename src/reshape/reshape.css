@@ -947,6 +947,53 @@
   color: var(--go-deep);
   font-size: 17px;
 }
+/* a partial/wipeout ledger totals in ink, not celebratory green */
+.rs .brk.neutral .brkrow.tot .v {
+  color: var(--ink);
+}
+
+/* ---- the ReUp record — a field of every day kept (lifetime, never resets) --- */
+.rs .record {
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 16px 18px;
+}
+.rs .rectop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 13px;
+}
+.rs .recgoal {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 20px;
+}
+.rs .recnum {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--go-deep);
+  background: var(--go-tint);
+  border: 1px solid rgba(15, 122, 68, 0.28);
+  border-radius: 20px;
+  padding: 5px 11px;
+}
+.rs .field {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 7px;
+}
+.rs .fd {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--go);
+}
+.rs .fd.m {
+  background: var(--paper-sunk);
+}
 
 /* ---- the shareable trophy card + the Nimiq on-chain proof ------------------- */
 .rs .sharecard {

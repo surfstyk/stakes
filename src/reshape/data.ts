@@ -11,7 +11,7 @@
 // chain via sendStamp (tagged `day:<id>:<n>`). Both are mock in a mock build (the invariant).
 
 import type { Challenge, HistoryItem, Me, Social } from './model.ts'
-import { effectiveStatus, currentDay, keptDays, outcomeOf } from './model.ts'
+import { currentDay, isTerminal, keptDays, outcomeOf } from './model.ts'
 import { DAY_MS } from '../vault/schedule.ts'
 import { getVault } from '../vault/index.ts'
 import { sendStamp } from '../vault/stamp.ts'
@@ -75,6 +75,11 @@ export interface DataApi {
   makeOfficial(id: string, stake: DeckStake): Promise<Challenge>
   sealDay(id: string): Promise<Challenge>
   deleteAttempt(id: string): Promise<void>
+  /** Retire a finished/lapsed run into history and start a fresh one on `templateId`
+   *  (re-runs skip the taste — the caller routes straight to Make-official, JOURNEY §12.5). */
+  reRun(templateId: string): Promise<Challenge>
+  /** Retire a finished/lapsed run into history and leave no active run (→ Archive/Main). */
+  discardActive(): Promise<void>
 }
 
 // ============================================================================
@@ -105,15 +110,15 @@ function saveMock(s: MockState) {
   }
 }
 
-/** Retire the active run into history when it has ended or lapsed (so a new one can start). */
-function reap(s: MockState, now: number): MockState {
+/** Retire the active run into history IF it has come to rest (ended / lapsed). Non-terminal
+ *  runs are left in place so the Taste / Day / Banked / Lapsed screens can show them. */
+function archive(s: MockState, now: number): MockState {
   if (!s.active) return s
-  const st = effectiveStatus(s.active, now)
-  if (st === 'lapsed') {
-    const a = s.active
-    s.history = [historyOf(a, 0, false), ...s.history]
-    s.active = null
-  }
+  if (!isTerminal(s.active, now)) return s
+  const a = s.active
+  const staked = Boolean(a.stakedAt)
+  s.history = [historyOf(a, keptDays(a).size, staked), ...s.history]
+  s.active = null
   return s
 }
 
@@ -131,11 +136,40 @@ function historyOf(ch: Challenge, kept: number, staked: boolean): HistoryItem {
   }
 }
 
+/** Create the taste (window) challenge on an already-clear state, fire the silent seed, save. */
+async function createWindowMock(s: MockState, templateId: string): Promise<Challenge> {
+  const now = Date.now()
+  const t = templateById(templateId)
+  const address = await getMyAddress()
+  const ch: Challenge = {
+    id: safeRandomId().replace(/-/g, '').slice(0, 8),
+    templateId,
+    goal: t?.goal ?? templateId,
+    emoji: t?.emoji ?? '🔥',
+    status: 'window',
+    creatorAddress: address,
+    createdAt: now,
+    lockAt: now,
+    dayLengthMs: dayLen(),
+    durationDays: 0,
+    stake: 0,
+    asset: 'NIM',
+    stakedAt: null,
+    checkins: [],
+    seq: ++s.seq,
+  }
+  s.active = ch
+  saveMock(s)
+  // fire the silent seed (on-chain noise, minute one) — no-op in mock, real POST otherwise.
+  void seedSilently(ch.id, address)
+  return ch
+}
+
 const mockApi: DataApi = {
   async getMe() {
-    const now = Date.now()
-    const s = reap(loadMock(), now)
-    saveMock(s)
+    // No archiving here — a terminal run (ended / lapsed) stays "active" so its payoff / lapse
+    // screen can show; the next user action (reRun / discard / start) retires it.
+    const s = loadMock()
     return { active: s.active, history: s.history }
   },
   async getSocial() {
@@ -147,34 +181,17 @@ const mockApi: DataApi = {
   },
   async startChallenge(templateId) {
     const now = Date.now()
-    const s = reap(loadMock(), now)
-    if (s.active && effectiveStatus(s.active, now) !== 'lapsed') {
+    const s = loadMock()
+    if (s.active && !isTerminal(s.active, now)) {
       throw new Error('You already have a challenge running. Finish it first.')
     }
-    const t = templateById(templateId)
-    const address = await getMyAddress()
-    const ch: Challenge = {
-      id: safeRandomId().replace(/-/g, '').slice(0, 8),
-      templateId,
-      goal: t?.goal ?? templateId,
-      emoji: t?.emoji ?? '🔥',
-      status: 'window',
-      creatorAddress: address,
-      createdAt: now,
-      lockAt: now,
-      dayLengthMs: dayLen(),
-      durationDays: 0,
-      stake: 0,
-      asset: 'NIM',
-      stakedAt: null,
-      checkins: [],
-      seq: ++s.seq,
-    }
-    s.active = ch
-    saveMock(s)
-    // fire the silent seed (on-chain noise, minute one) — no-op in mock, real POST otherwise.
-    void seedSilently(ch.id, address)
-    return ch
+    return createWindowMock(archive(s, now), templateId)
+  },
+  async reRun(templateId) {
+    return createWindowMock(archive(loadMock(), Date.now()), templateId)
+  },
+  async discardActive() {
+    saveMock(archive(loadMock(), Date.now()))
   },
   async makeOfficial(id, stake) {
     const s = loadMock()
@@ -305,22 +322,39 @@ const serverApi: DataApi = {
   async deleteAttempt(id) {
     await api(`/challenges/${id}`, { method: 'DELETE' })
   },
+  async reRun(templateId) {
+    // The server retires the finished run and opens a fresh one (skips the taste, §12.5).
+    return serverApi.startChallenge(templateId)
+  },
+  async discardActive() {
+    await api('/me/archive', { method: 'POST' })
+  },
 }
 
 export const data: DataApi = IS_MOCK ? mockApi : serverApi
 export const IS_MOCK_DATA = IS_MOCK
 
-// ---- dev seeding — plant a mid-arc challenge so the design run shows filled dots ----
-export type SeedKind = 'taste' | 'day' | 'sealed' | 'sealone' | 'clear'
+// ---- dev seeding — plant any arc state so the design run shows real dots + payoffs ----
+export type SeedKind =
+  | 'taste'
+  | 'day'
+  | 'sealed'
+  | 'sealone'
+  | 'missed'
+  | 'banked-win'
+  | 'banked-partial'
+  | 'banked-wipeout'
+  | 'reup'
+  | 'lapsed'
+  | 'archive'
+  | 'clear'
+
 export function devSeed(kind: SeedKind): void {
   const now = Date.now()
   const len = dayLen()
-  if (kind === 'clear') {
-    saveMock({ seq: 47, active: null, history: [] })
-    return
-  }
+  const DAY = 86_400_000
   const t = templateById('sugar')!
-  const base: Challenge = {
+  const base = (o: Partial<Challenge>): Challenge => ({
     id: safeRandomId().replace(/-/g, '').slice(0, 8),
     templateId: 'sugar',
     goal: t.goal,
@@ -328,7 +362,7 @@ export function devSeed(kind: SeedKind): void {
     status: 'window',
     creatorAddress: 'DEV-SEED',
     createdAt: now,
-    lockAt: now - Math.floor(len * 0.45), // ~45% into day 0 → a half-full taste dot
+    lockAt: now,
     dayLengthMs: len,
     durationDays: 0,
     stake: 0,
@@ -336,26 +370,59 @@ export function devSeed(kind: SeedKind): void {
     stakedAt: null,
     checkins: [],
     seq: 48,
+    ...o,
+  })
+  const kept = (n: number): Challenge['checkins'] =>
+    Array.from({ length: n }, (_, i) => ({ day: i, at: now - (n - i) * len, stampTxHash: 'mock', stampStatus: 'landed' as const }))
+  const staked = { status: 'official' as const, durationDays: 7, stake: 70 }
+
+  let active: Challenge | null = null
+  let history: HistoryItem[] = []
+
+  switch (kind) {
+    case 'clear':
+      saveMock({ seq: 47, active: null, history: [] })
+      return
+    case 'taste':
+      active = base({ lockAt: now - Math.floor(len * 0.45) }) // ~half-full taste dot
+      break
+    case 'day': // day 3 open, days 1–2 kept
+      active = base({ ...staked, stakedAt: now - Math.floor(len * 2.4), lockAt: now - Math.floor(len * 2.4), checkins: kept(2) })
+      break
+    case 'sealed': // day 3 just sealed
+      active = base({ ...staked, stakedAt: now - Math.floor(len * 2.4), lockAt: now - Math.floor(len * 2.4), checkins: kept(3) })
+      break
+    case 'sealone': // day one, sealed → the SealShare merge
+      active = base({ ...staked, stakedAt: now - Math.floor(len * 0.5), lockAt: now - Math.floor(len * 0.5), checkins: kept(1) })
+      break
+    case 'missed': // day 4 open, day 3 was missed (days 1–3 → only 1,2 kept)
+      active = base({ ...staked, stakedAt: now - Math.floor(len * 4.3), lockAt: now - Math.floor(len * 4.3), checkins: kept(3) })
+      break
+    case 'banked-win':
+      active = base({ ...staked, stakedAt: now - len * 8, lockAt: now - len * 8, checkins: kept(7) })
+      break
+    case 'banked-partial':
+      active = base({ ...staked, stakedAt: now - len * 8, lockAt: now - len * 8, checkins: kept(4) })
+      break
+    case 'banked-wipeout':
+      active = base({ ...staked, stakedAt: now - len * 8, lockAt: now - len * 8, checkins: [] })
+      break
+    case 'reup': // an ended win, plus a prior kept week → "14 days kept"
+      active = base({ ...staked, stakedAt: now - len * 8, lockAt: now - len * 8, checkins: kept(7) })
+      history = [{ id: 'r0', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 70, endedAt: now - 14 * DAY }]
+      break
+    case 'lapsed': // a taste whose 24h passed with no stake
+      active = base({ lockAt: now - Math.floor(len * 1.5) })
+      break
+    case 'archive':
+      history = [
+        { id: 'a1', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 70, endedAt: now - 6 * DAY },
+        { id: 'a2', templateId: 'run', goal: 'running every day', emoji: '🏃', outcome: 'partial', kept: 4, total: 7, stake: 70, endedAt: now - 8 * DAY },
+        { id: 'a3', templateId: 'meditate', goal: 'meditating every day', emoji: '🧘', outcome: 'lapsed', kept: 0, total: 0, stake: 0, endedAt: now - 9 * DAY },
+        { id: 'a4', templateId: 'cold', goal: 'taking a cold shower daily', emoji: '🚿', outcome: 'banked', kept: 7, total: 7, stake: 50, endedAt: now - 26 * DAY },
+        { id: 'a5', templateId: 'read', goal: 'reading every day', emoji: '📚', outcome: 'wipeout', kept: 0, total: 7, stake: 70, endedAt: now - 40 * DAY },
+      ]
+      break
   }
-  if (kind === 'day' || kind === 'sealed') {
-    base.status = 'official'
-    base.durationDays = 7
-    base.stake = 70
-    base.stakedAt = now - Math.floor(len * 2.4)
-    base.lockAt = now - Math.floor(len * 2.4) // 2 full days + ~40% of day 3 elapsed
-    base.checkins = [
-      { day: 0, at: now - len * 2, stampTxHash: 'mock', stampStatus: 'landed' },
-      { day: 1, at: now - len, stampTxHash: 'mock', stampStatus: 'landed' },
-    ]
-    if (kind === 'sealed') base.checkins.push({ day: 2, at: now, stampTxHash: 'mock', stampStatus: 'landed' })
-  }
-  if (kind === 'sealone') {
-    base.status = 'official'
-    base.durationDays = 7
-    base.stake = 70
-    base.stakedAt = now - Math.floor(len * 0.5)
-    base.lockAt = now - Math.floor(len * 0.5) // day one, half elapsed, already sealed
-    base.checkins = [{ day: 0, at: now, stampTxHash: 'mock', stampStatus: 'landed' }]
-  }
-  saveMock({ seq: 48, active: base, history: [] })
+  saveMock({ seq: 48, active, history })
 }

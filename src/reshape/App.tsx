@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react'
-import type { Challenge } from './model.ts'
-import { currentDay, effectiveStatus } from './model.ts'
-import { data, devSeed } from './data.ts'
+import type { Challenge, HistoryItem } from './model.ts'
+import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver, keptDays } from './model.ts'
+import { data, devSeed, type SeedKind } from './data.ts'
 import type { Template } from './templates.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { DayScreen, MainScreen, MakeOfficialScreen, SealShareScreen, TasteScreen } from './screens.tsx'
+import { ArchiveScreen, BankedScreen, LapsedScreen, MissedScreen, PerfectWeekScreen, ReUpScreen } from './screens2.tsx'
 import { Frame, Wordmark } from './ui.tsx'
 
-type View = 'loading' | 'main' | 'taste' | 'official' | 'day' | 'sealShare'
+type View =
+  | 'loading'
+  | 'main'
+  | 'taste'
+  | 'official'
+  | 'day'
+  | 'sealShare'
+  | 'banked'
+  | 'reup'
+  | 'archive'
+  | 'missed'
+  | 'lapsed'
+  | 'perfectweek'
 
-// Best-effort native share; the link is the reliable payload inside the Nimiq Pay WebView
-// (the SDK has no share bridge — navigator.share where present, clipboard otherwise).
+// Best-effort native share; the link is the reliable payload inside the Nimiq Pay WebView.
 async function share(text: string, url = location.origin) {
   try {
     if (navigator.share) {
@@ -18,7 +30,7 @@ async function share(text: string, url = location.origin) {
       return
     }
   } catch {
-    /* user cancelled / unsupported */
+    /* cancelled / unsupported */
   }
   try {
     await navigator.clipboard?.writeText(`${text} ${url}`)
@@ -30,39 +42,52 @@ async function share(text: string, url = location.origin) {
 export function ReshapeApp() {
   const [view, setView] = useState<View>('loading')
   const [challenge, setChallenge] = useState<Challenge | null>(null)
+  const [history, setHistory] = useState<HistoryItem[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // The landing rule (BUILD-HANDOFF §7): active run → its screen · else history → Archive · else Create.
   async function refresh() {
     const me = await data.getMe()
     setChallenge(me.active)
+    setHistory(me.history)
     if (me.active) {
       const st = effectiveStatus(me.active)
       if (st === 'window') return setView('taste')
-      if (st === 'official') return setView('day')
+      if (st === 'lapsed') return setView('lapsed')
+      if (st === 'ended' || st === 'settled') return setView('banked')
+      // official & running
+      return setView(hasFreshMiss(me.active) ? 'missed' : 'day')
     }
-    setView('main')
+    setView(me.history.length ? 'archive' : 'main')
   }
 
   useEffect(() => {
-    // dev seeding for the design run — reach any spine view directly for a headless capture:
-    //   ?rs=clear | seed-taste | view-official | seed-day | seed-sealed | view-seal
     if (DEV_TOOLS) {
       const q = new URLSearchParams(location.search).get('rs')
-      const seed: Record<string, Parameters<typeof devSeed>[0]> = {
+      const seed: Record<string, SeedKind> = {
         clear: 'clear',
         'seed-taste': 'taste',
         'view-official': 'taste',
         'seed-day': 'day',
         'seed-sealed': 'sealed',
         'view-seal': 'sealone',
+        missed: 'missed',
+        'banked-win': 'banked-win',
+        'banked-partial': 'banked-partial',
+        'banked-wipeout': 'banked-wipeout',
+        reup: 'reup',
+        lapsed: 'lapsed',
+        archive: 'archive',
+        perfectweek: 'banked-win',
       }
+      const forced: Record<string, View> = { 'view-official': 'official', 'view-seal': 'sealShare', reup: 'reup', perfectweek: 'perfectweek' }
       if (q && seed[q]) {
         devSeed(seed[q])
         void data.getMe().then((me) => {
           setChallenge(me.active)
-          if (q === 'view-official') setView('official')
-          else if (q === 'view-seal') setView('sealShare')
+          setHistory(me.history)
+          if (forced[q]) setView(forced[q])
           else void refresh()
         })
         return
@@ -73,58 +98,74 @@ export function ReshapeApp() {
 
   const home = () => void refresh()
 
-  async function onStart(t: Template) {
+  async function guard(fn: () => Promise<void>) {
     setError(null)
     setBusy(true)
     try {
+      await fn()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onStart = (t: Template) =>
+    guard(async () => {
       const ch = await data.startChallenge(t.id)
       setChallenge(ch)
       setView('taste')
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setBusy(false)
-    }
-  }
+    })
 
-  async function onOfficial(stake: { perDay: number; days: number }) {
-    if (!challenge) return
-    setError(null)
-    setBusy(true)
-    try {
+  const onOfficial = (stake: { perDay: number; days: number }) =>
+    guard(async () => {
+      if (!challenge) return
       const ch = await data.makeOfficial(challenge.id, stake)
       setChallenge(ch)
       setView('day')
-    } catch (e) {
-      setError((e as Error).message || 'That didn’t go through.')
-    } finally {
-      setBusy(false)
-    }
-  }
+    })
 
-  async function onSeal() {
-    if (!challenge) return
-    const wasDayOne = currentDay(challenge) === 0
-    setError(null)
-    setBusy(true)
-    try {
+  const onSeal = () =>
+    guard(async () => {
+      if (!challenge) return
+      const wasDayOne = currentDay(challenge) === 0
       const ch = await data.sealDay(challenge.id)
       setChallenge(ch)
-      setView(wasDayOne ? 'sealShare' : 'day')
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setBusy(false)
-    }
-  }
+      const d = currentDay(ch)
+      const kept = keptDays(ch)
+      const cleanWeek = (d + 1) % 7 === 0 && d + 1 < ch.durationDays && Array.from({ length: d + 1 }, (_, i) => i).every((i) => kept.has(i))
+      if (isRunOver(ch)) setView('banked')
+      else if (cleanWeek) setView('perfectweek')
+      else if (wasDayOne) setView('sealShare')
+      else setView('day')
+    })
 
-  async function onExitTaste() {
-    if (!challenge) return
-    await data.deleteAttempt(challenge.id)
-    setChallenge(null)
-    setView('main')
-  }
+  const reRun = (templateId: string) =>
+    guard(async () => {
+      const ch = await data.reRun(templateId)
+      setChallenge(ch)
+      setView('official')
+    })
 
+  const discardTo = (dest: 'main' | 'refresh') =>
+    guard(async () => {
+      await data.discardActive()
+      if (dest === 'main') {
+        setChallenge(null)
+        setView('main')
+      } else {
+        await refresh()
+      }
+    })
+
+  const onExitTaste = () =>
+    guard(async () => {
+      if (challenge) await data.deleteAttempt(challenge.id)
+      setChallenge(null)
+      setView('main')
+    })
+
+  // ---- render ----
   if (view === 'loading') {
     return (
       <Frame center>
@@ -132,41 +173,68 @@ export function ReshapeApp() {
       </Frame>
     )
   }
-
-  if (view === 'main') {
+  if (view === 'main' || (!challenge && view !== 'archive')) {
     return <MainScreenLoader onStart={onStart} onWordmark={home} />
   }
-
-  if (!challenge) {
-    return <MainScreenLoader onStart={onStart} onWordmark={home} />
-  }
-
-  if (view === 'taste') {
-    return <TasteScreen challenge={challenge} onMakeCount={() => setView('official')} onExit={onExitTaste} onWordmark={home} />
-  }
-  if (view === 'official') {
-    return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onWordmark={home} />
-  }
-  if (view === 'sealShare') {
+  if (view === 'archive') {
     return (
-      <SealShareScreen
-        challenge={challenge}
-        onShare={() => void share(`Day one, on the record. ${challenge.emoji} ${challenge.goal} — I'm in.`)}
+      <ArchiveScreen
+        history={history}
+        onRow={(templateId) => reRun(templateId)}
+        onStart={() => setView('main')}
         onWordmark={home}
       />
     )
   }
-  // view === 'day'
-  return (
-    <DayScreen
-      challenge={challenge}
-      busy={busy}
-      error={error}
-      onSeal={onSeal}
-      onShare={() => void share(`Another day kept. ${challenge.emoji} ${challenge.goal} — still in.`)}
-      onWordmark={home}
-    />
-  )
+  if (!challenge) return <MainScreenLoader onStart={onStart} onWordmark={home} />
+
+  switch (view) {
+    case 'taste':
+      return <TasteScreen challenge={challenge} onMakeCount={() => setView('official')} onExit={onExitTaste} onWordmark={home} />
+    case 'official':
+      return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onWordmark={home} />
+    case 'sealShare':
+      return <SealShareScreen challenge={challenge} onShare={() => void share(`Day one, on the record. ${challenge.emoji} ${challenge.goal} — I'm in.`)} onWordmark={home} />
+    case 'missed':
+      return <MissedScreen challenge={challenge} onWinToday={() => setView('day')} onWordmark={home} />
+    case 'lapsed':
+      return <LapsedScreen challenge={challenge} onStartAgain={() => discardTo('main')} onWordmark={home} />
+    case 'banked':
+      return (
+        <BankedScreen
+          challenge={challenge}
+          onShare={() => void share(`Banked the week. ${challenge.emoji} ${challenge.goal}. Run it back?`)}
+          onGoAgain={() => setView('reup')}
+          onReRun={() => reRun(challenge.templateId)}
+          onSeeRecord={() => setView('reup')}
+          onHome={() => discardTo('refresh')}
+          onWordmark={home}
+        />
+      )
+    case 'reup':
+      return (
+        <ReUpScreen
+          challenge={challenge}
+          record={goalRecord(history, challenge, challenge.templateId)}
+          onAnotherWeek={() => reRun(challenge.templateId)}
+          onPickNew={() => discardTo('main')}
+          onWordmark={home}
+        />
+      )
+    case 'perfectweek':
+      return <PerfectWeekScreen onShare={() => void share(`Seven for seven. ${challenge.emoji} ${challenge.goal} — a clean week.`)} onWordmark={home} />
+    default:
+      return (
+        <DayScreen
+          challenge={challenge}
+          busy={busy}
+          error={error}
+          onSeal={onSeal}
+          onShare={() => void share(`Another day kept. ${challenge.emoji} ${challenge.goal} — still in.`)}
+          onWordmark={home}
+        />
+      )
+  }
 }
 
 // The Main screen needs the social counters — a tiny loader so the deck renders once they arrive.

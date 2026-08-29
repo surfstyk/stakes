@@ -27,6 +27,12 @@ export const Icon = {
       {P('M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7')}
     </svg>
   ),
+  trend: (
+    <svg className="ico" viewBox="0 0 24 24" style={{ width: 14, height: 14, stroke: 'var(--cream)' }}>
+      {P('M7 17L17 7')}
+      {P('M8 7h9v9')}
+    </svg>
+  ),
 }
 
 // ---- shell frame: scroll canvas · pinned foot · pinned sphere ---------------
@@ -259,6 +265,78 @@ export function NimiqLink({ href }: { href?: string }) {
         {P('M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4')}
       </svg>
     </a>
+  )
+}
+
+// ---- the money block + the honest ledger (the payoff) ----------------------
+export function Money({
+  variant,
+  label,
+  amount,
+  unit = 'NIM',
+  gain,
+  note,
+}: {
+  variant: 'win' | 'neutral' | 'quiet'
+  label: string
+  amount: number
+  unit?: string
+  gain?: string
+  note?: string
+}) {
+  return (
+    <div className={`money money--${variant}`}>
+      <div className="lbl">{label}</div>
+      <div className="big">
+        {amount} <small>{unit}</small>
+      </div>
+      {gain && (
+        <span className="gain">
+          {Icon.trend}
+          {gain}
+        </span>
+      )}
+      {note && <div className="note">{note}</div>}
+    </div>
+  )
+}
+
+export interface LedgerRow {
+  k: string
+  v: string
+  cls?: 'plus' | 'burn' | 'tot'
+}
+export function Ledger({ rows, tone }: { rows: LedgerRow[]; tone?: 'win' | 'neutral' }) {
+  return (
+    <div className={'brk' + (tone === 'neutral' ? ' neutral' : '')}>
+      {rows.map((r, i) => (
+        <div key={i} className={'brkrow' + (r.cls === 'tot' ? ' tot' : '') + (r.cls === 'burn' ? ' burn' : '')}>
+          <span className="k">{r.k}</span>
+          <span className={'v' + (r.cls === 'plus' ? ' plus' : '')}>{r.v}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---- the perfect-week ring --------------------------------------------------
+const RING: [number, number][] = [
+  [0, -88],
+  [69, -55],
+  [84, 27],
+  [38, 80],
+  [-38, 80],
+  [-84, 27],
+  [-69, -55],
+]
+export function PerfectRing() {
+  return (
+    <div className="ring">
+      <span className="mid">7</span>
+      {RING.map(([x, y], i) => (
+        <span key={i} className="rwd" style={{ transform: `translate(${x}px,${y}px)` }} />
+      ))}
+    </div>
   )
 }
 

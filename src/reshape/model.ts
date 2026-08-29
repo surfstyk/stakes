@@ -77,10 +77,35 @@ export function isLapsed(ch: Challenge, now: number = Date.now()): boolean {
   return ch.status === 'window' && !ch.stakedAt && now >= ch.lockAt + ch.dayLengthMs
 }
 
-/** Status as the screens should treat it (a window past its 24h with no deposit reads as lapsed). */
+/** A staked run whose outcome is final — every day elapsed, or every day already kept
+ *  (a perfect run banks the moment the last day is sealed, JOURNEY §12.8). */
+export function isRunOver(ch: Challenge, now: number = Date.now()): boolean {
+  if (ch.status !== 'official') return false
+  const elapsed = now >= ch.lockAt + ch.durationDays * ch.dayLengthMs
+  const allKept = keptDays(ch).size >= ch.durationDays
+  return elapsed || allKept
+}
+
+/** Status as the screens should treat it: a lapsed taste, or an official run that is over. */
 export function effectiveStatus(ch: Challenge, now: number = Date.now()): ChallengeStatus {
-  if (isLapsed(ch, now)) return 'lapsed'
+  if (ch.status === 'window') return isLapsed(ch, now) ? 'lapsed' : 'window'
+  if (ch.status === 'official') return isRunOver(ch, now) ? 'ended' : 'official'
   return ch.status
+}
+
+/** A run that has come to rest — the payoff or the lapse is showable, then archivable. */
+export function isTerminal(ch: Challenge, now: number = Date.now()): boolean {
+  const st = effectiveStatus(ch, now)
+  return st === 'ended' || st === 'lapsed' || st === 'settled'
+}
+
+/** A miss just happened: the previous day went unsealed and today isn't sealed yet (Missed ⓽). */
+export function hasFreshMiss(ch: Challenge, now: number = Date.now()): boolean {
+  if (effectiveStatus(ch, now) !== 'official') return false
+  const cur = currentDay(ch, now)
+  if (cur < 1 || cur >= ch.durationDays) return false
+  const kept = keptDays(ch)
+  return !kept.has(cur - 1) && !kept.has(cur)
 }
 
 export function keptDays(ch: Challenge): Set<number> {
