@@ -201,6 +201,67 @@ export const copy = {
       `Day ${day}/${total} of ${goal} ${emoji} — still in. Watch me 👀`,
   },
 
+  // ── The reshape (Cycle II) — the solo-first journey. DRAFT copy, ported from the
+  // finished artboards (surfstyk-notes/brand/onboarding-v2/). Accent headlines are kept
+  // as separate {lead, em, tail} words so a locale can place the emphasis (§1.5).
+  rs: {
+    main: {
+      kicker: 'Pick your one thing',
+      hLead: 'What do you keep ',
+      hEm: 'putting off',
+      startedThisWeek: (n: number) => `${n.toLocaleString()} started this week`,
+      cta: 'Start day one',
+    },
+    taste: {
+      hTop: 'That took nerve.',
+      hLead: 'Now ',
+      hEm: 'live',
+      hTail: ' the day',
+      hintPre: 'Here for the tricky moments. ',
+      hintEm: 'Tap me any time.',
+      hintPost: ' I keep no score.',
+      exit: 'Not this one',
+      cta: 'Make it count',
+    },
+    official: {
+      hLead: 'Now put it ',
+      hEm: 'on the line',
+      sub: 'Back your word with a little NIM. Keep every day and it all comes back, plus a completion bonus.',
+      perDayLabel: 'A little a day',
+      perDayUnit: 'NIM / day',
+      lengthLabel: 'For how long',
+      daysUnit: 'days',
+      backdateLead: 'Runs from this morning — ',
+      backdateBold: 'day one is already yours.',
+      needNim: (need: number) => `You need about ${need} NIM in your wallet to make this official.`,
+      cta: 'Make it official.',
+      busy: 'Confirming your stake…',
+      err: 'That didn’t go through. Tap to try again.',
+    },
+    seal: {
+      kicker: 'Day one, sealed',
+      hLead: 'On the record',
+      cardTop: 'Day one.',
+      cardBottom: 'On the record.',
+      cta: 'Share day one',
+    },
+    day: {
+      streakPill: (n: number) => `${n}-day streak`,
+      cta: 'I did it today',
+      sealing: 'Sealing the day…',
+      sealedKicker: (day: number) => `Day ${day}, sealed`,
+      onchain: 'On the record',
+      toGo: (n: number) => (n === 1 ? 'Come back tomorrow · 1 to go' : `Come back tomorrow · ${n} to go`),
+      lastSealed: 'Every day kept. Banking now…',
+      shareDay: (day: number) => `Share day ${day}`,
+      err: 'Could not seal today. Try again.',
+    },
+    sphere: {
+      // the taste-day hint (SpherePick's motivational library is the next increment)
+      tasteHint: { pre: 'Here for the tricky moments. ', em: 'Tap me any time.', post: ' I keep no score.' },
+    },
+  },
+
   // On-card lettering (pledge ticket + results card). Shared by the live DOM cards
   // and the canvas share-image renderer.
   cards: {

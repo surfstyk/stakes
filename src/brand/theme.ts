@@ -21,8 +21,17 @@ export interface Theme {
     stakeDeep: string
     stakeTint: string
     go: string // deep green — confirmed / money
+    goDeep: string // deeper green — money labels / on-chain chip
     goTint: string
+    proceed: string // ink-blue — the "commit / proceed" CTA (the reshape's forward button)
+    proceedDeep: string
+    proceedTint: string
+    grey: string // quiet grey — a missed/burned day (never vermilion; the bead reserves that)
+    cream: string // text on saturated buttons
     gold: string
+    nimiqBlue: string // Nimiq brand — the "Nimiq" wordmark on the on-chain proof
+    nimiqGoldA: string // Nimiq brand — the gold hexagon gradient (logo = gold, not blue)
+    nimiqGoldB: string
     onDark: string // plain white, for text on dark surfaces (result card)
   }
   font: {
@@ -49,8 +58,17 @@ export const theme: Theme = {
     stakeDeep: '#c12104',
     stakeTint: '#fbe2d7',
     go: '#0f7a44',
+    goDeep: '#0c5f35',
     goTint: '#dcefe0',
+    proceed: '#27354d',
+    proceedDeep: '#1e2a3d',
+    proceedTint: '#dfe4ec',
+    grey: '#b7ad9b',
+    cream: '#fbf6ec',
     gold: '#c98a16',
+    nimiqBlue: '#1f2348',
+    nimiqGoldA: '#ec991c',
+    nimiqGoldB: '#e9b213',
     onDark: '#ffffff',
   },
   font: {
