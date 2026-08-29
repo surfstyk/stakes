@@ -30,7 +30,12 @@ db.exec(`
     createdAt      INTEGER NOT NULL,
     lockAt         INTEGER NOT NULL,
     dayLengthMs    INTEGER NOT NULL DEFAULT 86400000,
-    status         TEXT NOT NULL DEFAULT 'open'
+    status         TEXT NOT NULL DEFAULT 'window',
+    -- the reshape (Cycle II): goal identity, the deposit moment, the archive stamp, a display Nº
+    templateId     TEXT,
+    stakedAt       INTEGER,
+    endedAt        INTEGER,
+    seq            INTEGER NOT NULL DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS participants (
     challengeId      TEXT NOT NULL,
@@ -49,7 +54,9 @@ db.exec(`
     note        TEXT NOT NULL DEFAULT '',
     emoji       TEXT,
     at          INTEGER NOT NULL,
-    cheers      INTEGER NOT NULL DEFAULT 0
+    cheers      INTEGER NOT NULL DEFAULT 0,
+    stampTxHash TEXT,
+    stampStatus TEXT
   );
   -- One row per challenge that settlement has touched. This is the DURABLE idempotency
   -- guard (the automated settler refuses to re-pay a 'done' challenge) AND the source of
@@ -70,13 +77,22 @@ db.exec(`
   );
 `)
 
-// Migration: add dayLengthMs to challenges tables created before timed days (the
-// CREATE above only applies to fresh DBs). Existing rows default to 24h.
-try {
-  db.exec(`ALTER TABLE challenges ADD COLUMN dayLengthMs INTEGER NOT NULL DEFAULT 86400000`)
-} catch {
-  /* column already exists */
+// Migrations: ALTER only affects DBs created before a column existed (the CREATE above
+// applies to fresh DBs). Each is idempotent — a duplicate-column error is swallowed.
+const migrate = (sql: string) => {
+  try {
+    db.exec(sql)
+  } catch {
+    /* column already exists */
+  }
 }
+migrate(`ALTER TABLE challenges ADD COLUMN dayLengthMs INTEGER NOT NULL DEFAULT 86400000`)
+migrate(`ALTER TABLE challenges ADD COLUMN templateId TEXT`)
+migrate(`ALTER TABLE challenges ADD COLUMN stakedAt INTEGER`)
+migrate(`ALTER TABLE challenges ADD COLUMN endedAt INTEGER`)
+migrate(`ALTER TABLE challenges ADD COLUMN seq INTEGER NOT NULL DEFAULT 0`)
+migrate(`ALTER TABLE checkins ADD COLUMN stampTxHash TEXT`)
+migrate(`ALTER TABLE checkins ADD COLUMN stampStatus TEXT`)
 
 const shortId = () => randomUUID().replace(/-/g, '').slice(0, 8)
 
@@ -92,14 +108,18 @@ export interface NewChallenge {
   creatorName: string
   lockAt: number
   dayLengthMs: number // length of each check-in day/round (24h prod, minutes in test)
+  templateId?: string // the goal identity (reshape) — null for legacy/CLI rows
+  status?: string // defaults to 'window' (the reshape taste); the settler ignores status
+  stakedAt?: number | null
 }
 
 export function createChallenge(input: NewChallenge): string {
   const id = shortId()
+  const seq = (db.prepare(`SELECT COALESCE(MAX(seq), 47) AS m FROM challenges`).get() as { m: number }).m + 1
   db.prepare(
     `INSERT INTO challenges
-       (id, goal, emoji, durationDays, stake, asset, creatorAddress, creatorName, createdAt, lockAt, dayLengthMs, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+       (id, goal, emoji, durationDays, stake, asset, creatorAddress, creatorName, createdAt, lockAt, dayLengthMs, status, templateId, stakedAt, seq)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.goal,
@@ -112,8 +132,82 @@ export function createChallenge(input: NewChallenge): string {
     Date.now(),
     input.lockAt,
     input.dayLengthMs,
+    input.status ?? 'window',
+    input.templateId ?? null,
+    input.stakedAt ?? null,
+    seq,
   )
   return id
+}
+
+// ---- reshape lifecycle (Cycle II): window → official → ended|lapsed ----------
+
+/** Convert a taste (window) into a staked run: set the length, stake, and deposit moment. */
+export function setOfficial(id: string, p: { durationDays: number; stake: number; stakedAt: number }) {
+  db.prepare(`UPDATE challenges SET status='official', durationDays=?, stake=?, stakedAt=? WHERE id=? AND status='window'`).run(
+    p.durationDays,
+    p.stake,
+    p.stakedAt,
+    id,
+  )
+}
+
+/** Retire a run into history with its terminal outcome status ('ended' | 'lapsed' | 'settled'). */
+export function archiveChallenge(id: string, status: 'ended' | 'lapsed' | 'settled') {
+  db.prepare(`UPDATE challenges SET status=?, endedAt=? WHERE id=?`).run(status, Date.now(), id)
+}
+
+/** The mis-tap exit: delete a taste that was never staked (J4). No-op once a deposit exists. */
+export function deleteWindowChallenge(id: string): boolean {
+  const r = db
+    .prepare(`DELETE FROM challenges WHERE id=? AND status='window' AND NOT EXISTS (SELECT 1 FROM participants WHERE challengeId=id)`)
+    .run(id)
+  return Number(r.changes) > 0
+}
+
+/** The one live run for an address (≤1 by the invariant), or undefined. */
+export function getActiveRowFor(address: string): ChallengeRow | undefined {
+  return db
+    .prepare(`SELECT * FROM challenges WHERE creatorAddress=? AND status IN ('window','official') ORDER BY createdAt DESC LIMIT 1`)
+    .get(address) as ChallengeRow | undefined
+}
+
+export function countActiveFor(address: string): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM challenges WHERE creatorAddress=? AND status IN ('window','official')`).get(address) as { n: number }).n
+}
+
+/** Every retired run + attempt for an address, newest first (the Archive). */
+export function getHistoryRowsFor(address: string): ChallengeRow[] {
+  return db
+    .prepare(`SELECT * FROM challenges WHERE creatorAddress=? AND status IN ('ended','lapsed','settled') ORDER BY COALESCE(endedAt, createdAt) DESC`)
+    .all(address) as ChallengeRow[]
+}
+
+/** A participant's check-ins with the stamp fields (reshape serialization). */
+export function reshapeCheckinsFor(challengeId: string, address: string): { day: number; at: number; stampTxHash: string | null; stampStatus: string | null }[] {
+  return db
+    .prepare(`SELECT day, at, stampTxHash, stampStatus FROM checkins WHERE challengeId=? AND address=? ORDER BY day ASC`)
+    .all(challengeId, address) as { day: number; at: number; stampTxHash: string | null; stampStatus: string | null }[]
+}
+
+/** Distinct kept days for one participant (the Banked / history outcome). */
+export function keptDaysFor(challengeId: string, address: string): number {
+  return (db.prepare(`SELECT COUNT(DISTINCT day) AS n FROM checkins WHERE challengeId=? AND address=?`).get(challengeId, address) as { n: number }).n
+}
+
+/** Started-this-week counts by template (the deck's honest social proof). Never invented. */
+export function statsStartedThisWeek(sinceMs: number): Record<string, number> {
+  const rows = db
+    .prepare(`SELECT templateId, COUNT(*) AS n FROM challenges WHERE templateId IS NOT NULL AND createdAt >= ? GROUP BY templateId`)
+    .all(sinceMs) as { templateId: string; n: number }[]
+  const out: Record<string, number> = {}
+  for (const r of rows) out[r.templateId] = r.n
+  return out
+}
+
+/** Count of distinct addresses on a 1-day (Today's) run today — the "in today" counter. */
+export function countInToday(): number {
+  return (db.prepare(`SELECT COUNT(DISTINCT creatorAddress) AS n FROM challenges WHERE durationDays=1 AND createdAt >= ?`).get(Date.now() - 86400_000) as { n: number }).n
 }
 
 /** Stake-to-join (idempotent per address). Records the deposit tx for later verify. */
@@ -132,13 +226,13 @@ export function joinChallenge(
 
 export function addCheckin(
   challengeId: string,
-  c: { address: string; day: number; note: string; emoji?: string },
+  c: { address: string; day: number; note: string; emoji?: string; stampTxHash?: string | null; stampStatus?: string | null },
 ): string {
   const id = shortId()
   db.prepare(
-    `INSERT INTO checkins (id, challengeId, address, day, note, emoji, at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, challengeId, c.address, c.day, c.note, c.emoji ?? null, Date.now())
+    `INSERT INTO checkins (id, challengeId, address, day, note, emoji, at, stampTxHash, stampStatus)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(id, challengeId, c.address, c.day, c.note, c.emoji ?? null, Date.now(), c.stampTxHash ?? null, c.stampStatus ?? null)
   return id
 }
 
@@ -250,7 +344,7 @@ export function listEndedUnsettled(now = Date.now()): string[] {
 
 // ---- reads ----------------------------------------------------------------
 
-interface ChallengeRow {
+export interface ChallengeRow {
   id: string
   goal: string
   emoji: string
@@ -263,6 +357,10 @@ interface ChallengeRow {
   lockAt: number
   dayLengthMs: number
   status: string
+  templateId: string | null
+  stakedAt: number | null
+  endedAt: number | null
+  seq: number
 }
 interface ParticipantRow {
   address: string

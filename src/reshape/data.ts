@@ -327,7 +327,8 @@ const serverApi: DataApi = {
     return serverApi.startChallenge(templateId)
   },
   async discardActive() {
-    await api('/me/archive', { method: 'POST' })
+    const address = await getMyAddress()
+    await api('/me/archive', { method: 'POST', body: JSON.stringify({ address }) })
   },
 }
 

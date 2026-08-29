@@ -16,9 +16,84 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash } from 'node:crypto'
 import { openDay } from '../src/vault/schedule.ts'
-import { addCheckin, cheer, countSeedsSince, createChallenge, getChallenge, getSeed, getSettlement, getSettlementRecord, joinChallenge, requestSeed } from './db.ts'
+import {
+  addCheckin,
+  archiveChallenge,
+  cheer,
+  countActiveFor,
+  countInToday,
+  countSeedsSince,
+  createChallenge,
+  deleteWindowChallenge,
+  getActiveRowFor,
+  getChallenge,
+  getHistoryRowsFor,
+  getSeed,
+  getSettlement,
+  getSettlementRecord,
+  joinChallenge,
+  keptDaysFor,
+  requestSeed,
+  reshapeCheckinsFor,
+  setOfficial,
+  statsStartedThisWeek,
+  type ChallengeRow,
+} from './db.ts'
 import { normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
+
+const GRACE_MS = 15 * 60_000
+const WEEK_MS = 7 * 86400_000
+
+// ---- reshape serialization (Cycle II) — the shapes src/reshape/model.ts reads --------------
+function reshapeChallenge(row: ChallengeRow) {
+  return {
+    id: row.id,
+    templateId: row.templateId ?? row.id,
+    goal: row.goal,
+    emoji: row.emoji,
+    status: row.status,
+    creatorAddress: row.creatorAddress,
+    createdAt: row.createdAt,
+    lockAt: row.lockAt,
+    dayLengthMs: row.dayLengthMs,
+    durationDays: row.durationDays,
+    stake: row.stake,
+    asset: row.asset,
+    stakedAt: row.stakedAt,
+    seq: row.seq,
+    checkins: reshapeCheckinsFor(row.id, row.creatorAddress),
+  }
+}
+function outcomeFor(row: ChallengeRow): 'banked' | 'partial' | 'wipeout' | 'lapsed' {
+  if (row.status === 'lapsed') return 'lapsed'
+  const kept = keptDaysFor(row.id, row.creatorAddress)
+  if (kept >= row.durationDays) return 'banked'
+  if (kept <= 0) return 'wipeout'
+  return 'partial'
+}
+function historyItem(row: ChallengeRow) {
+  return {
+    id: row.id,
+    templateId: row.templateId ?? row.id,
+    goal: row.goal,
+    emoji: row.emoji,
+    outcome: outcomeFor(row),
+    kept: keptDaysFor(row.id, row.creatorAddress),
+    total: row.durationDays,
+    stake: row.stake,
+    endedAt: row.endedAt ?? row.createdAt,
+  }
+}
+/** A run that has come to rest on the server clock: a lapsed taste or an over run. Else null. */
+function computeTerminal(row: ChallengeRow, now: number): 'lapsed' | 'ended' | null {
+  if (row.status === 'window') return !row.stakedAt && now >= row.lockAt + row.dayLengthMs ? 'lapsed' : null
+  if (row.status === 'official') {
+    const kept = keptDaysFor(row.id, row.creatorAddress)
+    return now >= row.lockAt + row.durationDays * row.dayLengthMs || kept >= row.durationDays ? 'ended' : null
+  }
+  return null
+}
 
 const PORT = Number(process.env.STAKES_API_PORT ?? 8787)
 
@@ -99,7 +174,7 @@ function publicChallenge(view: ReturnType<typeof getChallenge>) {
   }
 }
 
-const server = createServer(async (req, res) => {
+export const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', 'http://localhost')
     const seg = url.pathname.split('/').filter(Boolean) // ['api','challenges',':id',...]
@@ -112,44 +187,65 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { ok: true })
     }
 
-    // POST /api/challenges
+    // GET /api/me?address=  → the landing read: { active, history }
+    if (method === 'GET' && seg[1] === 'me' && seg.length === 2) {
+      const address = str(url.searchParams.get('address'))
+      if (!address) return send(res, 400, { error: 'address required' })
+      const activeRow = getActiveRowFor(address)
+      return send(res, 200, {
+        active: activeRow ? reshapeChallenge(activeRow) : null,
+        history: getHistoryRowsFor(address).map(historyItem),
+      })
+    }
+
+    // POST /api/me/archive  { address } → retire a finished/lapsed run into history
+    if (method === 'POST' && seg[1] === 'me' && seg[2] === 'archive' && seg.length === 3) {
+      const b = await readJson(req)
+      const address = str(b.address)
+      if (!address) return send(res, 400, { error: 'address required' })
+      const active = getActiveRowFor(address)
+      if (active) {
+        const term = computeTerminal(active, Date.now())
+        if (term) archiveChallenge(active.id, term)
+      }
+      return send(res, 200, { ok: true })
+    }
+
+    // GET /api/stats/social → the deck's honest counters (never invented)
+    if (method === 'GET' && seg[1] === 'stats' && seg[2] === 'social' && seg.length === 3) {
+      return send(res, 200, { startedThisWeek: statsStartedThisWeek(Date.now() - WEEK_MS), inToday: countInToday() })
+    }
+
+    // POST /api/challenges  { templateId, goal, emoji, creatorAddress } → start a taste (window)
     if (method === 'POST' && seg[1] === 'challenges' && seg.length === 2) {
       const b = await readJson(req)
       const goal = str(b.goal)
       const creatorAddress = str(b.creatorAddress)
-      const durationDays = num(b.durationDays)
-      const stake = num(b.stake)
-      const windowMs = num(b.windowMs)
-      const dayLengthMs = num(b.dayLengthMs)
-      if (!goal || !creatorAddress || !Number.isFinite(durationDays) || !Number.isFinite(stake)) {
-        return send(res, 400, { error: 'goal, creatorAddress, durationDays, stake required' })
+      if (!goal || !creatorAddress) return send(res, 400, { error: 'goal and creatorAddress required' })
+      // The invariant, enforced at the API (the trust boundary): ≤1 live run per address.
+      // A finished/lapsed run is retired first; a still-live one blocks the new start.
+      const existing = getActiveRowFor(creatorAddress)
+      if (existing) {
+        const term = computeTerminal(existing, Date.now())
+        if (!term) return send(res, 409, { error: 'you already have a challenge running' })
+        archiveChallenge(existing.id, term)
       }
-      // SEC-05: bound the numbers server-side (the client clamps, but the API is the trust
-      // boundary). durationDays: 0 crashes settlement; negative/huge values corrupt the math.
-      if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 60) {
-        return send(res, 400, { error: 'durationDays must be a whole number between 1 and 60' })
-      }
-      if (!(stake > 0) || stake > 1_000_000) {
-        return send(res, 400, { error: 'stake must be greater than 0 and at most 1000000' })
-      }
-      if (Number.isFinite(windowMs) && (windowMs < 0 || windowMs > 60 * 86400_000)) {
-        return send(res, 400, { error: 'windowMs must be between 0 and 60 days' })
-      }
-      if (Number.isFinite(dayLengthMs) && (dayLengthMs <= 0 || dayLengthMs > 90 * 86400_000)) {
-        return send(res, 400, { error: 'dayLengthMs must be between 0 and 90 days' })
-      }
-      const id = createChallenge({
+      const dl = num(b.dayLengthMs)
+      const dayLengthMs = Number.isFinite(dl) && dl > 0 && dl <= 90 * 86400_000 ? dl : 24 * 3600_000
+      createChallenge({
         goal,
         emoji: str(b.emoji) || '🔥',
-        durationDays,
-        stake,
-        asset: str(b.asset) || 'NIM',
+        durationDays: 0,
+        stake: 0,
+        asset: 'NIM',
         creatorAddress,
         creatorName: str(b.creatorName) || 'You',
-        lockAt: Date.now() + (Number.isFinite(windowMs) ? windowMs : 24 * 3600_000),
-        dayLengthMs: Number.isFinite(dayLengthMs) && dayLengthMs > 0 ? dayLengthMs : 24 * 3600_000,
+        lockAt: Date.now(),
+        dayLengthMs,
+        status: 'window',
+        templateId: str(b.templateId) || undefined,
       })
-      return send(res, 201, { id })
+      return send(res, 201, reshapeChallenge(getActiveRowFor(creatorAddress)!))
     }
 
     // POST /api/seed  { address, challengeId }
@@ -181,6 +277,31 @@ const server = createServer(async (req, res) => {
         return view ? send(res, 200, publicChallenge(view)) : send(res, 404, { error: 'challenge not found' })
       }
 
+      // DELETE /api/challenges/:id — the mis-tap exit: drop a never-staked taste (J4)
+      if (method === 'DELETE' && seg.length === 3) {
+        return send(res, 200, { deleted: deleteWindowChallenge(id) })
+      }
+
+      // POST /api/challenges/:id/official  { address, durationDays, stake, depositTxHash }
+      if (method === 'POST' && seg[3] === 'official' && seg.length === 4) {
+        const view = getChallenge(id)
+        if (!view) return send(res, 404, { error: 'challenge not found' })
+        const b = await readJson(req)
+        const address = str(b.address)
+        const durationDays = num(b.durationDays)
+        const stake = num(b.stake)
+        if (!address) return send(res, 400, { error: 'address required' })
+        if (normAddr(address) !== normAddr(view.creatorAddress)) return send(res, 403, { error: 'not your challenge' })
+        if (view.status !== 'window') return send(res, 409, { error: 'this challenge is not a taste anymore' })
+        // SEC-05: bound the numbers server-side (the API is the trust boundary).
+        if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 60) return send(res, 400, { error: 'durationDays must be a whole number between 1 and 60' })
+        if (!(stake > 0) || stake > 1_000_000) return send(res, 400, { error: 'stake must be greater than 0 and at most 1000000' })
+        setOfficial(id, { durationDays, stake, stakedAt: Date.now() })
+        // the solo player becomes the sole participant, with their tagged deposit (official:<id>)
+        joinChallenge(id, { address, name: view.creatorName, depositTxHash: str(b.depositTxHash) || undefined })
+        return send(res, 200, reshapeChallenge(getActiveRowFor(address)!))
+      }
+
       // GET /api/challenges/:id/settlement (verify deposits first → count confirmed only)
       if (method === 'GET' && seg[3] === 'settlement' && seg.length === 4) {
         if (!(await verifyChallenge(id))) return send(res, 404, { error: 'challenge not found' })
@@ -204,32 +325,33 @@ const server = createServer(async (req, res) => {
         return send(res, 200, publicChallenge(getChallenge(id)))
       }
 
-      // POST /api/challenges/:id/checkins
+      // POST /api/challenges/:id/checkins  { address, day, stampTxHash? } — the solo seal
       if (method === 'POST' && seg[3] === 'checkins' && seg.length === 4) {
         const view = getChallenge(id)
         if (!view) return send(res, 404, { error: 'challenge not found' })
         const b = await readJson(req)
         const address = str(b.address)
         const day = num(b.day)
-        const note = str(b.note)
-        if (!address || !Number.isFinite(day) || (!note && !str(b.emoji))) {
-          return send(res, 400, { error: 'address, day and a note or emoji required' })
-        }
-        // SEC-03: enforce the check-in window server-side — the browser's "closing door" is
-        // not a trust boundary. Only a member can check in, and only for the day whose
-        // window is open right now (no backfilling missed days, no pre-filling future ones).
+        if (!address || !Number.isFinite(day)) return send(res, 400, { error: 'address and day required' })
+        if (view.status !== 'official') return send(res, 409, { error: 'the run is not staked yet' })
+        // SEC-03: only a member checks in, only for the open day (no backfilling / pre-filling).
         if (!view.participants.some((p) => normAddr(p.address) === normAddr(address))) {
           return send(res, 403, { error: 'not a participant in this challenge' })
         }
-        const open = openDay(view, Date.now())
-        if (open < 0) {
-          return send(res, 409, { error: 'check-ins are closed (the challenge has not started or has ended)' })
+        const now = Date.now()
+        const open = openDay(view, now)
+        // day-one grace (J4): a deposit that lands just as day 0 closes still gets to seal day 0
+        // until stakedAt + 15 min. Only for day 0, only if unsealed, only while day 1 is current.
+        const alreadyDay0 = view.checkins.some((k) => normAddr(k.address) === normAddr(address) && k.day === 0)
+        const graceDay0 = view.stakedAt != null && day === 0 && open === 1 && !alreadyDay0 && now <= view.stakedAt + GRACE_MS
+        if (open < 0 && !graceDay0) return send(res, 409, { error: 'check-ins are closed (the challenge has not started or has ended)' })
+        if (day !== open && !graceDay0) return send(res, 409, { error: `only today's check-in (day ${open + 1}) is open` })
+        // idempotent per day (a re-tapped seal is a no-op, not a duplicate row)
+        if (!view.checkins.some((k) => normAddr(k.address) === normAddr(address) && k.day === day)) {
+          const stampTxHash = str(b.stampTxHash) || undefined
+          addCheckin(id, { address, day, note: '', stampTxHash: stampTxHash ?? null, stampStatus: stampTxHash ? 'landed' : 'declined' })
         }
-        if (day !== open) {
-          return send(res, 409, { error: `only today's check-in (day ${open + 1}) is open` })
-        }
-        const checkinId = addCheckin(id, { address, day, note, emoji: str(b.emoji) || undefined })
-        return send(res, 201, { id: checkinId })
+        return send(res, 200, reshapeChallenge(getActiveRowFor(address)!))
       }
 
       // POST /api/challenges/:id/checkins/:cid/cheer
