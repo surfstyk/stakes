@@ -54,7 +54,7 @@ async function main() {
   const rows = r.sent ?? r.planned ?? []
   console.log(`\nsettlement plan — ${rows.length} tx, ${fmt(r.totalOut ?? 0)} NIM out:`)
   for (const t of rows) {
-    console.log(`  ${t.kind === 'burn' ? '🔥 burn ' : 'payout '} ${fmt(t.nim)} NIM → ${t.to}  ${t.hash}`)
+    console.log(`  ${t.kind === 'burn' ? '🔥 burn  ' : t.kind === 'bonus' ? '✨ bonus ' : 'payout  '} ${fmt(t.nim)} NIM → ${t.to}  ${t.hash}`)
   }
   for (const s of r.skippedParticipants ?? []) {
     console.log(`  ⚠️ skipped ${s.name} (${s.account}) — ${fmt(s.nim)} NIM unpayable`)

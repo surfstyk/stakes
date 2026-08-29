@@ -1,3 +1,5 @@
+import { isDepositTag } from '../src/vault/payload.ts'
+
 // HTTP JSON-RPC read client for the Nimiq (Albatross) chain — plain `fetch`, no deps.
 //
 // This is the PROVEN transport (FRAMEWORK-FACTS → "Settlement broadcast"): the
@@ -80,23 +82,23 @@ export interface StakeDeposit {
 }
 
 /**
- * Incoming treasury transactions tagged `stakes:<challengeId>` — on-chain proof that
- * a participant's stake landed. The Mini App attaches this tag on deposit (see
- * src/vault/custodialNim.ts); we recover the depositor from the tx sender.
+ * Incoming treasury transactions tagged as a stake deposit for `challengeId` — on-chain proof
+ * that a participant's stake landed. The Mini App attaches `stakes.day official:<id>` on deposit
+ * (src/vault/custodialNim.ts; the Cycle-I `stakes:<id>` tag still parses — src/vault/payload.ts);
+ * we recover the depositor from the tx sender.
  */
 export async function listStakeDeposits(
   treasury: string,
   challengeId: string,
   max = 200,
 ): Promise<StakeDeposit[]> {
-  const tag = `stakes:${challengeId}`
   const txs = await getTransactionsByAddress(treasury, max)
   return txs
     .filter(
       (t) =>
         normAddr(t.to) === normAddr(treasury) &&
         t.executionResult !== false &&
-        decodeData(t.recipientData) === tag,
+        isDepositTag(decodeData(t.recipientData), challengeId),
     )
     .map((t) => ({ from: t.from, valueLuna: t.value, hash: t.hash, at: t.timestamp }))
 }

@@ -8,13 +8,15 @@
 //   POST /api/challenges/:id/checkins                 { address, day, note, emoji? } → { id }
 //   POST /api/challenges/:id/checkins/:cid/cheer
 //   GET  /api/challenges/:id/settlement               computed payouts
+//   POST /api/seed                                    { address, challengeId } → queue the silent sliver
 //
 // Writes are trust-on-use for the MVP (address in body); signMessage verification is a
 // hardening fast-follow (see surfstyk-notes/MVP.md).
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { createHash } from 'node:crypto'
 import { openDay } from '../src/vault/schedule.ts'
-import { addCheckin, cheer, createChallenge, getChallenge, getSettlement, getSettlementRecord, joinChallenge } from './db.ts'
+import { addCheckin, cheer, countSeedsSince, createChallenge, getChallenge, getSeed, getSettlement, getSettlementRecord, joinChallenge, requestSeed } from './db.ts'
 import { normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
 
@@ -47,6 +49,25 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : NaN)
+
+// ---- the seed faucet (ONBOARDING.md §7.5 abuse box) ----------------------------------------
+// One seed per wallet, a per-requester daily limit, a global daily cap, a kill switch. The API
+// only QUEUES; the isolated settle service signs + sends (server/seed-due.ts).
+const SEED_LUNA = Number(process.env.STAKES_SEED_LUNA ?? 10_000) // 0.1 NIM ≈ a month of dust stamps
+const SEED_DAILY_CAP = Number(process.env.STAKES_SEED_DAILY_CAP ?? 500)
+const SEED_PER_IP_DAILY = Number(process.env.STAKES_SEED_PER_IP_DAILY ?? 20)
+const SEED_OFF = process.env.STAKES_SEED_OFF === '1'
+const DAY = 86400_000
+// Nimiq user-friendly address: NQ + 2 check digits + 32 base32 chars (0-9 A-H J-N P-V X Y).
+const NQ_RE = /^NQ\d{2}[0-9A-HJ-NP-VXY]{32}$/
+const normNq = (s: string) => s.replace(/\s+/g, '').toUpperCase()
+const prettyNq = (s: string) => normNq(s).replace(/(.{4})(?=.)/g, '$1 ')
+// Requester fingerprint: hashed first-hop IP (Caddy sets X-Forwarded-For); never stored raw.
+function requesterHash(req: IncomingMessage): string {
+  const xff = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim()
+  const ip = xff || req.socket.remoteAddress || '?'
+  return createHash('sha256').update(`stakes-seed:${ip}`).digest('hex').slice(0, 16)
+}
 
 // Public serialization of a challenge view. Strips server-internal deposit fields
 // (depositTxHash, depositConfirmed): the UI never reads them, and exposing a participant's
@@ -129,6 +150,25 @@ const server = createServer(async (req, res) => {
         dayLengthMs: Number.isFinite(dayLengthMs) && dayLengthMs > 0 ? dayLengthMs : 24 * 3600_000,
       })
       return send(res, 201, { id })
+    }
+
+    // POST /api/seed  { address, challengeId }
+    if (method === 'POST' && seg[1] === 'seed' && seg.length === 2) {
+      const b = await readJson(req)
+      const address = str(b.address)
+      const challengeId = str(b.challengeId)
+      if (!NQ_RE.test(normNq(address))) return send(res, 400, { error: 'a Nimiq address is required' })
+      if (!challengeId || !getChallenge(challengeId)) return send(res, 404, { error: 'challenge not found' })
+      const addr = prettyNq(address)
+      const existing = getSeed(addr)
+      if (existing) return send(res, 200, { status: 'exists', seeded: existing.status === 'sent' })
+      if (SEED_OFF) return send(res, 503, { error: 'seeding is paused' })
+      const since = Date.now() - DAY
+      if (countSeedsSince(since) >= SEED_DAILY_CAP) return send(res, 429, { error: 'seed cap reached for today' })
+      const who = requesterHash(req)
+      if (countSeedsSince(since, who) >= SEED_PER_IP_DAILY) return send(res, 429, { error: 'too many seeds from this network today' })
+      const status = requestSeed({ address: addr, challengeId, ipHash: who, luna: SEED_LUNA })
+      return send(res, 200, { status, seeded: false })
     }
 
     // routes under /api/challenges/:id

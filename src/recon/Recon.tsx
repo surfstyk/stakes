@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { STAMP_ADDRESS, STAMP_VALUE_LUNA, sendStamp } from '../vault/stamp.ts'
 import { getNimiq, nimToLuna, type NimiqProvider } from '../lib/nimiq.ts'
 import {
   getChainId,
@@ -95,6 +96,14 @@ export function Recon() {
       return `tx ${hash}`
     })
 
+  // P4 spike (ONBOARDING §7.4): one real stamp from this wallet to the published stamp address,
+  // then screenshot the address page on the explorer — the data must read as text.
+  const sendStampSpike = () =>
+    run('★ stamp → stamp address — NATIVE NIM DIALOG', async () => {
+      const r = await sendStamp({ challengeId: 'spike001', dayIndex: 0 })
+      return `${r.payload} → tx ${r.hash}${r.mock ? ' (mock)' : ''}`
+    })
+
   const connectEvm = () =>
     run('eth_requestAccounts (EVM) — native dialog', async () => {
       const accounts = await requestEvmAccounts()
@@ -147,6 +156,10 @@ export function Recon() {
             <dd>{nimReady === null ? '—' : String(nimReady)}</dd>
           </div>
           <div>
+            <dt>Stamp address</dt>
+            <dd className={STAMP_ADDRESS ? 'mono' : 'warn mono'}>{STAMP_ADDRESS || '— (VITE_STAMP_ADDRESS unset)'}</dd>
+          </div>
+          <div>
             <dt>EVM address</dt>
             <dd className="mono">{evmAddress ?? '—'}</dd>
           </div>
@@ -176,6 +189,11 @@ export function Recon() {
           <input value={nimAmount} onChange={(e) => setNimAmount(e.target.value)} inputMode="decimal" aria-label="NIM amount" />
           <button className="star" onClick={sendNimToSelf}>
             ★ Send NIM to self
+          </button>
+        </div>
+        <div className="btns">
+          <button className="star" onClick={sendStampSpike}>
+            ★ Stamp → stamp address ({STAMP_VALUE_LUNA} luna + `stakes.day day:spike001:1`)
           </button>
         </div>
       </section>

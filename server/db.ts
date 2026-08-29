@@ -9,13 +9,11 @@ import { DatabaseSync } from 'node:sqlite'
 import { randomUUID } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { computeSettlement, type ParticipantPayout } from '../src/vault/settlement.ts'
+import { computeSettlement, finisherBonus, type ParticipantPayout } from '../src/vault/settlement.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = process.env.STAKES_DB ?? join(HERE, 'stakes.db')
 
-// sponsor/treasury-funded completion bonus per perfect finisher (matches the frontend).
-const NIM_BONUS_PER_FINISHER = 10
 
 export const db = new DatabaseSync(DB_PATH)
 db.exec(`
@@ -219,9 +217,11 @@ export function failSettlement(id: string, error: string) {
 }
 
 /**
- * Challenge ids whose run has fully elapsed and that are NOT yet settled ('done') — the
- * work queue for the automated settler. Includes never-touched, 'failed' (retry), and
- * 'broadcasting' (recover) challenges; excludes 'done'. Oldest-first.
+ * The settler's work queue: challenge ids NOT yet settled ('done') whose outcome is final —
+ * either the run has fully elapsed, or every participant has already kept every day (a perfect
+ * run is deterministic the moment the last day is sealed, so the payoff lands right then —
+ * PRE-BUILD-SENSE-CHECK J9). Includes never-touched, 'failed' (retry) and 'broadcasting'
+ * (recover) challenges. Oldest-first.
  */
 export function listEndedUnsettled(now = Date.now()): string[] {
   return (
@@ -229,8 +229,19 @@ export function listEndedUnsettled(now = Date.now()): string[] {
       .prepare(
         `SELECT c.id FROM challenges c
            LEFT JOIN settlements s ON s.challengeId = c.id
-          WHERE (c.lockAt + c.durationDays * c.dayLengthMs) <= ?
-            AND (s.status IS NULL OR s.status != 'done')
+          WHERE (s.status IS NULL OR s.status != 'done')
+            AND (
+              (c.lockAt + c.durationDays * c.dayLengthMs) <= ?
+              OR (
+                EXISTS (SELECT 1 FROM participants p WHERE p.challengeId = c.id)
+                AND NOT EXISTS (
+                  SELECT 1 FROM participants p
+                   WHERE p.challengeId = c.id
+                     AND (SELECT COUNT(DISTINCT k.day) FROM checkins k
+                           WHERE k.challengeId = c.id AND k.address = p.address) < c.durationDays
+                )
+              )
+            )
           ORDER BY c.lockAt ASC`,
       )
       .all(now) as { id: string }[]
@@ -308,7 +319,7 @@ export function getSettlement(id: string) {
     stake: view.stake,
     durationDays: view.durationDays,
     results,
-    nimBonusPerFinisher: NIM_BONUS_PER_FINISHER,
+    nimBonusPerFinisher: finisherBonus(view.stake), // the shared policy (% of stake, capped)
   })
   // attach display names back onto each payout row
   const nameByAddr = new Map(view.participants.map((p) => [p.address, p.name]))
@@ -317,4 +328,76 @@ export function getSettlement(id: string) {
     name: nameByAddr.get(r.account) ?? r.account,
   }))
   return { ...settlement, perParticipant }
+}
+
+// ---- seeds — the silent sliver at "Start day one" (ONBOARDING.md §3 step 1, §7.5) ----------
+// The API queues a seed (one per wallet, rate-limited); the isolated settle service — the only
+// process with the treasury key — signs + broadcasts it on its next tick (server/seed-due.ts).
+// Sized for ~a month of dust stamps; it is never a stake and never counts toward the metric.
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS seeds (
+    address     TEXT PRIMARY KEY,
+    challengeId TEXT NOT NULL,
+    ipHash      TEXT,
+    luna        INTEGER NOT NULL,
+    requestedAt INTEGER NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    txHash      TEXT,
+    sentAt      INTEGER,
+    error       TEXT
+  );
+`)
+
+export interface SeedRow {
+  address: string
+  challengeId: string
+  ipHash: string | null
+  luna: number
+  requestedAt: number
+  status: 'pending' | 'sent'
+  attempts: number
+  txHash: string | null
+  sentAt: number | null
+  error: string | null
+}
+
+/** Queue a seed for a wallet. Idempotent per address: a second request is a no-op ('exists'). */
+export function requestSeed(s: { address: string; challengeId: string; ipHash?: string | null; luna: number }): 'queued' | 'exists' {
+  const r = db
+    .prepare(
+      `INSERT INTO seeds (address, challengeId, ipHash, luna, requestedAt)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(address) DO NOTHING`,
+    )
+    .run(s.address, s.challengeId, s.ipHash ?? null, s.luna, Date.now())
+  return Number(r.changes) > 0 ? 'queued' : 'exists'
+}
+
+export function getSeed(address: string): SeedRow | undefined {
+  return db.prepare(`SELECT * FROM seeds WHERE address = ?`).get(address) as SeedRow | undefined
+}
+
+/** Seeds requested since `since` — overall, or by one requester (the abuse box). */
+export function countSeedsSince(since: number, ipHash?: string): number {
+  const row = ipHash
+    ? (db.prepare(`SELECT COUNT(*) AS n FROM seeds WHERE requestedAt >= ? AND ipHash = ?`).get(since, ipHash) as { n: number })
+    : (db.prepare(`SELECT COUNT(*) AS n FROM seeds WHERE requestedAt >= ?`).get(since) as { n: number })
+  return row.n
+}
+
+/** Pending seeds for the settle service to send (bounded attempts so a bad row can't wedge the loop). */
+export function listPendingSeeds(limit = 50, maxAttempts = 5): SeedRow[] {
+  return db
+    .prepare(`SELECT * FROM seeds WHERE status = 'pending' AND attempts < ? ORDER BY requestedAt ASC LIMIT ?`)
+    .all(maxAttempts, limit) as SeedRow[]
+}
+
+export function markSeedSent(address: string, txHash: string) {
+  db.prepare(`UPDATE seeds SET status='sent', txHash=?, sentAt=?, error=NULL WHERE address=?`).run(txHash, Date.now(), address)
+}
+
+export function markSeedFailed(address: string, error: string) {
+  db.prepare(`UPDATE seeds SET attempts = attempts + 1, error = ? WHERE address = ?`).run(error, address)
 }

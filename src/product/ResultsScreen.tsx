@@ -5,10 +5,9 @@ import { Headline } from './Headline.tsx'
 import { Loading } from './Loading.tsx'
 import { ShareComposer, fmtAmount } from '../share/index.ts'
 import type { ResultsCardData } from '../share/index.ts'
-import { computeSettlement, type ParticipantPayout } from '../vault/settlement.ts'
+import { computeSettlement, finisherBonus, type ParticipantPayout } from '../vault/settlement.ts'
 import { avatarColor, buildResults, dayMarks, getChallenge, getMyAddress, initials, nameFor, type ChallengeRecord } from './store.ts'
 
-const NIM_BONUS = 10 // sponsor/treasury-funded completion bonus (matches the backend)
 
 export function ResultsScreen({
   challengeId,
@@ -51,7 +50,7 @@ export function ResultsScreen({
             stake: rec.stake,
             durationDays: rec.durationDays,
             results: buildResults(rec),
-            nimBonusPerFinisher: NIM_BONUS,
+            nimBonusPerFinisher: finisherBonus(rec.stake), // the shared policy (src/vault/settlement.ts) — matches the server plan
           })
         : null,
     [rec],

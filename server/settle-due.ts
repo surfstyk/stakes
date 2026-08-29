@@ -12,6 +12,7 @@
 // Idempotent by construction (see settle-core.ts): re-running never double-pays.
 
 import { listEndedUnsettled } from './db.ts'
+import { seedDue } from './seed-due.ts'
 import { settleChallenge } from './settle-core.ts'
 import { loadTreasury, treasuryAddress } from './treasury.ts'
 
@@ -26,7 +27,11 @@ async function main() {
     `[settle-due] ${new Date(now).toISOString()}  treasury=${treasuryAddress(kp)}  ` +
       `${execute ? 'EXECUTE' : 'DRY-RUN'}  burn=${burn}`,
   )
-  console.log(`[settle-due] ${ids.length} ended & unsettled: ${ids.join(', ') || '(none)'}`)
+  console.log(`[settle-due] ${ids.length} final & unsettled: ${ids.join(', ') || '(none)'}`)
+
+  // Seeds first: cheap, and a new wallet should hold its sliver before its first stamp.
+  const s = await seedDue({ execute, kp, log: (m) => console.log(m) })
+  if (s.planned) console.log(`[settle-due] seeds: ${s.planned} pending, ${s.sent} sent, ${s.failed} failed${s.skipped ? ` — ${s.skipped}` : ''}`)
 
   const tally: Record<string, number> = {}
   let paidOut = 0

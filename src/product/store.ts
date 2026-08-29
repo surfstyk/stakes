@@ -87,7 +87,7 @@ export interface CheckIn {
 
 /** A settlement transaction that has been broadcast (or is about to be) — public on-chain. */
 export interface SettlementTx {
-  kind: 'payout' | 'burn'
+  kind: 'payout' | 'bonus' | 'burn'
   to: string
   nim: number
   hash: string

@@ -65,3 +65,16 @@ export function computeSettlement(input: SettlementInput): SettlementOutput {
 
   return { perParticipant, burnedPot, perfectFinishers }
 }
+
+// ---- the completion-bonus policy (decided 2026-08-28, PRE-BUILD-SENSE-CHECK J16) -------------
+// A share of the stake, capped — never a flat amount, so a tiny stake can't farm a large bonus
+// across throwaway wallets. One place, used by both the server plan (server/db.ts) and the
+// in-app preview (ResultsScreen). "One bonus per wallet per day" follows from one-run-at-a-time
+// (a run is ≥ 1 day), enforced with that invariant in the API.
+export const FINISHER_BONUS_RATE = 0.15
+export const FINISHER_BONUS_CAP_NIM = 50
+
+export function finisherBonus(stake: number): number {
+  if (!(stake > 0)) return 0
+  return Math.min(FINISHER_BONUS_CAP_NIM, Math.round(stake * FINISHER_BONUS_RATE * 100) / 100)
+}

@@ -1,7 +1,7 @@
 // The single, reusable settlement routine — the ONE copy of the money-moving logic, shared
 // by the manual CLI (server/settle.ts) and the automated batch settler (server/settle-due.ts).
 // Given a challenge id it: verifies deposits on-chain → computes the deterministic split →
-// signs payout + burn + finisher-bonus txs offline → persists the signed plan → broadcasts.
+// signs payout + bonus + burn txs offline → persists the signed plan → broadcasts.
 //
 // Robustness properties (why this is safe to run unattended):
 //   - Idempotent: a 'done' settlement record is never re-paid; the signed plan is persisted
@@ -11,6 +11,13 @@
 //     pre-broadcast error marks the challenge 'failed' and is retried next tick.
 //   - Integrity backstop: principal returned can never exceed confirmed on-chain deposits.
 //   - Burn ON by default: forfeited slices go to the provably-unspendable burn address.
+//   - Every tx is tagged `stakes.day <verb>:<id>` (banked / bonus / burned) — the noise
+//     requirement, ONBOARDING.md §1.8b — and the bonus is its OWN tx, so the ledger shows the
+//     same two lines the Banked screen does ("your stake, returned" + "completion bonus").
+//   - Settles when the outcome is FINAL, not only when the clock runs out: a run every
+//     participant has kept in full can't change anymore, so it pays the moment the last day is
+//     sealed (PRE-BUILD-SENSE-CHECK J9). A run nobody ever staked (a lapsed 24h window) is
+//     closed empty so the queue stops rescanning it.
 //
 // This is the only module that touches the treasury KEY — it must run only where the key
 // lives (the isolated settle service / a trusted machine), never the internet-facing API.
@@ -28,18 +35,23 @@ import {
 import { getBalanceLuna, getBlockNumber } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
 import { BURN_ADDRESS, loadTreasury, lunaToNim, nimToLuna, treasuryAddress } from './treasury.ts'
+import { buildPayload } from '../src/vault/payload.ts'
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2))
 
+export type PlanKind = 'payout' | 'bonus' | 'burn'
+
 interface PlanTx {
-  kind: 'payout' | 'burn'
+  kind: PlanKind
   to: string
   nim: number
+  data: string
   hash: string
   hex: string
 }
-type SentTx = { kind: string; to: string; nim: number; hash: string }
+export type SentTx = { kind: PlanKind; to: string; nim: number; hash: string }
 const strip = (t: PlanTx): SentTx => ({ kind: t.kind, to: t.to, nim: t.nim, hash: t.hash })
+const icon = (k: PlanKind) => (k === 'burn' ? '🔥 ' : k === 'bonus' ? '✨ ' : '')
 
 export interface SettleOpts {
   execute?: boolean // default false → dry run (compute + sign, broadcast NOTHING)
@@ -55,7 +67,7 @@ export type SettleStatus =
   | 'recovered' // an interrupted broadcast was completed by re-sending the persisted plan
   | 'already-settled' // a prior 'done' record — nothing to do
   | 'dry-run' // plan computed + signed, nothing broadcast
-  | 'skipped' // not due / no confirmed deposits / not found
+  | 'skipped' // not due / no confirmed deposits / not found / closed empty
   | 'failed' // a pre-broadcast error (retried next tick)
 
 export interface SettleResult {
@@ -78,6 +90,16 @@ function isPayable(addr: string): boolean {
   }
 }
 
+type View = NonNullable<ReturnType<typeof getChallenge>>
+
+/** Every participant has kept every day → nothing can change; the outcome is final now. */
+export function isDecided(view: View): boolean {
+  if (view.participants.length === 0) return false
+  return view.participants.every(
+    (p) => new Set(view.checkins.filter((c) => c.address === p.address).map((c) => c.day)).size >= view.durationDays,
+  )
+}
+
 // A node rejecting an already-known / mined tx means it is on-chain already → treat as sent.
 // This is what makes crash-recovery (re-broadcasting the persisted plan) idempotent.
 async function broadcastTolerant(t: PlanTx): Promise<string> {
@@ -95,7 +117,7 @@ async function broadcastPlan(plan: PlanTx[], log: (m: string) => void): Promise<
   for (const t of plan) {
     const hash = await broadcastTolerant(t)
     sent.push({ kind: t.kind, to: t.to, nim: t.nim, hash })
-    log(`  sent ${t.kind === 'burn' ? '🔥 ' : ''}${fmt(t.nim)} NIM → ${t.to}  ${hash}`)
+    log(`  sent ${icon(t.kind)}${fmt(t.nim)} NIM → ${t.to}  ${hash}  [${t.data}]`)
   }
   return sent
 }
@@ -121,9 +143,10 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
     return { challengeId: id, status: 'recovered', sent, burnedPot: rec.burnedPot, totalOut: rec.totalOut }
   }
 
-  // ---- only settle a run that has fully elapsed (unless forced).
+  // ---- only settle a run whose outcome is final: fully elapsed, or kept in full (unless forced).
   const endAt = view.lockAt + view.durationDays * view.dayLengthMs
-  if (Date.now() < endAt && !force) {
+  const elapsed = Date.now() >= endAt
+  if (!elapsed && !force && !isDecided(view)) {
     return { challengeId: id, status: 'skipped', reason: 'still running' }
   }
 
@@ -132,7 +155,19 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
     const v = await verifyChallenge(id)
     const settlement = getSettlement(id)
     if (!settlement || settlement.perParticipant.length === 0) {
-      return { challengeId: id, status: 'skipped', reason: 'no confirmed deposits' }
+      if (view.participants.length === 0 && elapsed) {
+        // Nobody ever staked (a 24h window that lapsed): nothing to move, ever. Close it as
+        // done-empty so the work queue stops rescanning it every tick — but only when executing;
+        // a dry run inspects and persists NOTHING (same contract as the payout path below).
+        if (execute) {
+          startSettlement(id, '[]', 0, 0)
+          finishSettlement(id, '[]')
+        }
+        return { challengeId: id, status: 'skipped', reason: 'nothing staked — closed empty' }
+      }
+      // Participants exist but no deposit verified (RPC down, or a reported hash that never
+      // matched): keep retrying — never close a run that might be owed money.
+      return { challengeId: id, status: 'skipped', reason: 'no confirmed deposits (will retry)' }
     }
 
     // Integrity backstop (SEC-01): principal returned must never exceed confirmed deposits.
@@ -151,6 +186,10 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
 
     const plan: PlanTx[] = []
     const skippedParticipants: { name: string; account: string; nim: number }[] = []
+    const push = (kind: PlanKind, to: string, nim: number, data: string) => {
+      const signed = buildSignedNim(kp, to, nimToLuna(nim), height, data)
+      plan.push({ kind, to, nim, data, hash: signed.hash, hex: signed.hex })
+    }
     for (const p of settlement.perParticipant) {
       const amount = p.payout + p.nimBonus // retained stake + finisher bonus
       if (amount <= 0) continue
@@ -161,12 +200,11 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
         log(`  ⚠️ skip ${p.name}: un-payable address ${p.account} (${fmt(amount)} NIM)`)
         continue
       }
-      const signed = buildSignedNim(kp, p.account, nimToLuna(amount), height)
-      plan.push({ kind: 'payout', to: p.account, nim: amount, hash: signed.hash, hex: signed.hex })
+      if (p.payout > 0) push('payout', p.account, p.payout, buildPayload('banked', id))
+      if (p.nimBonus > 0) push('bonus', p.account, p.nimBonus, buildPayload('bonus', id))
     }
     if (burn && settlement.burnedPot > 0) {
-      const signed = buildSignedNim(kp, BURN_ADDRESS, nimToLuna(settlement.burnedPot), height)
-      plan.push({ kind: 'burn', to: BURN_ADDRESS, nim: settlement.burnedPot, hash: signed.hash, hex: signed.hex })
+      push('burn', BURN_ADDRESS, settlement.burnedPot, buildPayload('burned', id))
     }
 
     const totalOut = plan.reduce((s, t) => s + t.nim, 0)

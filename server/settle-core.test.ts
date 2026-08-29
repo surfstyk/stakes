@@ -51,7 +51,7 @@ test('listEndedUnsettled returns only challenges whose run has elapsed', () => {
 
 test('dry-run computes the exact payout + finisher bonus + burn plan', async () => {
   const a = nqAddr(), b = nqAddr()
-  // 3-day, 30 stake (slice = 10). A perfect (retain 30 + 10 bonus = 40); B did 1 day (retain 10, forfeit 20).
+  // 3-day, 30 stake (slice = 10). A perfect (retain 30 + bonus 15% = 4.5, as its OWN tx); B did 1 day (retain 10, forfeit 20).
   const id = seed({ durationDays: 3, stake: 30, lockAt: ended(3), people: [
     { address: a, name: 'A', days: 3 },
     { address: b, name: 'B', days: 1 },
@@ -59,12 +59,15 @@ test('dry-run computes the exact payout + finisher bonus + burn plan', async () 
   const r = await settleChallenge(id, { execute: false, kp, height: HEIGHT })
   assert.equal(r.status, 'dry-run')
   const payouts = (r.planned ?? []).filter((t) => t.kind === 'payout')
+  const bonuses = (r.planned ?? []).filter((t) => t.kind === 'bonus')
   const burns = (r.planned ?? []).filter((t) => t.kind === 'burn')
-  assert.equal(payouts.find((t) => t.to === a)?.nim, 40, 'perfect finisher: full stake + bonus')
+  assert.equal(payouts.find((t) => t.to === a)?.nim, 30, 'perfect finisher: full stake back')
+  assert.equal(bonuses.find((t) => t.to === a)?.nim, 4.5, 'perfect finisher: the bonus is its own tx (15% of 30)')
   assert.equal(payouts.find((t) => t.to === b)?.nim, 10, 'partial: retained slice only')
+  assert.ok(!bonuses.some((t) => t.to === b), 'no bonus for a partial run')
   assert.equal(burns.length, 1)
   assert.equal(burns[0].nim, 20, 'forfeited slices are burned')
-  assert.equal(r.totalOut, 70)
+  assert.equal(r.totalOut, 64.5)
   assert.equal(r.burnedPot, 20)
 })
 
@@ -107,4 +110,46 @@ test('a still-running challenge is skipped unless forced', async () => {
   assert.equal(skipped.status, 'skipped')
   const forced = await settleChallenge(id, { execute: false, force: true, kp, height: HEIGHT })
   assert.equal(forced.status, 'dry-run', 'force settles a still-running challenge')
+})
+
+test('a run every participant kept in full settles now, before the clock runs out (J9)', async () => {
+  const a = nqAddr()
+  const id = seed({ durationDays: 3, stake: 30, lockAt: Date.now(), people: [{ address: a, name: 'A', days: 3 }] })
+  assert.ok(db.listEndedUnsettled(Date.now()).includes(id), 'a decided run is in the work queue')
+  const r = await settleChallenge(id, { execute: false, kp, height: HEIGHT })
+  assert.equal(r.status, 'dry-run', 'settles without --force')
+  assert.equal((r.planned ?? []).filter((t) => t.kind === 'bonus').length, 1)
+})
+
+test('a run nobody ever staked is closed empty once it has elapsed, and leaves the queue', async () => {
+  const id = db.createChallenge({
+    goal: 'window', emoji: '🍩', durationDays: 1, stake: 70, asset: 'NIM',
+    creatorAddress: nqAddr(), creatorName: 'W', lockAt: ended(1), dayLengthMs: MIN,
+  })
+  assert.ok(db.listEndedUnsettled(Date.now()).includes(id))
+  const r = await settleChallenge(id, { execute: true, kp, height: HEIGHT })
+  assert.equal(r.status, 'skipped')
+  assert.match(r.reason ?? '', /closed empty/)
+  assert.equal(db.getSettlementRecord(id)?.status, 'done')
+  assert.ok(!db.listEndedUnsettled(Date.now()).includes(id), 'no longer rescanned')
+})
+
+test('a dry run over an elapsed empty run reports the close but persists nothing', async () => {
+  const id = db.createChallenge({
+    goal: 'window', emoji: '🍩', durationDays: 1, stake: 70, asset: 'NIM',
+    creatorAddress: nqAddr(), creatorName: 'W', lockAt: ended(1), dayLengthMs: MIN,
+  })
+  const r = await settleChallenge(id, { execute: false, kp, height: HEIGHT })
+  assert.equal(r.status, 'skipped')
+  assert.match(r.reason ?? '', /closed empty/)
+  assert.equal(db.getSettlementRecord(id), undefined, 'dry run wrote no settlement record')
+  assert.ok(db.listEndedUnsettled(Date.now()).includes(id), 'still queued for a real settle')
+})
+
+test('the bonus policy is a capped share of the stake, never a flat amount', async () => {
+  const { finisherBonus } = await import('../src/vault/settlement.ts')
+  assert.equal(finisherBonus(30), 4.5)
+  assert.equal(finisherBonus(1), 0.15)
+  assert.equal(finisherBonus(10_000), 50, 'capped')
+  assert.equal(finisherBonus(0), 0)
 })
