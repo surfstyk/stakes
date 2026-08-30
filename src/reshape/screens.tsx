@@ -136,7 +136,7 @@ export function TasteScreen({
 // ============================================================================
 // 3 · Make it official — the stake (backdated to the taste start)
 // ============================================================================
-const PER_DAY = [5, 10, 20, 30, 50]
+const PER_DAY = [50, 100, 250, 500]
 const LENGTHS = [3, 7, 14, 30]
 
 export function MakeOfficialScreen({
@@ -152,7 +152,7 @@ export function MakeOfficialScreen({
   onOfficial: (stake: { perDay: number; days: number }) => void
   onWordmark: () => void
 }) {
-  const [pdi, setPdi] = useState(1) // 10 NIM/day
+  const [pdi, setPdi] = useState(1) // 100 NIM/day
   const [li, setLi] = useState(1) // 7 days
   const perDay = PER_DAY[pdi]
   const days = LENGTHS[li]

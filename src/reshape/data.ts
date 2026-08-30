@@ -375,7 +375,7 @@ export function devSeed(kind: SeedKind): void {
   })
   const kept = (n: number): Challenge['checkins'] =>
     Array.from({ length: n }, (_, i) => ({ day: i, at: now - (n - i) * len, stampTxHash: 'mock', stampStatus: 'landed' as const }))
-  const staked = { status: 'official' as const, durationDays: 7, stake: 70 }
+  const staked = { status: 'official' as const, durationDays: 7, stake: 700 }
 
   let active: Challenge | null = null
   let history: HistoryItem[] = []
@@ -410,18 +410,18 @@ export function devSeed(kind: SeedKind): void {
       break
     case 'reup': // an ended win, plus a prior kept week → "14 days kept"
       active = base({ ...staked, stakedAt: now - len * 8, lockAt: now - len * 8, checkins: kept(7) })
-      history = [{ id: 'r0', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 70, endedAt: now - 14 * DAY }]
+      history = [{ id: 'r0', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 700, endedAt: now - 14 * DAY }]
       break
     case 'lapsed': // a taste whose 24h passed with no stake
       active = base({ lockAt: now - Math.floor(len * 1.5) })
       break
     case 'archive':
       history = [
-        { id: 'a1', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 70, endedAt: now - 6 * DAY },
-        { id: 'a2', templateId: 'run', goal: 'running every day', emoji: '🏃', outcome: 'partial', kept: 4, total: 7, stake: 70, endedAt: now - 8 * DAY },
+        { id: 'a1', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 700, endedAt: now - 6 * DAY },
+        { id: 'a2', templateId: 'run', goal: 'running every day', emoji: '🏃', outcome: 'partial', kept: 4, total: 7, stake: 700, endedAt: now - 8 * DAY },
         { id: 'a3', templateId: 'meditate', goal: 'meditating every day', emoji: '🧘', outcome: 'lapsed', kept: 0, total: 0, stake: 0, endedAt: now - 9 * DAY },
-        { id: 'a4', templateId: 'cold', goal: 'taking a cold shower daily', emoji: '🚿', outcome: 'banked', kept: 7, total: 7, stake: 50, endedAt: now - 26 * DAY },
-        { id: 'a5', templateId: 'read', goal: 'reading every day', emoji: '📚', outcome: 'wipeout', kept: 0, total: 7, stake: 70, endedAt: now - 40 * DAY },
+        { id: 'a4', templateId: 'cold', goal: 'taking a cold shower daily', emoji: '🚿', outcome: 'banked', kept: 7, total: 7, stake: 350, endedAt: now - 26 * DAY },
+        { id: 'a5', templateId: 'read', goal: 'reading every day', emoji: '📚', outcome: 'wipeout', kept: 0, total: 7, stake: 700, endedAt: now - 40 * DAY },
       ]
       break
   }
