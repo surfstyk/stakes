@@ -290,8 +290,8 @@ export function ReUpScreen({
 function whenLabel(ts: number): string {
   const d = Date.now() - ts
   const DAY = 86_400_000
-  if (d < 7 * DAY) return 'this week'
-  if (d < 14 * DAY) return 'last week'
+  if (d < 7 * DAY) return c.archive.thisWeek
+  if (d < 14 * DAY) return c.archive.lastWeek
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 const TAG: Record<HistoryItem['outcome'], { cls: string; label: string }> = {

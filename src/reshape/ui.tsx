@@ -1,4 +1,5 @@
 import { type ReactNode, useRef, useState } from 'react'
+import { copy } from '../brand/index.ts'
 import type { DayMark } from './model.ts'
 import type { Template } from './templates.ts'
 
@@ -60,7 +61,7 @@ export function Frame({
 
 export function Wordmark({ onClick }: { onClick?: () => void }) {
   return (
-    <button className="wm" onClick={onClick} aria-label="Stakes — home">
+    <button className="wm" onClick={onClick} aria-label={copy.a11y.home}>
       Stakes<span className="fs">.</span>
     </button>
   )
@@ -90,7 +91,7 @@ export function Cta({
 // ---- the sphere -------------------------------------------------------------
 export function Sphere({ onClick, raised }: { onClick?: () => void; raised?: boolean }) {
   return (
-    <button className={'sphereFab' + (raised ? ' raised' : '')} onClick={onClick} aria-label="Open the sphere">
+    <button className={'sphereFab' + (raised ? ' raised' : '')} onClick={onClick} aria-label={copy.a11y.openSphere}>
       <span className="sh" />
       <span className="ball">
         <span className="spec" />
@@ -111,7 +112,7 @@ export function PopOver({
 }) {
   return (
     <>
-      <button className="scrim" aria-label="Close" onClick={onClose} />
+      <button className="scrim" aria-label={copy.a11y.close} onClick={onClose} />
       <div className={'pop ' + variant}>{children}</div>
     </>
   )
@@ -207,14 +208,14 @@ export function ContractCard({ emoji, goalLabel, seq, days }: { emoji: string; g
       <div className="cg">
         {emoji} {goalLabel}
       </div>
-      <div className="csn">{days === 7 ? 'A week on the line' : `${days} days on the line`} · Nº {no}</div>
+      <div className="csn">{days === 7 ? copy.rs.official.contractWeek : copy.rs.official.contractDaysN(days)} · {copy.rs.official.contractNo(no)}</div>
       <div className="cw">
         <span className="dot dot--kept" />
         {Array.from({ length: Math.max(0, days - 1) }, (_, i) => (
           <span key={i} className="dot dot--future" />
         ))}
         <span className="stamp-official" style={{ marginLeft: 'auto' }}>
-          OFFICIAL
+          {copy.rs.official.stamp}
         </span>
       </div>
     </div>
@@ -222,14 +223,14 @@ export function ContractCard({ emoji, goalLabel, seq, days }: { emoji: string; g
 }
 
 // ---- the shareable trophy card + the Nimiq on-chain proof -------------------
-export function ShareCard({ emoji, seq, headline, stamp = 'ON THE RECORD' }: { emoji: string; seq: number; headline: ReactNode; stamp?: string }) {
+export function ShareCard({ emoji, seq, headline, stamp = copy.rs.shareCard.stampRecord }: { emoji: string; seq: number; headline: ReactNode; stamp?: string }) {
   return (
     <div className="sharecard">
       <div className="sc-top">
         <span className="wm2">
           Stakes<span className="fs">.</span>
         </span>
-        <span className="sc-no">Nº {String(seq).padStart(3, '0')}</span>
+        <span className="sc-no">{copy.rs.shareCard.no(String(seq).padStart(3, '0'))}</span>
       </div>
       <div className="sc-emoji">{emoji}</div>
       <div className="sc-h">{headline}</div>
@@ -237,7 +238,7 @@ export function ShareCard({ emoji, seq, headline, stamp = 'ON THE RECORD' }: { e
         <span className="dot dot--kept" style={{ width: 22, height: 22 }} />
       </div>
       <span className="stamp-record">{stamp}</span>
-      <div className="sc-cta">stakes.day · start yours</div>
+      <div className="sc-cta">{copy.rs.shareCard.cta}</div>
     </div>
   )
 }
@@ -245,7 +246,7 @@ export function ShareCard({ emoji, seq, headline, stamp = 'ON THE RECORD' }: { e
 export function NimiqLink({ href }: { href?: string }) {
   return (
     <a className="nimiqlink" href={href} target="_blank" rel="noreferrer">
-      See it on the
+      {copy.rs.proof.pre}
       <span className="lock">
         <svg className="hex" viewBox="0 0 24 24" aria-hidden="true">
           <defs>
@@ -256,9 +257,9 @@ export function NimiqLink({ href }: { href?: string }) {
           </defs>
           <path d="M23 12L17.5 21.5H6.5L1 12L6.5 2.5H17.5L23 12Z" fill="url(#rs-nqg)" />
         </svg>
-        <span className="nq">Nimiq</span>
+        <span className="nq">{copy.rs.proof.brand}</span>
       </span>
-      blockchain
+      {copy.rs.proof.post}
       <svg className="ext" viewBox="0 0 24 24">
         {P('M14 4h6v6')}
         {P('M20 4l-9 9')}
