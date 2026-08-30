@@ -65,7 +65,6 @@ export interface Me {
 
 export interface Social {
   startedThisWeek: Record<string, number>
-  inToday: number
 }
 
 // ---- pure derivations (the screens read these; no side effects) --------------

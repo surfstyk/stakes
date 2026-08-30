@@ -177,7 +177,7 @@ const mockApi: DataApi = {
     const s = loadMock()
     const startedThisWeek: Record<string, number> = {}
     if (s.active) startedThisWeek[s.active.templateId] = 1
-    return { startedThisWeek, inToday: 0 }
+    return { startedThisWeek }
   },
   async startChallenge(templateId) {
     const now = Date.now()

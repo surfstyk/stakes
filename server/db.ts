@@ -205,11 +205,6 @@ export function statsStartedThisWeek(sinceMs: number): Record<string, number> {
   return out
 }
 
-/** Count of distinct addresses on a 1-day (Today's) run today — the "in today" counter. */
-export function countInToday(): number {
-  return (db.prepare(`SELECT COUNT(DISTINCT creatorAddress) AS n FROM challenges WHERE durationDays=1 AND createdAt >= ?`).get(Date.now() - 86400_000) as { n: number }).n
-}
-
 /** Stake-to-join (idempotent per address). Records the deposit tx for later verify. */
 export function joinChallenge(
   challengeId: string,

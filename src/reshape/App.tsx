@@ -239,9 +239,9 @@ export function ReshapeApp() {
 
 // The Main screen needs the social counters — a tiny loader so the deck renders once they arrive.
 function MainScreenLoader({ onStart, onWordmark }: { onStart: (t: Template) => void; onWordmark: () => void }) {
-  const [social, setSocial] = useState<{ startedThisWeek: Record<string, number>; inToday: number } | null>(null)
+  const [social, setSocial] = useState<{ startedThisWeek: Record<string, number> } | null>(null)
   useEffect(() => {
     void data.getSocial().then(setSocial)
   }, [])
-  return <MainScreen social={social ?? { startedThisWeek: {}, inToday: 0 }} onStart={onStart} onWordmark={onWordmark} />
+  return <MainScreen social={social ?? { startedThisWeek: {} }} onStart={onStart} onWordmark={onWordmark} />
 }

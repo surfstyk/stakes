@@ -21,7 +21,6 @@ import {
   archiveChallenge,
   cheer,
   countActiveFor,
-  countInToday,
   countSeedsSince,
   createChallenge,
   deleteWindowChallenge,
@@ -213,7 +212,7 @@ export const server = createServer(async (req, res) => {
 
     // GET /api/stats/social → the deck's honest counters (never invented)
     if (method === 'GET' && seg[1] === 'stats' && seg[2] === 'social' && seg.length === 3) {
-      return send(res, 200, { startedThisWeek: statsStartedThisWeek(Date.now() - WEEK_MS), inToday: countInToday() })
+      return send(res, 200, { startedThisWeek: statsStartedThisWeek(Date.now() - WEEK_MS) })
     }
 
     // POST /api/challenges  { templateId, goal, emoji, creatorAddress } → start a taste (window)
