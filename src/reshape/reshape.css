@@ -443,6 +443,7 @@
   bottom: 150px; /* clears a two-button foot */
 }
 .rs .sphereFab .ball {
+  display: block; /* it's a <span>; without this it stays inline and collapses to 0×0 (the sphere vanishes) */
   width: 50px;
   height: 50px;
   border-radius: 50%;
