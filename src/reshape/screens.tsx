@@ -50,8 +50,12 @@ function useOnceFlag(key: string): [boolean, () => void] {
 // 1 · Main — the swipe deck (the new front door)
 // ============================================================================
 export function MainScreen({ social, onStart, onWordmark }: { social: Social; onStart: (t: Template) => void; onWordmark: () => void }) {
+  // Track the card the deck is currently showing so the pinned foot CTA starts THAT one —
+  // it used to hardcode TEMPLATES[0], so swiping to another card then tapping the button
+  // silently started "No sugar" (rehearsal bug 2026-08-31).
+  const [sel, setSel] = useState<Template>(TEMPLATES[0])
   return (
-    <Frame foot={<Cta label={c.main.cta} variant="blue" icon={Icon.arrow} onClick={() => onStart(TEMPLATES[0])} />}>
+    <Frame foot={<Cta label={c.main.cta} variant="blue" icon={Icon.arrow} onClick={() => onStart(sel)} />}>
       <Wordmark onClick={onWordmark} />
       <div style={{ marginTop: 22 }}>
         <p className="kicker" style={{ margin: '0 0 8px' }}>
@@ -63,14 +67,14 @@ export function MainScreen({ social, onStart, onWordmark }: { social: Social; on
           <span className="fs">.</span>
         </h1>
       </div>
-      <DeckSelector social={social} onSelect={onStart} />
+      <DeckSelector social={social} onSelect={onStart} onIndexChange={setSel} />
     </Frame>
   )
 }
 
 // the deck drives the foot CTA's target as you swipe
-function DeckSelector({ social, onSelect }: { social: Social; onSelect: (t: Template) => void }) {
-  return <Deck templates={TEMPLATES} startedThisWeek={social.startedThisWeek} onSelect={onSelect} />
+function DeckSelector({ social, onSelect, onIndexChange }: { social: Social; onSelect: (t: Template) => void; onIndexChange?: (t: Template) => void }) {
+  return <Deck templates={TEMPLATES} startedThisWeek={social.startedThisWeek} onSelect={onSelect} onIndexChange={onIndexChange} />
 }
 
 // ============================================================================
