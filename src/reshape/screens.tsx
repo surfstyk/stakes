@@ -154,12 +154,16 @@ export function MakeOfficialScreen({
 }) {
   const [pdi, setPdi] = useState(1) // 100 NIM/day
   const [li, setLi] = useState(1) // 7 days
+  const [tip, setTip] = useState(false)
   const perDay = PER_DAY[pdi]
   const days = LENGTHS[li]
   const total = perDay * days
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   return (
-    <Frame foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}>
+    <Frame
+      sphere={<Sphere onClick={() => setTip(true)} />}
+      foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
+    >
       <Wordmark onClick={onWordmark} />
       <div style={{ marginTop: 14 }}>
         <h1 className="h">
@@ -212,6 +216,15 @@ export function MakeOfficialScreen({
         <p className="sub" style={{ color: 'var(--stake)', marginTop: 10 }}>
           {error}
         </p>
+      )}
+      {tip && (
+        <PopOver variant="hint" onClose={() => setTip(false)}>
+          <p className="hintline">
+            {c.official.hintPre}
+            <em>{c.official.hintEm}</em>
+            {c.official.hintPost}
+          </p>
+        </PopOver>
       )}
     </Frame>
   )

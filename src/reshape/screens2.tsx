@@ -52,13 +52,20 @@ export function SpherePickPop({ challenge, tap, onClose }: { challenge: Challeng
   )
 }
 
-/** The pinned sphere that opens (and re-rolls) the pick on tap. */
+/** The pinned sphere that opens (and re-rolls) the pick on tap. Each tap advances the
+ *  seed and shows the pop-over; closing (tap-outside) hides it but KEEPS the seed, so the
+ *  next open re-rolls to a new line instead of repeating pick #1 (rehearsal bug 2026-08-31). */
 export function SphereWithPick({ challenge, raised }: { challenge: Challenge; raised?: boolean }) {
-  const [tap, setTap] = useState(() => (DEV_TOOLS && new URLSearchParams(location.search).has('pick') ? 1 : 0))
+  const [open, setOpen] = useState(() => DEV_TOOLS && new URLSearchParams(location.search).has('pick'))
+  const [seed, setSeed] = useState(1)
+  const tapSphere = () => {
+    setSeed((s) => s + 1)
+    setOpen(true)
+  }
   return (
     <>
-      {tap > 0 && <SpherePickPop challenge={challenge} tap={tap} onClose={() => setTap(0)} />}
-      <Sphere raised={raised} onClick={() => setTap((t) => t + 1)} />
+      {open && <SpherePickPop challenge={challenge} tap={seed} onClose={() => setOpen(false)} />}
+      <Sphere raised={raised} onClick={tapSphere} />
     </>
   )
 }

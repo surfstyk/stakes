@@ -433,14 +433,16 @@
   position: absolute;
   z-index: 9;
   right: 14px;
-  bottom: 100px;
+  /* rise with the pinned foot, which itself clears the home-indicator safe area; without
+     this the sphere sits on the CTA's top-right corner on real devices (rehearsal 2026-08-31) */
+  bottom: calc(100px + env(safe-area-inset-bottom));
   border: 0;
   background: none;
   padding: 0;
   cursor: pointer;
 }
 .rs .sphereFab.raised {
-  bottom: 150px; /* clears a two-button foot */
+  bottom: calc(150px + env(safe-area-inset-bottom)); /* clears a two-button foot */
 }
 .rs .sphereFab .ball {
   display: block; /* it's a <span>; without this it stays inline and collapses to 0×0 (the sphere vanishes) */
