@@ -1,8 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { OpenInNimiqPay } from './product/OpenInNimiqPay.tsx'
 import { Loading } from './product/Loading.tsx'
-import { setTestMode } from './product/store.ts'
 import { ReshapeApp } from './reshape/App.tsx'
+import { setTestMode } from './reshape/data.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
 import { isInsideNimiqPay, isRealMoney, watchInsideNimiqPay } from './lib/context.ts'
 

@@ -59,6 +59,14 @@ export function isTestMode(): boolean {
     return false
   }
 }
+/** Persist the fast-clock flag (set from ?test) so it survives the router rewriting the query. */
+export function setTestMode(on: boolean) {
+  try {
+    localStorage.setItem(TEST_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
 function dayLen(): number {
   return isTestMode() ? TEST_DAY_MS : DAY_MS
 }

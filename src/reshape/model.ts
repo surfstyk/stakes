@@ -5,12 +5,16 @@
 // SAME deterministic settlement (vault/settlement.ts) — so the app and the settler never disagree.
 
 import type { Asset } from '../vault/types.ts'
-import type { DayMark } from '../share/types.ts'
 import { dayState } from '../vault/schedule.ts'
 import { computeSettlement, finisherBonus } from '../vault/settlement.ts'
 
 export type { Asset } from '../vault/types.ts'
-export type { DayMark } from '../share/types.ts'
+
+/**
+ * Per-day state of a participant's streak, in day order — the shared vocabulary so a
+ * missed day lands in the SAME position everywhere (not just "first N filled").
+ */
+export type DayMark = 'done' | 'missed' | 'today' | 'todo'
 
 /** window = the 24h taste (time-only) · official = staked & running · then ended → settled | lapsed. */
 export type ChallengeStatus = 'window' | 'official' | 'ended' | 'settled' | 'lapsed'
