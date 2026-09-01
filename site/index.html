@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stakes — stake a day on a promise to yourself</title>
+<meta name="description" content="Stake a day on a promise to yourself. Keep the day, keep the money. Every check-in is written to the Nimiq chain from your own wallet.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://stakes.day/">
+<meta property="og:title" content="Stakes — win the moment">
+<meta property="og:description" content="Stake a day on a promise to yourself. Keep the day, keep the money.">
+<meta property="og:image" content="https://stakes.surfstyk.com/brand/og-cycle2.png">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://stakes.surfstyk.com/brand/og-cycle2.png">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 173.21'%3E%3Cpath d='M188.45 66.6A40 40 0 0 1 188.45 106.6L161.55 153.21A40 40 0 0 1 126.91 173.21L73.09 173.21A40 40 0 0 1 38.45 153.21L11.55 106.6A40 40 0 0 1 11.55 66.6L38.45 20A40 40 0 0 1 73.09 0L126.91 0A40 40 0 0 1 161.55 20Z' fill='%230c5f35'/%3E%3Ccircle cx='100' cy='86.6' r='40' fill='%23ef2d06'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:#f7f4ee;
+    --ground:#fdfbf6;
+    --ink:#1c1813;
+    --ink-soft:#5c554b;
+    --go:#0c5f35;
+    --stake:#ef2d06;
+    --grey:#c8c0b0;
+    --line:#e3ddcf;
+    --display:"Young Serif",Georgia,"Times New Roman",serif;
+    --ui:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--ui);
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 24px}
+  h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.05;letter-spacing:-.01em;margin:0}
+  p{margin:0}
+  a{color:inherit}
+
+  /* ---------- masthead ---------- */
+  .mast{display:flex;align-items:center;gap:10px;padding:28px 0 0}
+  .mast svg{display:block;height:26px;width:auto}
+  .wordmark{font-family:var(--display);font-size:24px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:3px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--stake);display:inline-block}
+
+  /* ---------- hero ---------- */
+  .hero{padding:56px 0 64px;display:grid;gap:40px}
+  h1{font-size:clamp(44px,11vw,76px)}
+  .sub{font-size:clamp(18px,4.4vw,22px);color:var(--ink-soft);max-width:26ch;margin-top:20px}
+
+  .cta{margin-top:32px}
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:var(--go);color:var(--ground);
+    font-family:var(--ui);font-size:18px;font-weight:600;
+    text-decoration:none;padding:19px 28px;border-radius:14px;
+    box-shadow:0 1px 0 rgba(0,0,0,.06);
+  }
+  .btn:hover{background:#0a5029}
+  .fine{font-size:14.5px;color:var(--ink-soft);margin-top:14px}
+  .fine a{text-decoration:underline;text-underline-offset:2px}
+
+  /* the QR is the desktop primary; the button is the mobile primary */
+  .qr{display:none}
+  .qr-card{
+    background:var(--ground);border:1px solid var(--line);border-radius:18px;
+    padding:22px;width:236px;text-align:center;
+  }
+  .qr-card svg{display:block;width:100%;height:auto;border-radius:6px}
+  .qr-cap{font-size:14.5px;color:var(--ink-soft);margin-top:14px;line-height:1.45}
+
+  @media (hover:hover) and (pointer:fine){
+    .hero{grid-template-columns:1fr auto;align-items:center;gap:64px;padding:80px 0 96px}
+    .qr{display:block}
+    .btn{display:none}
+    .fine{max-width:34ch}
+  }
+  /* Backstop: on a narrow screen the button ALWAYS wins, whatever the pointer
+     media features claim. A phone must never be left without the CTA. */
+  @media (max-width:719px){
+    .hero{grid-template-columns:1fr;padding:56px 0 64px}
+    .btn{display:flex}
+    .qr{display:none}
+  }
+
+  /* ---------- steps ---------- */
+  .band{border-top:1px solid var(--line);padding:64px 0}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:28px}
+  .steps{display:grid;gap:40px}
+  @media (min-width:760px){.steps{grid-template-columns:repeat(3,1fr);gap:44px}}
+  .step svg{display:block;height:52px;width:auto;margin-bottom:18px}
+  .step h3{font-size:23px;margin-bottom:9px}
+  .step p{color:var(--ink-soft);font-size:16.5px}
+
+  /* ---------- proof ---------- */
+  .proof{background:var(--go);color:var(--ground);border-radius:22px;padding:44px 32px;margin:64px 0}
+  .proof h2{font-size:clamp(28px,6.4vw,38px);max-width:16ch}
+  .proof p{margin-top:18px;max-width:52ch;color:#dbe8e0;font-size:17px}
+  @media (min-width:900px){
+    .proof{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;padding:56px 48px}
+    .proof h2{max-width:none}
+    .proof-side{text-align:left}
+  }
+  .proof .ledger{
+    display:inline-flex;align-items:center;gap:9px;margin-top:26px;
+    color:var(--ground);font-weight:600;text-decoration:none;
+    border-bottom:1.5px solid rgba(253,251,246,.45);padding-bottom:3px;
+  }
+  .proof .ledger:hover{border-bottom-color:var(--ground)}
+  .payload{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:13.5px;background:rgba(0,0,0,.18);color:#eaf3ee;
+    padding:11px 14px;border-radius:9px;margin-top:24px;display:inline-block;
+    overflow-x:auto;max-width:100%;white-space:nowrap;
+  }
+
+  /* ---------- honest ---------- */
+  .honest h2{font-size:clamp(28px,6.4vw,38px);max-width:15ch}
+  .honest p{margin-top:18px;max-width:54ch;color:var(--ink-soft)}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);margin-top:64px;padding:36px 0 56px;font-size:14.5px;color:var(--ink-soft)}
+  footer a{text-decoration:underline;text-underline-offset:2px}
+  .foot-row{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="mast">
+    <svg viewBox="0 0 200 173.21" aria-hidden="true"><path d="M188.45 66.60A40 40 0 0 1 188.45 106.60L161.55 153.21A40 40 0 0 1 126.91 173.21L73.09 173.21A40 40 0 0 1 38.45 153.21L11.55 106.60A40 40 0 0 1 11.55 66.60L38.45 20.00A40 40 0 0 1 73.09 0.00L126.91 0.00A40 40 0 0 1 161.55 20.00Z" fill="#0c5f35"/><circle cx="100" cy="86.60" r="40" fill="#ef2d06"/></svg>
+    <span class="wordmark">Stakes<span class="dot"></span></span>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Win the moment.</h1>
+      <p class="sub">Stake a day on a promise to yourself. Keep the day, keep the money.</p>
+
+      <div class="cta">
+        <a class="btn" href="https://stakes.surfstyk.com/">Open in Nimiq Pay</a>
+        <p class="fine">Stakes runs inside Nimiq Pay, the free wallet app. First day is free, no deposit, no account.</p>
+      </div>
+    </div>
+
+    <div class="qr">
+      <div class="qr-card">
+        <svg role="img" aria-label="QR code to open Stakes on your phone" xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 37 37" shape-rendering="crispEdges"><rect x="-4" y="-4" width="37" height="37" fill="#fdfbf6"/><path d="M0 0h7v1h-7zM8 0h3v1h-3zM12 0h4v1h-4zM17 0h4v1h-4zM22 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h3v1h-3zM13 1h1v1h-1zM16 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM9 2h3v1h-3zM16 2h1v1h-1zM18 2h2v1h-2zM22 2h1v1h-1zM24 2h3v1h-3zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h4v1h-4zM14 3h2v1h-2zM17 3h4v1h-4zM22 3h1v1h-1zM24 3h3v1h-3zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM9 4h2v1h-2zM14 4h1v1h-1zM16 4h1v1h-1zM19 4h1v1h-1zM22 4h1v1h-1zM24 4h3v1h-3zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM13 5h1v1h-1zM15 5h5v1h-5zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h7v1h-7zM8 7h1v1h-1zM11 7h1v1h-1zM15 7h3v1h-3zM0 8h1v1h-1zM2 8h2v1h-2zM5 8h3v1h-3zM9 8h1v1h-1zM11 8h1v1h-1zM13 8h1v1h-1zM15 8h1v1h-1zM17 8h4v1h-4zM22 8h1v1h-1zM25 8h1v1h-1zM27 8h2v1h-2zM1 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM12 9h4v1h-4zM18 9h7v1h-7zM28 9h1v1h-1zM0 10h2v1h-2zM3 10h1v1h-1zM5 10h2v1h-2zM9 10h2v1h-2zM12 10h2v1h-2zM16 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM26 10h2v1h-2zM0 11h2v1h-2zM3 11h2v1h-2zM7 11h6v1h-6zM16 11h1v1h-1zM18 11h1v1h-1zM21 11h2v1h-2zM24 11h1v1h-1zM28 11h1v1h-1zM0 12h1v1h-1zM2 12h1v1h-1zM4 12h1v1h-1zM6 12h2v1h-2zM12 12h1v1h-1zM14 12h2v1h-2zM17 12h1v1h-1zM20 12h1v1h-1zM25 12h2v1h-2zM1 13h3v1h-3zM8 13h1v1h-1zM10 13h1v1h-1zM14 13h1v1h-1zM16 13h1v1h-1zM19 13h1v1h-1zM21 13h2v1h-2zM26 13h3v1h-3zM0 14h5v1h-5zM6 14h1v1h-1zM8 14h3v1h-3zM12 14h2v1h-2zM15 14h5v1h-5zM22 14h2v1h-2zM26 14h3v1h-3zM2 15h3v1h-3zM8 15h2v1h-2zM12 15h1v1h-1zM14 15h1v1h-1zM16 15h1v1h-1zM19 15h2v1h-2zM22 15h1v1h-1zM24 15h1v1h-1zM27 15h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM9 16h4v1h-4zM14 16h3v1h-3zM18 16h1v1h-1zM20 16h1v1h-1zM23 16h3v1h-3zM27 16h1v1h-1zM1 17h1v1h-1zM3 17h2v1h-2zM8 17h3v1h-3zM14 17h1v1h-1zM16 17h2v1h-2zM20 17h1v1h-1zM23 17h1v1h-1zM25 17h3v1h-3zM0 18h1v1h-1zM5 18h12v1h-12zM22 18h1v1h-1zM24 18h1v1h-1zM26 18h1v1h-1zM3 19h3v1h-3zM7 19h1v1h-1zM9 19h3v1h-3zM13 19h2v1h-2zM17 19h4v1h-4zM22 19h1v1h-1zM26 19h1v1h-1zM1 20h6v1h-6zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h3v1h-3zM16 20h2v1h-2zM19 20h8v1h-8zM8 21h2v1h-2zM12 21h1v1h-1zM15 21h6v1h-6zM24 21h5v1h-5zM0 22h7v1h-7zM8 22h1v1h-1zM10 22h1v1h-1zM14 22h2v1h-2zM18 22h3v1h-3zM22 22h1v1h-1zM24 22h2v1h-2zM27 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM11 23h5v1h-5zM18 23h1v1h-1zM20 23h1v1h-1zM24 23h2v1h-2zM28 23h1v1h-1zM0 24h1v1h-1zM2 24h3v1h-3zM6 24h1v1h-1zM10 24h3v1h-3zM16 24h1v1h-1zM18 24h1v1h-1zM20 24h5v1h-5zM26 24h1v1h-1zM28 24h1v1h-1zM0 25h1v1h-1zM2 25h3v1h-3zM6 25h1v1h-1zM8 25h6v1h-6zM19 25h3v1h-3zM24 25h2v1h-2zM27 25h1v1h-1zM0 26h1v1h-1zM2 26h3v1h-3zM6 26h1v1h-1zM8 26h2v1h-2zM12 26h1v1h-1zM14 26h1v1h-1zM17 26h2v1h-2zM21 26h1v1h-1zM23 26h1v1h-1zM26 26h1v1h-1zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM10 27h1v1h-1zM13 27h1v1h-1zM15 27h1v1h-1zM17 27h5v1h-5zM23 27h1v1h-1zM25 27h1v1h-1zM27 27h1v1h-1zM0 28h7v1h-7zM8 28h1v1h-1zM10 28h3v1h-3zM14 28h1v1h-1zM17 28h7v1h-7zM25 28h1v1h-1zM27 28h1v1h-1z" fill="#1c1813"/></svg>
+        <p class="qr-cap">Scan to open it on your phone.<br>Stakes is a mobile app.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <p class="eyebrow">How it works</p>
+    <div class="steps">
+
+      <div class="step">
+        <svg viewBox="0 0 200 173.21" aria-hidden="true"><path d="M188.45 66.60A40 40 0 0 1 188.45 106.60L161.55 153.21A40 40 0 0 1 126.91 173.21L73.09 173.21A40 40 0 0 1 38.45 153.21L11.55 106.60A40 40 0 0 1 11.55 66.60L38.45 20.00A40 40 0 0 1 73.09 0.00L126.91 0.00A40 40 0 0 1 161.55 20.00Z" fill="none" stroke="#cfc6b4" stroke-width="9"/></svg>
+        <h3>Pick a promise</h3>
+        <p>One thing you keep meaning to do. Move every day, phone down, lights out, whatever it is. Day one costs nothing.</p>
+      </div>
+
+      <div class="step">
+        <svg viewBox="0 0 200 173.21" aria-hidden="true">
+          <clipPath id="fill"><path d="M188.45 66.60A40 40 0 0 1 188.45 106.60L161.55 153.21A40 40 0 0 1 126.91 173.21L73.09 173.21A40 40 0 0 1 38.45 153.21L11.55 106.60A40 40 0 0 1 11.55 66.60L38.45 20.00A40 40 0 0 1 73.09 0.00L126.91 0.00A40 40 0 0 1 161.55 20.00Z"/></clipPath>
+          <path d="M188.45 66.60A40 40 0 0 1 188.45 106.60L161.55 153.21A40 40 0 0 1 126.91 173.21L73.09 173.21A40 40 0 0 1 38.45 153.21L11.55 106.60A40 40 0 0 1 11.55 66.60L38.45 20.00A40 40 0 0 1 73.09 0.00L126.91 0.00A40 40 0 0 1 161.55 20.00Z" fill="#e3ddcf"/>
+          <rect x="0" y="66" width="200" height="108" fill="#a9d4b6" clip-path="url(#fill)"/>
+        </svg>
+        <h3>Keep the day</h3>
+        <p>Check in once, any time before midnight. No camera, no step counter, nobody grading you.</p>
+      </div>
+
+      <div class="step">
+        <svg viewBox="0 0 200 173.21" aria-hidden="true"><defs><radialGradient id="bead" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="#ff8a4a"/><stop offset="0.18" stop-color="#ff7a3f"/><stop offset="0.55" stop-color="#ef2d06"/><stop offset="1" stop-color="#b81f04"/></radialGradient></defs><path d="M188.45 66.60A40 40 0 0 1 188.45 106.60L161.55 153.21A40 40 0 0 1 126.91 173.21L73.09 173.21A40 40 0 0 1 38.45 153.21L11.55 106.60A40 40 0 0 1 11.55 66.60L38.45 20.00A40 40 0 0 1 73.09 0.00L126.91 0.00A40 40 0 0 1 161.55 20.00Z" fill="#0c5f35"/><circle cx="100" cy="86.60" r="40" fill="url(#bead)"/></svg>
+        <h3>Keep the money</h3>
+        <p>Make it official with a little NIM. Finish the run and it comes back with a bonus. Miss a day and that day's slice is gone.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="proof">
+    <div>
+      <h2>Don't take our word for it.</h2>
+      <p>Every check-in is written to the Nimiq blockchain from your own wallet. Not to a database we control. The whole record is public, and you can read it without asking us for anything.</p>
+    </div>
+    <div class="proof-side">
+      <p class="payload">stakes.day day:479b4750:1</p><br>
+      <a class="ledger" href="https://nimiq.watch/#NQ25V9U3BPTDS9T9DM5PDHGMCY59U2B47D59" rel="noopener">Open the ledger &rarr;</a>
+    </div>
+  </section>
+
+  <section class="honest">
+    <h2>Nobody is watching you.</h2>
+    <p>There is no camera, no tracker, and no model deciding whether you really did it. That is deliberate. The moment something becomes the referee, keeping your word stops being trust and starts being compliance. So the money is handled by systems, and the truth is handled by you.</p>
+  </section>
+
+  <footer>
+    <p>Stakes is open source, MIT licensed. Built for the Nimiq Mini Apps Competition.</p>
+    <div class="foot-row">
+      <a href="https://github.com/surfstyk/stakes" rel="noopener">Source on GitHub</a>
+      <a href="https://stakes.surfstyk.com/" rel="noopener">Open the app</a>
+      <a href="https://nimiq.watch/#NQ25V9U3BPTDS9T9DM5PDHGMCY59U2B47D59" rel="noopener">The stamp address</a>
+    </div>
+  </footer>
+
+</div>
+
+<!--
+  THE FILM — switch on when the 60-second trailer exists (target 11 Sep).
+  Drop this block in directly above <section class="proof">, and set the id.
+
+  <section class="band">
+    <p class="eyebrow">Sixty seconds</p>
+    <div style="position:relative;padding-top:56.25%;border-radius:16px;overflow:hidden;background:#e3ddcf">
+      <iframe style="position:absolute;inset:0;width:100%;height:100%;border:0"
+              src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
+              title="Stakes in sixty seconds"
+              allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+              allowfullscreen></iframe>
+    </div>
+  </section>
+-->
+
+</body>
+</html>
