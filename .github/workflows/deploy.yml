@@ -28,6 +28,13 @@ jobs:
           # absent this renders empty → mock vault. So this line is a no-op until the var is
           # added — adding it + redeploying is the whole "flip to real deposits" switch.
           VITE_TREASURY_NIM_ADDRESS: ${{ vars.VITE_TREASURY_NIM_ADDRESS }}
+          # Published stamp address (GitHub Actions VARIABLE — a public NIM address, not a key).
+          # REQUIRED for on-chain stamps: in a real-money build (treasury set) an unset stamp
+          # address makes sendStamp() throw → both callers swallow it → check-ins never reach the
+          # chain, silently killing "make some noise, on-chain". Inert until the var is set.
+          # Optional VITE_STAMP_VALUE_LUNA overrides the 1-luna dust amount (defaults to 1).
+          VITE_STAMP_ADDRESS: ${{ vars.VITE_STAMP_ADDRESS }}
+          VITE_STAMP_VALUE_LUNA: ${{ vars.VITE_STAMP_VALUE_LUNA }}
 
       # Deploy target lives in repo secrets so this public file advertises no infra.
       # Required secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH.
