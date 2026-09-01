@@ -69,13 +69,6 @@ button {
   padding: 14px 18px calc(36px + env(safe-area-inset-bottom));
   min-height: 100vh;
 }
-
-.s-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 2px 18px;
-}
 .s-wordmark {
   font-family: var(--font-display);
   font-weight: 900;
@@ -91,16 +84,6 @@ button {
   border-radius: 999px;
   background: var(--stake);
   box-shadow: 0 0 0 3px var(--stake-tint);
-}
-.s-link {
-  background: none;
-  border: none;
-  color: var(--ink-faint);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  padding: 6px;
 }
 
 /* ---- Type ------------------------------------------------------------------- */
@@ -130,160 +113,15 @@ button {
   margin: 0 0 22px;
   max-width: 34ch;
 }
-.s-label {
-  display: block; /* so it lays out identically whether a <p> or a <label htmlFor> */
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  margin: 18px 0 9px;
-}
 
 /* Keyboard focus ring — shows for keyboard/switch users, stays out of the way on tap.
    Text fields keep their border-darken focus (see .s-field:focus); everything else
    clickable gets a clear ring where before it had none. */
-.stakes :where(button, a, [role='radio']):focus-visible {
+.stakes :where(button,
+a,
+[role='radio']):focus-visible {
   outline: 2.5px solid var(--ink);
   outline-offset: 2px;
-}
-
-/* ---- Template chips --------------------------------------------------------- */
-.s-templates {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 9px;
-}
-.s-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-align: left;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 15px;
-  padding: 13px 13px;
-  cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
-}
-.s-chip:active {
-  transform: scale(0.97);
-}
-.s-chip[data-on='true'] {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 1.5px var(--ink), var(--shadow-card);
-  background: #fff;
-}
-.s-chip .emoji {
-  font-size: 22px;
-  line-height: 1;
-}
-.s-chip .ct {
-  font-weight: 700;
-  font-size: 14.5px;
-}
-.s-chip .cs {
-  font-size: 11.5px;
-  color: var(--ink-soft);
-}
-
-/* ---- Inputs / segmented ----------------------------------------------------- */
-.s-field {
-  width: 100%;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 14px;
-  padding: 15px 16px;
-  font-size: 16px;
-  font-family: inherit;
-  color: var(--ink);
-}
-.s-field::placeholder {
-  color: var(--ink-faint);
-}
-.s-field:focus {
-  outline: none;
-  border-color: var(--ink);
-}
-
-.s-seg {
-  display: flex;
-  gap: 6px;
-  background: var(--paper-sunk);
-  border-radius: 14px;
-  padding: 5px;
-}
-.s-seg button {
-  flex: 1;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  padding: 11px 6px;
-  font-weight: 700;
-  font-size: 13.5px;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: all 0.14s ease;
-  line-height: 1.15;
-}
-.s-seg button small {
-  display: block;
-  font-weight: 600;
-  font-size: 10.5px;
-  color: var(--ink-faint);
-  margin-top: 2px;
-}
-.s-seg button[data-on='true'] {
-  background: var(--paper-card);
-  color: var(--ink);
-  box-shadow: var(--shadow-card);
-}
-.s-seg button[data-on='true'] small {
-  color: var(--ink-soft);
-}
-
-/* ---- Stake stepper ---------------------------------------------------------- */
-.s-stake-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 16px;
-  padding: 8px 8px 8px 18px;
-}
-.s-stake-amt {
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-}
-.s-stake-amt .num {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 34px;
-  letter-spacing: -0.02em;
-}
-.s-stake-amt .cur {
-  font-weight: 800;
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-.s-step {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 1.5px solid var(--line);
-  background: var(--paper);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-.s-step:active {
-  transform: scale(0.94);
 }
 
 /* ---- Primary CTA ------------------------------------------------------------ */
@@ -329,277 +167,13 @@ button {
   padding: 15px;
   cursor: pointer;
 }
-.s-sticky {
-  position: sticky;
-  bottom: 0;
-  padding-top: 14px;
-  margin-top: 8px;
-  background: linear-gradient(to top, var(--paper) 62%, transparent);
-}
 .s-foothint {
   text-align: center;
   font-size: 12px;
   color: var(--ink-faint);
   margin: 10px 0 0;
 }
-/* inline "fill this in" prompt under a required field (Create → name) */
-.s-fieldhint {
-  margin: 8px 2px 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--stake);
-}
-.s-note {
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  line-height: 1.4;
-  margin: -2px 0 10px;
-}
-.s-resume {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--paper-card);
-  border: 1.5px solid var(--ink);
-  border-radius: 14px;
-  padding: 13px 15px;
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--ink);
-  cursor: pointer;
-  margin-bottom: 20px;
-  text-align: left;
-}
-.s-resume:active {
-  transform: scale(0.99);
-}
-.s-resume .go {
-  color: var(--go);
-  white-space: nowrap;
-}
-
-/* ---- Confetti (one-shot celebration) --------------------------------------- */
-.confetti {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 50;
-}
-.confetti-piece {
-  position: absolute;
-  top: 0;
-  border-radius: 2px;
-}
-
-/* ============================================================================
-   Pledge card — the shareable hero artifact (a tactile ticket)
-   ============================================================================ */
-.pledge {
-  position: relative;
-  background: var(--paper-card);
-  border-radius: 20px;
-  padding: 26px 24px 22px;
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  isolation: isolate;
-}
-.pledge::before {
-  /* ink frame */
-  content: '';
-  position: absolute;
-  inset: 9px;
-  border: 1.5px solid var(--line-strong);
-  border-radius: 13px;
-  pointer-events: none;
-  opacity: 0.85;
-}
-.pledge-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: relative;
-  z-index: 1;
-}
-.pledge-head .brand {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-}
-.pledge-head .meta {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.pledge-emoji {
-  font-size: 40px;
-  margin: 16px 0 4px;
-  position: relative;
-  z-index: 1;
-}
-.pledge-goal {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 28px;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 4px 0 0;
-  position: relative;
-  z-index: 1;
-}
-.pledge-goal em {
-  font-style: italic;
-  color: var(--stake);
-}
-.pledge-stake {
-  margin: 18px 0 4px;
-  position: relative;
-  z-index: 1;
-}
-.pledge-stake .amt {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 22px;
-}
-.pledge-stake .lbl {
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-/* perforation */
-.pledge-perf {
-  position: relative;
-  height: 24px;
-  margin: 16px -24px 0;
-  z-index: 1;
-}
-.pledge-perf::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 22px;
-  right: 22px;
-  border-top: 2px dashed var(--line);
-}
-.pledge-perf .notch {
-  position: absolute;
-  top: 50%;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--paper);
-  transform: translateY(-50%);
-  box-shadow: inset 0 0 0 1.5px var(--line);
-}
-.pledge-perf .notch.l {
-  left: -11px;
-}
-.pledge-perf .notch.r {
-  right: -11px;
-}
-.pledge-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 14px;
-  position: relative;
-  z-index: 1;
-}
-.pledge-foot .who {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  font-weight: 700;
-}
-.pledge-foot .watch {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-/* wax-seal style stamp */
-.pledge-stamp {
-  position: absolute;
-  right: 16px;
-  top: 70px;
-  z-index: 2;
-  width: 84px;
-  height: 84px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  color: var(--stake);
-  border: 2.5px solid var(--stake);
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  line-height: 1.05;
-  transform: rotate(-13deg);
-  opacity: 0.92;
-  box-shadow: 0 0 0 3px rgba(239, 45, 6, 0.12);
-  background: rgba(251, 246, 236, 0.4);
-}
-.pledge-stamp small {
-  display: block;
-  font-size: 8.5px;
-  letter-spacing: 0.18em;
-  margin-top: 2px;
-}
-
-/* ---- Avatars (social proof) ------------------------------------------------- */
-.s-avatars {
-  display: flex;
-  align-items: center;
-}
-.s-av {
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 14px;
-  color: #fff;
-  border: 2.5px solid var(--paper);
-  margin-left: -10px;
-}
-.s-av:first-child {
-  margin-left: 0;
-}
-.s-av.more {
-  background: var(--paper-sunk);
-  color: var(--ink-soft);
-  border-color: var(--paper);
-}
-
-/* ---- Countdown -------------------------------------------------------------- */
-.s-count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--stake-tint);
-  color: var(--stake-deep);
-  border-radius: 13px;
-  padding: 12px;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.01em;
-}
-.s-count .pulse {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--stake);
-  animation: pulse 1.1s ease-in-out infinite;
-}
-@keyframes pulse {
+@keyframes pulse{
   0%,
   100% {
     opacity: 1;
@@ -610,49 +184,8 @@ button {
     transform: scale(0.7);
   }
 }
-.s-count .nums {
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---- Join confirmed --------------------------------------------------------- */
-.s-confirm {
-  text-align: center;
-  padding: 14px 0 4px;
-}
-.s-seal {
-  width: 92px;
-  height: 92px;
-  border-radius: 999px;
-  background: var(--go);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  margin: 6px auto 16px;
-  font-size: 44px;
-  box-shadow: 0 22px 44px -20px rgba(12, 95, 53, 0.7);
-}
-
-/* ---- Misc ------------------------------------------------------------------- */
-.s-row {
-  display: flex;
-  gap: 10px;
-}
-.s-card {
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: var(--r-card);
-  padding: 16px;
-}
-.s-divider {
-  height: 1px;
-  background: var(--line);
-  margin: 22px 0;
-}
 .s-center {
   text-align: center;
-}
-.s-spacer {
-  height: 16px;
 }
 .s-spin {
   display: inline-block;
@@ -663,405 +196,10 @@ button {
   border-top-color: var(--stake);
   animation: s-spin 0.7s linear infinite;
 }
-@keyframes s-spin {
+@keyframes s-spin{
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ---- Progress: streak board + composer + feed ------------------------------ */
-.streak {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-  gap: 7px;
-  margin-top: 4px;
-}
-.cell {
-  aspect-ratio: 1;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 14px;
-  border: 1.5px solid var(--line);
-  background: var(--paper-card);
-  color: var(--ink-faint);
-}
-.cell.done {
-  background: var(--go);
-  border-color: var(--go);
-  color: #fff;
-}
-.cell.today {
-  border-color: var(--ink);
-  color: var(--ink);
-  box-shadow: 0 0 0 1.5px var(--ink);
-}
-.cell.missed {
-  background: color-mix(in srgb, var(--stake) 12%, var(--paper-card));
-  border-color: color-mix(in srgb, var(--stake) 35%, var(--line));
-  color: var(--stake);
-}
-
-.composer {
-  margin-top: 4px;
-}
-textarea.s-field {
-  resize: none;
-  line-height: 1.4;
-}
-.moods {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-.mood {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  border: 1.5px solid var(--line);
-  background: var(--paper-card);
-  font-size: 20px;
-  cursor: pointer;
-}
-.mood[data-on='true'] {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 1.5px var(--ink);
-}
-.mood.photo {
-  margin-left: auto;
-}
-.composer-photo {
-  width: 100%;
-  border-radius: 14px;
-  margin-top: 10px;
-  max-height: 220px;
-  object-fit: cover;
-}
-
-.feed {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.feed-item {
-  display: flex;
-  gap: 11px;
-  align-items: flex-start;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 16px;
-  padding: 12px;
-}
-.feed-body {
-  flex: 1;
-  min-width: 0;
-}
-.feed-head {
-  font-size: 13px;
-}
-.feed-day {
-  color: var(--ink-faint);
-  font-weight: 600;
-  font-size: 12px;
-  margin-left: 6px;
-}
-.feed-note {
-  font-size: 14px;
-  margin-top: 2px;
-  word-break: break-word;
-}
-.feed-photo {
-  width: 100%;
-  border-radius: 12px;
-  margin-top: 8px;
-  max-height: 200px;
-  object-fit: cover;
-}
-.cheer {
-  align-self: center;
-  background: var(--paper);
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.cheer:active {
-  transform: scale(0.95);
-}
-
-/* ---- Results: dark result card + board ------------------------------------- */
-.result-card {
-  background: var(--ink);
-  color: #fff;
-  border-radius: 20px;
-  padding: 20px;
-}
-.result-card .rc-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  opacity: 0.7;
-}
-.result-card .brand {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 14px;
-  opacity: 1;
-}
-.result-card .meta {
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.rc-big {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 40px;
-  letter-spacing: -0.02em;
-  margin: 14px 0 12px;
-}
-.rc-big span {
-  font-size: 16px;
-  font-weight: 600;
-  opacity: 0.7;
-}
-.rc-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.rc-rows > div {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13.5px;
-  padding-top: 7px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-}
-.rc-rows .go b {
-  color: #5ff0a8;
-}
-
-.board {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.board-row {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 14px;
-  padding: 11px 13px;
-}
-
-/* Personal payout hero — the "what you got" moment: stake back + the NIM finisher bonus,
-   and (once the settler has run) a receipt that it actually landed in the wallet. */
-.payout-hero {
-  text-align: center;
-  margin: 10px 0 16px;
-  padding: 18px 16px 16px;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 16px;
-}
-.payout-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.payout-amount {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(34px, 11vw, 46px);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-  color: var(--go);
-  margin-top: 4px;
-}
-.payout-parts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 3px 12px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-.payout-parts .part-bonus {
-  color: var(--gold);
-  font-weight: 700;
-}
-.payout-parts .part-lost {
-  color: var(--stake);
-}
-.payout-status {
-  display: inline-block;
-  margin-top: 13px;
-  padding: 5px 13px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-}
-.payout-status.is-paid {
-  background: var(--go-tint);
-  color: var(--go);
-}
-.payout-status.is-settling {
-  background: var(--paper-sunk);
-  color: var(--ink-soft);
-}
-
-/* ============================================================================
-   Share composer — the pluggable card + TikTok-style picker (the star asset)
-   ============================================================================ */
-.composer {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-.composer-stage {
-  width: 100%;
-  max-width: 216px;
-  margin: 0 auto;
-}
-.composer-canvas {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 16px;
-  box-shadow: 0 16px 40px -22px rgba(28, 24, 19, 0.6);
-  background: var(--paper-sunk);
-}
-/* the post-panel image must stay long-pressable (save / share) inside the WebView */
-.post-img {
-  -webkit-touch-callout: default;
-  touch-callout: default;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.composer-styles {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 12px 18px 4px;
-  margin: 6px -18px 0;
-  scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
-}
-.composer-styles::-webkit-scrollbar {
-  display: none;
-}
-.style-chip {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  scroll-snap-align: start;
-}
-.thumb-canvas {
-  width: 52px;
-  height: 92px; /* 9:16 */
-  display: block;
-  border-radius: 9px;
-  background: var(--paper-sunk);
-  box-shadow: 0 4px 12px -6px rgba(28, 24, 19, 0.5);
-  outline: 2.5px solid transparent;
-  outline-offset: 2px;
-  transition: outline-color 0.14s ease, transform 0.14s ease;
-}
-.style-chip:active .thumb-canvas {
-  transform: scale(0.95);
-}
-.style-chip[data-on='true'] .thumb-canvas {
-  outline-color: var(--ink);
-}
-.style-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink-faint);
-  letter-spacing: 0.01em;
-}
-.style-chip[data-on='true'] .style-name {
-  color: var(--ink);
-}
-.composer .s-cta {
-  margin-top: 10px;
-}
-/* the share CTA, pinned to the viewport bottom so it's visible on load (the card + picker
-   would otherwise push it off-screen). Sticky, not fixed: it releases for the secondary
-   content below the composer. The paper fade lets that content scroll cleanly beneath it. */
-.composer-dock {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  margin-top: 14px;
-  padding: 12px 0 calc(8px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--paper) 72%, transparent);
-}
-.composer-dock .s-cta {
-  margin-top: 0;
-}
-.composer-ready {
-  text-align: center;
-  font-weight: 800;
-  font-size: 15px;
-  margin: 0 0 12px;
-}
-.composer-hint {
-  text-align: center;
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  line-height: 1.4;
-  margin: 12px auto 14px;
-  max-width: 30ch;
-}
-.composer-back {
-  display: block;
-  margin: 10px auto 0;
-}
-
-/* compact heading for the share moment (keeps the share button above the fold) */
-.s-h1-tight {
-  font-size: clamp(25px, 7vw, 31px);
-  margin: 6px 0 4px;
-}
-
-/* secondary nav under the share composer */
-.s-share-nav {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 14px;
-}
-
-/* ============================================================================
-   Brand UX pass — Join + Share (DOM pledge ticket · hook · clock · confirm)
-   Ported from the desktop comps. Reuses the tokens at the top of this file.
-   ============================================================================ */
-
-/* ---- shared: green-accent headline + share-button sheen -------------------- */
-.s-h1-go em {
-  color: var(--go);
 }
 .s-cta--share {
   position: relative;
@@ -1078,7 +216,7 @@ textarea.s-field {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
   animation: sheen 3.8s ease-in-out 1.6s infinite;
 }
-@keyframes sheen {
+@keyframes sheen{
   0% {
     left: -45%;
   }
@@ -1089,38 +227,7 @@ textarea.s-field {
     left: 135%;
   }
 }
-
-/* ---- hype frame (share screen) + live kicker ------------------------------- */
-.hype {
-  text-align: center;
-  padding: 2px 6px 16px;
-}
-.hype-h1 {
-  text-align: center;
-}
-.hype-sub {
-  margin: 11px auto 0;
-  text-align: center;
-}
-.live-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--stake);
-  margin-bottom: 10px;
-}
-.live-kicker .pulse {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--stake);
-  animation: pulse-ring 1.9s ease-out infinite;
-}
-@keyframes pulse-ring {
+@keyframes pulse-ring{
   0% {
     box-shadow: 0 0 0 0 rgba(239, 45, 6, 0.45);
   }
@@ -1132,206 +239,9 @@ textarea.s-field {
   }
 }
 
-/* ---- share: bigger card stage + demoted invite + picker head --------------- */
-.composer-stage {
-  max-width: 248px;
-}
-.picker-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 22px 2px 10px;
-}
-.picker-lbl {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.picker-hint {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink-faint);
-}
-.invite-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 14px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-.invite-row button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--ink);
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border-bottom: 1.5px solid var(--line-strong);
-  padding: 0 0 1px;
-  line-height: 1.1;
-}
-.invite-row button:active {
-  opacity: 0.6;
-}
-
-/* ---- join: the hook -------------------------------------------------------- */
-.hook {
-  text-align: center;
-  padding: 2px 4px;
-}
-.hook-h1 {
-  text-align: center;
-  font-size: clamp(25px, 7vw, 32px);
-  line-height: 1.05;
-}
-.hook-h1-lead {
-  display: block;
-}
-.hook-sub {
-  margin: 10px auto 0;
-  text-align: center;
-}
-.darer {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 12px;
-}
-.darer .face {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  font-weight: 800;
-  color: #fff;
-  box-shadow: 0 4px 10px -3px rgba(28, 24, 19, 0.4);
-}
-.darer .kick {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--stake);
-}
-
-/* ---- join: social proof pill ----------------------------------------------- */
-.proof {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin: 16px auto 0;
-  width: max-content;
-  max-width: 100%;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  padding: 9px 18px 9px 12px;
-  box-shadow: var(--shadow-card);
-}
-.proof .s-av {
-  width: 32px;
-  height: 32px;
-  font-size: 12px;
-  margin-left: -11px;
-  border-color: var(--paper-card);
-}
-.proof .s-av:first-child {
-  margin-left: 0;
-}
-.proof-txt {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.2;
-  text-align: left;
-}
-.proof-txt span {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--go);
-  letter-spacing: 0.02em;
-}
-
-/* ---- join: the clock (the engine) ------------------------------------------ */
-.clock {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 14px auto 2px;
-  width: max-content;
-  max-width: 100%;
-  background: var(--stake-tint);
-  border: 1.5px solid rgba(239, 45, 6, 0.32);
-  border-radius: 999px;
-  padding: 11px 22px;
-}
-.clock .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--stake);
-  animation: pulse-ring 1.7s ease-out infinite;
-}
-.clock-lbl {
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--stake-deep);
-}
-.clock-time {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 23px;
-  color: var(--stake-deep);
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-
 /* ---- join: artifact stage + fineprint + guarantee -------------------------- */
 .stage {
   padding: 12px 0 2px;
-}
-.fine {
-  text-align: center;
-  margin: 14px auto 0;
-  max-width: 30ch;
-  font-size: 12.5px;
-  line-height: 1.4;
-  font-weight: 600;
-  color: var(--ink-faint);
-}
-.join-meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 11px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-.join-meta svg {
-  display: block;
-}
-/* quiet low-commitment exit under the join CTA (not ready → start your own) */
-.join-exit {
-  display: block;
-  margin: 9px auto 0;
 }
 
 /* ---- the DOM pledge ticket ------------------------------------------------- */
@@ -1341,7 +251,7 @@ textarea.s-field {
   position: relative;
   animation: dropin 0.8s cubic-bezier(0.18, 0.9, 0.22, 1.04) both;
 }
-@keyframes dropin {
+@keyframes dropin{
   0% {
     opacity: 0;
     transform: translateY(-22px) scale(0.94);
@@ -1580,7 +490,7 @@ textarea.s-field {
   margin-top: 4px;
   opacity: 0.9;
 }
-@keyframes stampthump {
+@keyframes stampthump{
   0% {
     opacity: 0;
     transform: rotate(7deg) scale(2.3);
@@ -1600,77 +510,7 @@ textarea.s-field {
     transform: rotate(-11deg) scale(1);
   }
 }
-
-/* ---- join: "you're in" confirmation ---------------------------------------- */
-.confirm {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding-top: 6px;
-}
-.confirm-seal-stage {
-  position: relative;
-  width: 100%;
-  height: 168px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 6px;
-}
-.big-seal {
-  position: relative;
-  width: 172px;
-  height: 118px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--stake);
-  text-align: center;
-  transform: rotate(-9deg);
-  opacity: 0.8;
-  -webkit-mask:
-    radial-gradient(circle at 22% 26%, #000 90%, #0005 100%),
-    radial-gradient(130% 130% at 70% 84%, #000 78%, #0000 100%);
-  mask:
-    radial-gradient(circle at 22% 26%, #000 90%, #0005 100%),
-    radial-gradient(130% 130% at 70% 84%, #000 78%, #0000 100%);
-  animation: sealthump 1s cubic-bezier(0.2, 0.7, 0.2, 1.2) 0.2s both;
-}
-.big-seal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 3px solid var(--stake);
-  border-radius: 14px;
-  opacity: 0.92;
-}
-.big-seal::after {
-  content: '';
-  position: absolute;
-  inset: 5px;
-  border: 1.5px solid var(--stake);
-  border-radius: 10px;
-  opacity: 0.58;
-}
-.big-seal .e {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 34px;
-  letter-spacing: 0.02em;
-  line-height: 0.9;
-  text-transform: uppercase;
-  transform: scaleX(0.88);
-}
-.big-seal .t {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-top: 6px;
-  opacity: 0.9;
-}
-@keyframes sealthump {
+@keyframes sealthump{
   0% {
     opacity: 0;
     transform: rotate(11deg) scale(2.5);
@@ -1690,18 +530,7 @@ textarea.s-field {
     transform: rotate(-9deg) scale(1);
   }
 }
-.confirm-dust {
-  position: absolute;
-  width: 150px;
-  height: 110px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(239, 45, 6, 0.2) 0%, rgba(239, 45, 6, 0) 70%);
-  transform: scale(0.2) rotate(-9deg);
-  opacity: 0;
-  animation: dust 0.6s ease-out 0.35s both;
-  pointer-events: none;
-}
-@keyframes dust {
+@keyframes dust{
   0% {
     opacity: 0;
     transform: scale(0.2) rotate(-9deg);
@@ -1715,30 +544,7 @@ textarea.s-field {
     transform: scale(1.6) rotate(-9deg);
   }
 }
-.confirm-kick {
-  text-align: center;
-}
-.confirm-h1 {
-  text-align: center;
-  margin-top: 6px;
-}
-.reveal {
-  opacity: 0;
-  animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-.reveal.d1 {
-  animation-delay: 0.9s;
-}
-.reveal.d2 {
-  animation-delay: 1.04s;
-}
-.reveal.d3 {
-  animation-delay: 1.2s;
-}
-.reveal.d4 {
-  animation-delay: 1.38s;
-}
-@keyframes rise {
+@keyframes rise{
   0% {
     opacity: 0;
     transform: translateY(14px);
@@ -1748,91 +554,19 @@ textarea.s-field {
     transform: translateY(0);
   }
 }
-.crew-line {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 22px auto 0;
-  width: max-content;
-  max-width: 100%;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  padding: 10px 16px;
-  box-shadow: var(--shadow-card);
-}
-.crew-line .s-av {
-  width: 28px;
-  height: 28px;
-  font-size: 11px;
-  margin-left: -10px;
-  border-color: var(--paper-card);
-}
-.crew-line .s-av:first-child {
-  margin-left: 0;
-}
-.crew-line .txt {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-}
-.reshare-card {
-  margin: 24px auto 0;
-  width: 100%;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
-  padding: 20px 18px;
-  text-align: center;
-}
-.reshare-card .quote {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: 18px;
-  line-height: 1.32;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-}
-.later {
-  display: block;
-  margin: 12px auto 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-.later:active {
-  opacity: 0.6;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .ticket-wrap,
-  .reveal {
+@media (prefers-reduced-motion: reduce){
+  .ticket-wrap {
     animation: none !important;
     opacity: 1;
     transform: none;
   }
-  .stamp,
-  .big-seal {
-    animation: none !important;
-  }
-  .confirm-dust {
-    display: none;
-  }
-  .clock .dot,
-  .live-kicker .pulse {
+  .stamp {
     animation: none !important;
   }
   .s-cta--share::after {
     display: none;
-  }
-}
+  }}
 
 /* ---- gate: reassurance strip + expectation note ---------------------------- */
 .gate-trust {
@@ -1855,11 +589,4 @@ textarea.s-field {
   font-size: 12px;
   line-height: 1.4;
   color: var(--ink-faint);
-}
-
-/* ---- Create: live pledge preview ------------------------------------------- */
-.create-preview {
-  /* bottom gap tuned to the page's section rhythm (~18px, cf. .s-label) so the ticket
-     doesn't sit squeezed against the goal chips below it */
-  margin: 14px auto 20px;
 }
