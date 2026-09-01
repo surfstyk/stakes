@@ -61,7 +61,7 @@ export function MainScreen({ social, onStart, onWordmark }: { social: Social; on
         <p className="kicker" style={{ margin: '0 0 8px' }}>
           {c.main.kicker}
         </p>
-        <h1 className="h" style={{ fontSize: 30 }}>
+        <h1 className="h">
           {c.main.hLead}
           <em>{c.main.hEm}</em>
           <span className="fs">.</span>
@@ -112,8 +112,7 @@ export function TasteScreen({
         </div>
         <HeroDot fill={fill} size={136} />
         <h1 className="h" style={{ textAlign: 'center' }}>
-          {c.taste.hTop}
-          <br />
+          <span className="hh-top">{c.taste.hTop}</span>
           {c.taste.hLead}
           <em>{c.taste.hEm}</em>
           {c.taste.hTail}

@@ -47,6 +47,9 @@
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Young Serif ships one weight (400) and no italic — kill faux bold/slant so every
+     600/700/900 and italic request falls back to the real 400 upright (§11.2), in one line. */
+  font-synthesis: none;
 }
 /* faint paper grain — a multiply layer over the whole frame */
 .rs::before {
@@ -125,24 +128,28 @@
 }
 .rs .h {
   font-family: var(--serif);
-  font-weight: 600;
-  font-size: 29px;
-  line-height: 1.03;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
   margin: 0;
   text-wrap: balance;
   color: var(--ink);
 }
 .rs .h em {
-  font-style: italic;
-  color: var(--stake);
+  /* §11.2: the punch word is no longer set apart by italic or colour — all ink, scale carries it */
+  font-style: normal;
+  color: inherit;
 }
 .rs .h em.go {
-  color: var(--go-deep);
+  color: inherit;
 }
 .rs .h .fs {
   color: var(--stake);
-  font-weight: 900;
+}
+.rs .hh-top {
+  display: block;
+  font-size: 22px;
 }
 .rs .sub {
   font-size: 14.5px;
@@ -346,6 +353,29 @@
   }
 }
 
+/* the hero hex wrapper (§11.3) — the sealed hero keeps the cream check + a soft glow */
+.rs .heroHex {
+  display: inline-block;
+  line-height: 0;
+}
+.rs .heroHex.sealed {
+  filter: drop-shadow(0 6px 14px rgba(12, 95, 53, 0.3)) drop-shadow(0 0 5px var(--go-tint));
+}
+.rs .heroCheck svg {
+  width: 54px;
+  height: 54px;
+  stroke: var(--cream);
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rs .heroEmoji {
+  font-size: 44px;
+  opacity: 0.5;
+  filter: grayscale(0.4);
+}
+
 /* ---- the week frame — small, a glance, never the star ----------------------- */
 .rs .weekframe {
   display: flex;
@@ -363,7 +393,7 @@
 }
 .rs .weekrow {
   display: flex;
-  gap: 12px;
+  gap: 9px;
   align-items: center;
   justify-content: center;
 }
@@ -1229,10 +1259,8 @@
   position: absolute;
   width: 26px;
   height: 26px;
-  border-radius: 50%;
-  border: 2.5px solid var(--go);
-  background: var(--go);
-  box-shadow: 0 0 0 5px var(--go-tint);
+  display: grid;
+  place-items: center;
   left: 50%;
   top: 50%;
   margin: -13px;

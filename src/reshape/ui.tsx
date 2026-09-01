@@ -1,4 +1,5 @@
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useId, useRef, useState } from 'react'
+import { RATIO, SQ3, roundedHex } from '../brand/hex.ts'
 import { copy } from '../brand/index.ts'
 import type { DayMark } from './model.ts'
 import type { Template } from './templates.ts'
@@ -118,7 +119,63 @@ export function PopOver({
   )
 }
 
-// ---- the hero dot -----------------------------------------------------------
+// ---- the mark in the UI: the locked Stakes Hex (src/brand/hex.ts · RATIO 0.4) ----
+// A day is a hex. fill = time (rising bottom-up) · solid = you (with the bead).
+export type HexState = 'today' | 'kept' | 'future' | 'missed' | 'sealed' | 'faded'
+export function Hex({
+  size,
+  state = 'future',
+  fill = 0,
+  fillColor,
+  children,
+}: {
+  size: number
+  state?: HexState
+  fill?: number
+  fillColor?: string
+  children?: ReactNode
+}) {
+  const uid = useId().replace(/:/g, '')
+  const R = size / 2
+  const H = SQ3 * R
+  const shell = roundedHex(R, H / 2, R, RATIO * R)
+  const beadR = RATIO * R
+  const shellFill =
+    state === 'kept' || state === 'sealed'
+      ? 'var(--go)'
+      : state === 'missed'
+        ? 'var(--grey)'
+        : state === 'future'
+          ? 'transparent'
+          : '#e3ddcf' // today / faded shell
+  const rise = fillColor ?? (state === 'today' ? 'var(--go)' : null)
+  const bead = state === 'kept'
+  return (
+    <span className="hex" style={{ display: 'inline-block', position: 'relative', width: size, height: H, lineHeight: 0 }}>
+      <svg width={size} height={H} viewBox={`0 0 ${size} ${H}`} aria-hidden="true" style={{ display: 'block', overflow: 'visible' }}>
+        <defs>
+          <clipPath id={'hc' + uid}>
+            <path d={shell} />
+          </clipPath>
+          {bead && (
+            <radialGradient id={'hb' + uid} cx="34%" cy="28%" r="72%">
+              <stop offset="0" stopColor="#ff8a4a" />
+              <stop offset="0.18" stopColor="#ff7a3f" />
+              <stop offset="0.55" stopColor="#ef2d06" />
+              <stop offset="1" stopColor="#b81f04" />
+            </radialGradient>
+          )}
+        </defs>
+        <path d={shell} fill={shellFill} stroke={state === 'future' ? '#cfc6b4' : 'none'} strokeWidth={state === 'future' ? 2 : 0} />
+        {rise && fill > 0 && <rect x={0} y={H * (1 - fill)} width={size} height={H * fill} fill={rise} clipPath={`url(#hc${uid})`} />}
+        {bead && <circle cx={R} cy={H / 2} r={beadR} fill={`url(#hb${uid})`} />}
+      </svg>
+      {children != null && <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>{children}</span>}
+    </span>
+  )
+}
+
+// ---- the hero dot — now the hero HEX (§11.3: the sealed hero keeps the cream check) ----
 export function HeroDot({
   fill = 0,
   state = 'filling',
@@ -130,38 +187,41 @@ export function HeroDot({
   size?: number
   emoji?: string
 }) {
-  const style = { width: size, height: size }
+  const w = Math.round(size / 0.866) // a flat-top hex is 0.866× as tall as wide — widen to hold the old presence
   if (state === 'sealed') {
     return (
-      <div className="heroDot sealed" style={style}>
-        <span className="seal">{Icon.check}</span>
-      </div>
+      <span className="heroHex sealed">
+        <Hex size={w} state="sealed">
+          <span className="heroCheck">{Icon.check}</span>
+        </Hex>
+      </span>
     )
   }
   if (state === 'faded') {
     return (
-      <div className="heroDot faded" style={style}>
-        <span className="liquid" />
-        <span className="goalEmoji">{emoji}</span>
-      </div>
+      <span className="heroHex faded">
+        <Hex size={w} state="today" fill={0.5} fillColor="var(--grey)">
+          <span className="heroEmoji">{emoji}</span>
+        </Hex>
+      </span>
     )
   }
+  // filling + missed both rise bottom-up; missed rises in grey and keeps its level
   return (
-    <div className={'heroDot' + (state === 'missed' ? ' missed' : '')} style={style}>
-      <span className="liquid" style={{ height: `${Math.round(fill * 100)}%` }} />
-      <span className="glass" />
-    </div>
+    <span className="heroHex">
+      <Hex size={w} state="today" fill={fill} fillColor={state === 'missed' ? 'var(--grey)' : undefined} />
+    </span>
   )
 }
 
-// ---- the week frame ---------------------------------------------------------
-const WD: Record<DayMark, string> = { done: 'wd--kept', today: 'wd--today', missed: 'wd--missed', todo: 'wd--future' }
+// ---- the week frame (18px hexes, gap 9 — §11.3) -----------------------------
+const WHEX: Record<DayMark, HexState> = { done: 'kept', today: 'today', missed: 'missed', todo: 'future' }
 export function WeekFrame({ marks, label }: { marks: DayMark[]; label?: string }) {
   return (
     <div className="weekframe">
       <div className="weekrow">
         {marks.map((m, i) => (
-          <span key={i} className={'wd ' + WD[m]} />
+          <Hex key={i} size={18} state={WHEX[m]} fill={m === 'today' ? 0.5 : 0} />
         ))}
       </div>
       {label && <span className="weeklabel">{label}</span>}
@@ -235,7 +295,7 @@ export function ShareCard({ emoji, seq, headline, stamp = copy.rs.shareCard.stam
       <div className="sc-emoji">{emoji}</div>
       <div className="sc-h">{headline}</div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <span className="dot dot--kept" style={{ width: 22, height: 22 }} />
+        <Hex size={22} state="kept" />
       </div>
       <span className="stamp-record">{stamp}</span>
       <div className="sc-cta">{copy.rs.shareCard.cta}</div>
@@ -335,7 +395,9 @@ export function PerfectRing() {
     <div className="ring">
       <span className="mid">7</span>
       {RING.map(([x, y], i) => (
-        <span key={i} className="rwd" style={{ transform: `translate(${x}px,${y}px)` }} />
+        <span key={i} className="rwd" style={{ transform: `translate(${x}px,${y}px)` }}>
+          <Hex size={26} state="kept" />
+        </span>
       ))}
     </div>
   )

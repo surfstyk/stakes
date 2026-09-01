@@ -5,7 +5,7 @@ import { currentDay, keptDays, payoffOf, weekView } from './model.ts'
 import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { TEMPLATES } from './templates.ts'
-import { Cta, Frame, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, WeekFrame, Wordmark } from './ui.tsx'
+import { Cta, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, WeekFrame, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
@@ -70,12 +70,12 @@ export function SphereWithPick({ challenge, raised }: { challenge: Challenge; ra
   )
 }
 
-const WD: Record<DayMark, string> = { done: 'wd--kept', today: 'wd--today', missed: 'wd--missed', todo: 'wd--future' }
+const WHEX2: Record<DayMark, HexState> = { done: 'kept', today: 'today', missed: 'missed', todo: 'future' }
 function WeekDots({ marks, size = 18 }: { marks: DayMark[]; size?: number }) {
   return (
-    <div className="weekrow" style={{ gap: 11 }}>
+    <div className="weekrow" style={{ gap: 9 }}>
       {marks.map((m, i) => (
-        <span key={i} className={'wd ' + WD[m]} style={{ width: size, height: size }} />
+        <Hex key={i} size={size} state={WHEX2[m]} fill={m === 'today' ? 0.5 : 0} />
       ))}
     </div>
   )
@@ -123,13 +123,13 @@ export function BankedScreen({
           <p className="kicker go" style={{ margin: '0 0 6px' }}>
             {c.banked.kicker}
           </p>
-          <h1 className="h" style={{ fontSize: 30 }}>
+          <h1 className="h">
             {c.banked.hLead}
             <span className="fs">.</span>
           </h1>
         </div>
         <div style={{ marginTop: 16 }}>
-          <WeekDots marks={marks} size={16} />
+          <WeekDots marks={marks} size={18} />
         </div>
         <div style={{ marginTop: 16 }}>
           <Money variant="win" label={c.banked.moneyLbl} amount={Number(fmt(p.banked))} gain={c.banked.gain(Number(fmt(p.bonus)))} />
@@ -164,7 +164,7 @@ export function BankedScreen({
           <p className="kicker quiet" style={{ margin: '0 0 6px' }}>
             {c.banked.kickerUp}
           </p>
-          <h1 className="h" style={{ fontSize: 30 }}>
+          <h1 className="h">
             {c.banked.hPartialLead}
             <em className="go">{p.kept}</em>
             {c.banked.hPartialTail}
@@ -212,7 +212,7 @@ export function BankedScreen({
         <p className="kicker quiet" style={{ margin: '0 0 6px', alignSelf: 'flex-start' }}>
           {c.banked.kickerUp}
         </p>
-        <h1 className="h" style={{ fontSize: 31, alignSelf: 'flex-start' }}>
+        <h1 className="h" style={{ alignSelf: 'flex-start' }}>
           {c.banked.hWipeout}
         </h1>
         <div style={{ marginTop: 30 }}>
@@ -265,7 +265,7 @@ export function ReUpScreen({
         <p className="kicker go" style={{ margin: '0 0 7px' }}>
           {c.reup.kicker}
         </p>
-        <h1 className="h" style={{ fontSize: 30 }}>
+        <h1 className="h">
           {c.reup.hLead}
           <em>{c.reup.hEm}</em>
           <span className="fs">.</span>
@@ -322,7 +322,7 @@ export function ArchiveScreen({
   return (
     <Frame foot={<Cta label={c.archive.start} variant="green" icon={Icon.arrow} onClick={onStart} />}>
       <Wordmark onClick={onWordmark} />
-      <h1 className="h" style={{ fontSize: 27, marginTop: 14 }}>
+      <h1 className="h" style={{ marginTop: 14 }}>
         {c.archive.h}
       </h1>
       <p className="sub" style={{ margin: '3px 0 0' }}>
@@ -445,7 +445,7 @@ export function PerfectWeekScreen({ onShare, onWordmark }: { onShare: () => void
         <p className="kicker go" style={{ margin: '0 0 8px' }}>
           {c.perfectweek.kicker}
         </p>
-        <h1 className="h" style={{ fontSize: 38, lineHeight: 1 }}>
+        <h1 className="h">
           {c.perfectweek.hLead}
           <em>{c.perfectweek.hEm}</em>
           <span className="fs">.</span>
