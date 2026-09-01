@@ -90,9 +90,13 @@ export function Cta({
 }
 
 // ---- the sphere -------------------------------------------------------------
-export function Sphere({ onClick, raised }: { onClick?: () => void; raised?: boolean }) {
+export function Sphere({ onClick, raised, motion = 'calm' }: { onClick?: () => void; raised?: boolean; motion?: 'calm' | 'lively' }) {
   return (
-    <button className={'sphereFab' + (raised ? ' raised' : '')} onClick={onClick} aria-label={copy.a11y.openSphere}>
+    <button
+      className={'sphereFab' + (raised ? ' raised' : '') + (motion === 'lively' ? ' lively' : '')}
+      onClick={onClick}
+      aria-label={copy.a11y.openSphere}
+    >
       <span className="sh" />
       <span className="ball">
         <span className="spec" />

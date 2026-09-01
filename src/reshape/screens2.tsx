@@ -373,7 +373,7 @@ export function MissedScreen({
   const [hintOpen, setHintOpen] = useState(true)
   return (
     <Frame
-      sphere={<Sphere onClick={() => setHintOpen(true)} />}
+      sphere={<Sphere onClick={() => setHintOpen(true)} motion={hintOpen ? 'lively' : 'calm'} />}
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <Wordmark onClick={onWordmark} />

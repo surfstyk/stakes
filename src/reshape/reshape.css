@@ -540,8 +540,18 @@
   padding: 22px;
   animation: rs-card var(--dur) ease-in-out var(--lag) infinite;
 }
-/* a system HINT breathes lively (attention); a motivational PICK is calm */
+/* THE TWO MODES (canonical: onboarding-v2/Taste.dc.html = hint · SpherePick.dc.html = pick).
+   A system HINT breathes LIVELY (attention-grabbing); a motivational PICK during the challenge
+   is CALM and slow. The tokens must reach BOTH the card and the sphere so the two move as one
+   unit (same period; the sphere leads, the card trails by --lag). The card carries them via
+   .pop.hint; the sphere via .sphereFab.lively (a sibling, so it can't inherit from the card). */
 .rs .pop.hint {
+  --amp: 12px;
+  --camp: 9px;
+  --dur: 2.6s;
+  --lag: 0.55s;
+}
+.rs .sphereFab.lively {
   --amp: 12px;
   --camp: 9px;
   --dur: 2.6s;

@@ -102,7 +102,7 @@ export function TasteScreen({
   }
   return (
     <Frame
-      sphere={<Sphere onClick={() => setOpen(true)} />}
+      sphere={<Sphere onClick={() => setOpen(true)} motion={open ? 'lively' : 'calm'} />}
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
       <Wordmark onClick={onWordmark} />
@@ -164,7 +164,7 @@ export function MakeOfficialScreen({
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   return (
     <Frame
-      sphere={<Sphere onClick={() => setTip(true)} />}
+      sphere={<Sphere onClick={() => setTip(true)} motion={tip ? 'lively' : 'calm'} />}
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
       <Wordmark onClick={onWordmark} />
