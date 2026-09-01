@@ -17,13 +17,13 @@ export interface Brand {
 
 export const brand: Brand = {
   name: 'Stakes',
-  tagline: 'an app to quit quitting',
+  tagline: 'Stake a day. Keep it, keep the money.',
   hasDot: true,
   deckLines: [
-    'An app to quit quitting.',
-    'Put your money where your mouth is — with your crew.',
-    'Proof and content are the same act.',
-    "The money's job is to be at risk, not to be won.",
-    'A commitment game built on trust, not surveillance.',
+    'Win your moment. Bank the day.',
+    'Stake a day on a promise to yourself.',
+    'Keep the day, keep the money.',
+    'The money is at risk, not up for grabs.',
+    'Kept honest by friends, not surveillance.',
   ],
 }

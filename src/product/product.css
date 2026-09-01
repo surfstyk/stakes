@@ -10,9 +10,9 @@
    ============================================================================ */
 
 :root {
-  --paper: #f1e9d9;
-  --paper-card: #fbf6ec;
-  --paper-sunk: #ece2cf;
+  --paper: #f5f2eb;
+  --paper-card: #fffdf7;
+  --paper-sunk: #efebe3;
   --ink: #1c1813;
   --ink-soft: #6c6256;
   --ink-faint: #a89c88;
@@ -23,12 +23,12 @@
   --stake-deep: #c12104;
   --stake-tint: #fbe2d7;
 
-  --go: #0f7a44; /* deep green — confirmed / money */
+  --go: #0c5f35; /* deep green — confirmed / money */
   --go-tint: #dcefe0;
 
   --gold: #c98a16;
 
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-display: 'Young Serif', Georgia, 'Times New Roman', serif;
   --font-ui: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
 
   --r-card: 22px;
@@ -311,7 +311,7 @@ button {
 }
 .s-cta[data-variant='go'] {
   background: var(--go);
-  box-shadow: 0 22px 50px -26px rgba(15, 122, 68, 0.7);
+  box-shadow: 0 22px 50px -26px rgba(12, 95, 53, 0.7);
 }
 .s-cta:disabled {
   opacity: 0.45;
@@ -629,7 +629,7 @@ button {
   place-items: center;
   margin: 6px auto 16px;
   font-size: 44px;
-  box-shadow: 0 22px 44px -20px rgba(15, 122, 68, 0.7);
+  box-shadow: 0 22px 44px -20px rgba(12, 95, 53, 0.7);
 }
 
 /* ---- Misc ------------------------------------------------------------------- */

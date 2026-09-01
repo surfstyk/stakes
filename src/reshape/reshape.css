@@ -18,11 +18,11 @@
   --serif: var(--font-display, 'Fraunces', Georgia, 'Times New Roman', serif);
   --sans: var(--font-ui, 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif);
   /* fallbacks for the tokens apply.ts injects (no-flash parity) */
-  --go-deep: #0c5f35;
+  --go-deep: #004721;
   --proceed: #27354d;
   --proceed-deep: #1e2a3d;
   --proceed-tint: #dfe4ec;
-  --grey: #b7ad9b;
+  --grey: #c8c0b0;
   --cream: #fbf6ec;
   --nimiq-blue: #1f2348;
   --nimiq-gold-a: #ec991c;
@@ -203,8 +203,8 @@
   box-shadow: 0 10px 22px -14px rgba(39, 53, 77, 0.85);
 }
 .rs .cta--green {
-  background: linear-gradient(180deg, #12894c, #0f7a44);
-  box-shadow: 0 10px 22px -14px rgba(15, 122, 68, 0.7);
+  background: linear-gradient(180deg, #186c3f, #0c5f35);
+  box-shadow: 0 10px 22px -14px rgba(12, 95, 53, 0.7);
 }
 .rs .ghost {
   font-family: var(--sans);
@@ -267,7 +267,7 @@
   right: 0;
   bottom: 0;
   height: 0;
-  background: linear-gradient(180deg, #57b77e 0%, #2f9a5e 100%);
+  background: #0c5f35;
   box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.24);
   transition: height 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -295,7 +295,7 @@
   border-color: var(--go);
   background: var(--go);
   overflow: visible;
-  box-shadow: 0 0 0 11px var(--go-tint), inset -8px -10px 20px rgba(12, 95, 53, 0.4),
+  box-shadow: 0 0 0 11px var(--go-tint), inset -8px -10px 20px rgba(0, 71, 33, 0.4),
     inset 5px 7px 15px rgba(150, 225, 175, 0.28);
 }
 .rs .heroDot.sealed .seal {
@@ -318,7 +318,7 @@
   border-color: rgba(28, 24, 19, 0.2);
 }
 .rs .heroDot.missed .liquid {
-  background: linear-gradient(180deg, #cdc4b2, #b7ad9b);
+  background: linear-gradient(180deg, #cdc4b2, #c8c0b0);
   transition: none;
 }
 /* lapsed — a full, faded, closed dot (the taste that never launched) */
@@ -408,7 +408,7 @@
   font-size: 12px;
   color: var(--go-deep);
   background: var(--go-tint);
-  border: 1px solid rgba(15, 122, 68, 0.28);
+  border: 1px solid rgba(12, 95, 53, 0.28);
   border-radius: 20px;
   padding: 5px 11px;
   white-space: nowrap;
@@ -423,7 +423,7 @@
   letter-spacing: 0.04em;
   color: var(--go-deep);
   background: var(--go-tint);
-  border: 1px solid rgba(15, 122, 68, 0.28);
+  border: 1px solid rgba(12, 95, 53, 0.28);
   border-radius: 20px;
   padding: 6px 12px;
 }
@@ -450,7 +450,7 @@
   height: 50px;
   border-radius: 50%;
   position: relative;
-  background: radial-gradient(circle at 34% 28%, #ffb24f, #ff7a3f 16%, #ef2d06 52%, #b81f04);
+  background: radial-gradient(circle at 34% 28%, #ff8a4a, #ff7a3f 18%, #ef2d06 55%, #b81f04);
   box-shadow: inset -5px -6px 12px rgba(120, 15, 4, 0.5), inset 3px 4px 8px rgba(255, 205, 180, 0.35);
   animation: rs-sidle var(--dur) ease-in-out infinite;
 }
@@ -541,7 +541,7 @@
   letter-spacing: 0.03em;
   color: var(--go-deep);
   background: var(--go-tint);
-  border: 1px solid rgba(15, 122, 68, 0.28);
+  border: 1px solid rgba(12, 95, 53, 0.28);
   border-radius: 20px;
   padding: 5px 12px;
 }
@@ -845,9 +845,9 @@
   text-align: center;
 }
 .rs .money--win {
-  background: linear-gradient(180deg, #12894c, #0e6c3d);
+  background: linear-gradient(180deg, #1d7042, #00592f);
   color: var(--cream);
-  box-shadow: 0 18px 38px -22px rgba(15, 122, 68, 0.7);
+  box-shadow: 0 18px 38px -22px rgba(12, 95, 53, 0.7);
 }
 .rs .money--neutral {
   background: var(--paper-card);
@@ -979,7 +979,7 @@
   font-size: 12px;
   color: var(--go-deep);
   background: var(--go-tint);
-  border: 1px solid rgba(15, 122, 68, 0.28);
+  border: 1px solid rgba(12, 95, 53, 0.28);
   border-radius: 20px;
   padding: 5px 11px;
 }
@@ -1194,7 +1194,7 @@
 .rs .tag--banked {
   color: var(--go-deep);
   background: var(--go-tint);
-  border: 1px solid rgba(15, 122, 68, 0.28);
+  border: 1px solid rgba(12, 95, 53, 0.28);
 }
 .rs .tag--partial {
   color: var(--ink-soft);
