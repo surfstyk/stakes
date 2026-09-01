@@ -102,7 +102,20 @@ export function TasteScreen({
   }
   return (
     <Frame
-      sphere={<Sphere onClick={() => setOpen(true)} motion={open ? 'lively' : 'calm'} />}
+      sphere={
+        <>
+          {open && (
+            <PopOver variant="hint" onClose={close}>
+              <p className="hintline">
+                {c.taste.hintPre}
+                <em>{c.taste.hintEm}</em>
+                {c.taste.hintPost}
+              </p>
+            </PopOver>
+          )}
+          <Sphere onClick={() => setOpen(true)} motion={open ? 'lively' : 'calm'} />
+        </>
+      }
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
       <Wordmark onClick={onWordmark} />
@@ -123,15 +136,6 @@ export function TasteScreen({
       <button className="textlink" onClick={onExit} style={{ marginBottom: 8 }}>
         {c.taste.exit}
       </button>
-      {open && (
-        <PopOver variant="hint" onClose={close}>
-          <p className="hintline">
-            {c.taste.hintPre}
-            <em>{c.taste.hintEm}</em>
-            {c.taste.hintPost}
-          </p>
-        </PopOver>
-      )}
     </Frame>
   )
 }
@@ -164,7 +168,20 @@ export function MakeOfficialScreen({
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   return (
     <Frame
-      sphere={<Sphere onClick={() => setTip(true)} motion={tip ? 'lively' : 'calm'} />}
+      sphere={
+        <>
+          {tip && (
+            <PopOver variant="hint" onClose={() => setTip(false)}>
+              <p className="hintline">
+                {c.official.hintPre}
+                <em>{c.official.hintEm}</em>
+                {c.official.hintPost}
+              </p>
+            </PopOver>
+          )}
+          <Sphere onClick={() => setTip(true)} motion={tip ? 'lively' : 'calm'} />
+        </>
+      }
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
       <Wordmark onClick={onWordmark} />
@@ -219,15 +236,6 @@ export function MakeOfficialScreen({
         <p className="sub" style={{ color: 'var(--stake)', marginTop: 10 }}>
           {error}
         </p>
-      )}
-      {tip && (
-        <PopOver variant="hint" onClose={() => setTip(false)}>
-          <p className="hintline">
-            {c.official.hintPre}
-            <em>{c.official.hintEm}</em>
-            {c.official.hintPost}
-          </p>
-        </PopOver>
       )}
     </Frame>
   )

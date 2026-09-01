@@ -373,7 +373,20 @@ export function MissedScreen({
   const [hintOpen, setHintOpen] = useState(true)
   return (
     <Frame
-      sphere={<Sphere onClick={() => setHintOpen(true)} motion={hintOpen ? 'lively' : 'calm'} />}
+      sphere={
+        <>
+          {hintOpen && (
+            <PopOver variant="hint" onClose={() => setHintOpen(false)}>
+              <p className="hintline">
+                {c.missed.hintPre}
+                <em>{c.missed.hintEm}</em>
+                {c.missed.hintPost}
+              </p>
+            </PopOver>
+          )}
+          <Sphere onClick={() => setHintOpen(true)} motion={hintOpen ? 'lively' : 'calm'} />
+        </>
+      }
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <Wordmark onClick={onWordmark} />
@@ -395,15 +408,6 @@ export function MissedScreen({
       <div style={{ marginTop: 26 }}>
         <WeekFrame marks={wv.marks} />
       </div>
-      {hintOpen && (
-        <PopOver variant="hint" onClose={() => setHintOpen(false)}>
-          <p className="hintline">
-            {c.missed.hintPre}
-            <em>{c.missed.hintEm}</em>
-            {c.missed.hintPost}
-          </p>
-        </PopOver>
-      )}
     </Frame>
   )
 }
