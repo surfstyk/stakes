@@ -568,8 +568,9 @@
   text-wrap: pretty;
 }
 .rs .pop .hintline em {
-  font-style: italic;
-  color: var(--stake);
+  /* §11.2 — colour keeps one job (the bead); emphasis is not set apart by vermilion/italic */
+  font-style: normal;
+  color: inherit;
 }
 .rs .pop .ctx {
   display: inline-flex;
@@ -602,8 +603,9 @@
   text-wrap: pretty;
 }
 .rs .pop .quote em {
-  font-style: italic;
-  color: var(--stake);
+  /* §11.2 — colour keeps one job (the bead); emphasis is not set apart by vermilion/italic */
+  font-style: normal;
+  color: inherit;
 }
 .rs .pop .hr {
   height: 1px;
