@@ -418,7 +418,7 @@ export function devSeed(kind: SeedKind): void {
     case 'archive':
       history = [
         { id: 'a1', templateId: 'sugar', goal: t.goal, emoji: '🍩', outcome: 'banked', kept: 7, total: 7, stake: 700, endedAt: now - 6 * DAY },
-        { id: 'a2', templateId: 'run', goal: 'running every day', emoji: '🏃', outcome: 'partial', kept: 4, total: 7, stake: 700, endedAt: now - 8 * DAY },
+        { id: 'a2', templateId: 'run', goal: 'moving every day', emoji: '👟', outcome: 'partial', kept: 4, total: 7, stake: 700, endedAt: now - 8 * DAY },
         { id: 'a3', templateId: 'meditate', goal: 'meditating every day', emoji: '🧘', outcome: 'lapsed', kept: 0, total: 0, stake: 0, endedAt: now - 9 * DAY },
         { id: 'a4', templateId: 'cold', goal: 'taking a cold shower daily', emoji: '🚿', outcome: 'banked', kept: 7, total: 7, stake: 350, endedAt: now - 26 * DAY },
         { id: 'a5', templateId: 'read', goal: 'reading every day', emoji: '📚', outcome: 'wipeout', kept: 0, total: 7, stake: 700, endedAt: now - 40 * DAY },
