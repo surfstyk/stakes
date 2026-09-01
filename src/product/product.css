@@ -6,7 +6,7 @@
 
    SOURCE OF TRUTH: these tokens are defined in src/brand/theme.ts and injected
    onto :root at boot (src/brand/apply.ts). The values below are static fallbacks
-   only — edit theme.ts to re-skin; the canvas share-image renderer reads it too.
+   only — edit theme.ts to re-skin.
    ============================================================================ */
 
 :root {
