@@ -7,7 +7,7 @@
 export interface Brand {
   /** product name — wordmark, card branding, share text, document title */
   name: string
-  /** completes "<name> — <tagline>" in the document title */
+  /** completes "<name>. <tagline>" in the document title (e.g. "Stakes. Makes every day count.") */
   tagline: string
   /** the wordmark shows the name preceded by an accent dot when true */
   hasDot: boolean
@@ -17,12 +17,11 @@ export interface Brand {
 
 export const brand: Brand = {
   name: 'Stakes',
-  tagline: 'Stake a day. Keep it, keep the money.',
+  tagline: 'Makes every day count.',
   hasDot: true,
   deckLines: [
     'Win your moment. Bank the day.',
-    'Stake a day on a promise to yourself.',
-    'Keep the day, keep the money.',
+    'Makes every day count.',
     'The money is at risk, not up for grabs.',
     'Kept honest by friends, not surveillance.',
   ],

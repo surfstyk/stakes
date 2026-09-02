@@ -44,5 +44,6 @@ export function applyBrand() {
   set('--shadow-card', theme.shadow.card)
   set('--shadow-pop', theme.shadow.pop)
 
-  document.title = `${brand.name} — ${brand.tagline}`
+  // "Stakes. Makes every day count." — the trailing period is the wordmark's bead; no dash.
+  document.title = `${brand.name}. ${brand.tagline}`
 }
