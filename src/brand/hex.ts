@@ -1,9 +1,9 @@
-// The locked hexagon geometry — ported VERBATIM from surfstyk-notes/brand/gen-hex.mjs
-// (the private mark generator). This is what makes "nothing in the system renders the
-// symbol at another ratio" true inside the app: corner radius = bead radius = 0.4 × R.
-// Nimiq's orientation (flat top/bottom, vertices left/right), corners softened to rhyme
-// with the bead. Do not fork these numbers — regenerate assets from gen-hex.mjs so the
-// icon, the wordmark's full stop, and the in-app day-states are one asset.
+// The locked hexagon geometry — this file is now the in-app source of truth for the mark
+// ratio (the original private mark generator moved to the studio brand repo). This is what makes
+// "nothing in the system renders the symbol at another ratio" true inside the app: corner radius =
+// bead radius = 0.4 × R. Nimiq's orientation (flat top/bottom, vertices left/right), corners softened
+// to rhyme with the bead. Do not fork these numbers — keep them in sync with the studio brand canon so
+// the icon, the wordmark's full stop, and the in-app day-states are one asset.
 
 export const RATIO = 0.4
 export const SQ3 = Math.sqrt(3)

@@ -47,7 +47,7 @@ export function ReshapeApp() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ kind: 'cancel' | 'error' } | null>(null)
 
-  // The landing rule (BUILD-HANDOFF §7): active run → its screen · else history → Archive · else Create.
+  // The landing rule: active run → its screen · else history → Archive · else Create.
   async function refresh() {
     const me = await data.getMe()
     setChallenge(me.active)

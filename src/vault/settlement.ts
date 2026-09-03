@@ -66,7 +66,7 @@ export function computeSettlement(input: SettlementInput): SettlementOutput {
   return { perParticipant, burnedPot, perfectFinishers }
 }
 
-// ---- the completion-bonus policy (decided 2026-08-28, PRE-BUILD-SENSE-CHECK J16) -------------
+// ---- the completion-bonus policy (decided 2026-08-28) ---------------------------------------
 // A share of the stake, capped — never a flat amount, so a tiny stake can't farm a large bonus
 // across throwaway wallets. One place, used by both the server plan (server/db.ts) and the
 // in-app preview (ResultsScreen). "One bonus per wallet per day" follows from one-run-at-a-time

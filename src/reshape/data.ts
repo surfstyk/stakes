@@ -4,7 +4,7 @@
 //         browser off localStorage + the mock vault/stamp, so the look is reviewable with no
 //         server. This is what the design run uses.
 //   API   (treasury configured): the same calls hit the same-origin /api the server rebuild
-//         (BUILD-HANDOFF §7) will implement. Wired here so the swap is a one-line gate, never
+//         implements. Wired here so the swap is a one-line gate, never
 //         a UI change — same discipline as the StakeVault.
 //
 // Money + on-chain: deposits go through getVault() (tagged `official:<id>`); seals stamp the
@@ -251,7 +251,7 @@ const mockApi: DataApi = {
 }
 
 // ============================================================================
-// API adapter — the same-origin server (BUILD-HANDOFF §7); wired for the swap
+// API adapter — the same-origin server; wired for the swap
 // ============================================================================
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {

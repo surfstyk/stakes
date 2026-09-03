@@ -4,8 +4,8 @@ import { copy } from '../brand/index.ts'
 import type { DayMark } from './model.ts'
 import type { Template } from './templates.ts'
 
-// The shared primitives, ported one-for-one from the finished artboards
-// (surfstyk-notes/brand/onboarding-v2/). Faithful, not reskinned. Class names match
+// The shared primitives, ported one-for-one from the finished onboarding-v2 artboards
+// (design source now in the studio brand repo). Faithful, not reskinned. Class names match
 // reshape.css (scoped under `.rs`). fill = time · solid = you.
 
 // ---- icons (inline; stroke = currentColor) ----------------------------------

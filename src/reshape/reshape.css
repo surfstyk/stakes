@@ -1,6 +1,6 @@
 /* ============================================================================
    The reshape design system (the day is the hex, the dot is the companion), ported from the finished
-   artboards in surfstyk-notes/brand/onboarding-v2/ (Aug 2026).
+   onboarding-v2 artboards (Aug 2026; design source now in the studio brand repo).
 
    EVERYTHING here is scoped under `.rs` so it never collides with the crew-era
    product.css (which owns the un-prefixed .stamp / .card / .cta names). Tokens
@@ -540,7 +540,7 @@
   padding: 22px;
   animation: rs-card var(--dur) ease-in-out var(--lag) infinite;
 }
-/* THE TWO MODES (canonical: onboarding-v2/Taste.dc.html = hint · SpherePick.dc.html = pick).
+/* THE TWO MODES (hint vs pick — motion spec now in the studio dot guide; this CSS is the implementation).
    A system HINT breathes LIVELY (attention-grabbing); a motivational PICK during the challenge
    is CALM and slow. The tokens must reach BOTH the card and the sphere so the two move as one
    unit (same period; the sphere leads, the card trails by --lag). The card carries them via

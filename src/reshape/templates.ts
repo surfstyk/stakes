@@ -1,7 +1,7 @@
 // The curated challenge deck (v1 = curated only, no custom goal — JOURNEY §12.10).
 //
 // Product DATA, not chrome copy: the label / blurb / goal phrase live here (they are a
-// per-language content catalog later, per BUILD-HANDOFF §1 bucket 1 — treated as "text is
+// per-language content catalog later — treated as "text is
 // data, not code", never machine-translated). `blurb` is the swipe-card line; `goal` is the
 // phrase that completes the on-record card ("going sugar-free").
 
@@ -16,7 +16,7 @@ export interface Template {
 }
 
 // Nine cards, ordered so the deck opens on an invitation rather than a denial and no two
-// neighbours come from the same part of life (RESEARCH-2026-09-01 §C2; Hendrik, 1 Sep).
+// neighbours come from the same part of life (decided with Hendrik, 2026-09-01).
 // The first five were all solo self-optimisation and four of them were about giving something
 // up — nothing on rest, attention, home or other people. Those four are the additions.
 //
