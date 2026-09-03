@@ -16,7 +16,7 @@ process.env.STAKES_DB = join(dir, 'test.db')
 process.env.STAKES_API_PORT = '0' // random free port
 
 const db = await import('./db.ts')
-const { server } = await import('./api.ts')
+const { server, chainDeps } = await import('./api.ts')
 
 let base = ''
 before(async () => {
@@ -108,15 +108,26 @@ test('deleteWindowChallenge drops a never-staked taste, but not a staked run', (
 
 // ---- HTTP endpoints (the wiring `tsc` does not cover) ------------------------
 
-test('POST /challenges starts a taste; the ≤1-active invariant blocks a second live start', async () => {
+test('POST /challenges starts a taste; a second start REPLACES a never-staked taste; a staked run blocks', async () => {
+  const before = (await j('GET', '/stats/social')).body.startedThisWeek as Record<string, number>
   const a = await j('POST', '/challenges', { templateId: 'sugar', goal: 'going sugar-free', emoji: '🍩', creatorAddress: NQ })
   assert.equal(a.status, 201)
   assert.equal(a.body.status, 'window')
   assert.equal(a.body.templateId, 'sugar')
   assert.equal(a.body.durationDays, 0)
 
-  const dup = await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: NQ })
-  assert.equal(dup.status, 409, 'a live taste blocks a second start')
+  // SEC-04 mitigation: a taste holds no money and no progress, so it never blocks its owner
+  const again = await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: NQ })
+  assert.equal(again.status, 201, 'a never-staked taste is replaced, not a blocker')
+  assert.notEqual(again.body.id, a.body.id)
+  assert.equal((await j('GET', `/challenges/${a.body.id}`)).status, 404, 'the replaced taste is gone')
+  const social = (await j('GET', '/stats/social')).body.startedThisWeek as Record<string, number>
+  assert.equal(social.sugar ?? 0, before.sugar ?? 0, 'the replaced taste no longer counts as started')
+  assert.equal(social.run ?? 0, (before.run ?? 0) + 1, 'the replacement counts once')
+
+  await j('POST', `/challenges/${again.body.id}/official`, { address: NQ, durationDays: 7, stake: 70, depositTxHash: 'mock-blk' })
+  const blocked = await j('POST', '/challenges', { templateId: 'sugar', goal: 'sugar', emoji: '🍩', creatorAddress: NQ })
+  assert.equal(blocked.status, 409, 'a staked run still blocks a second start')
 })
 
 test('the full happy path over HTTP: taste → official → seal → /me', async () => {
@@ -220,4 +231,93 @@ test('M3: a body past the cap is refused and the socket is closed', async () => 
   assert.ok(status === 'reset' || status === 400, `oversized body refused (got ${status})`)
   const me = await j('GET', `/me?address=${encodeURIComponent(NQ)}`)
   assert.equal(me.status, 200, 'the API is still up afterwards')
+})
+
+
+// ---- crew mode is OFF for solo-first Cycle II (Hendrik, 2026-09-03): dead surface stays closed ----
+
+test('crew off: POST /join and /cheer answer 410', async () => {
+  const addr = 'NQ66 6666 6666 6666 6666 6666 6666 6666 6666'
+  const start = await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr })
+  const join = await j('POST', `/challenges/${start.body.id}/join`, { address: NQ, name: 'Stranger' })
+  assert.equal(join.status, 410)
+  assert.equal((await j('GET', `/challenges/${start.body.id}`)).body.participants.length, 0, 'nobody was attached')
+  const cheer = await j('POST', `/challenges/${start.body.id}/checkins/whatever/cheer`)
+  assert.equal(cheer.status, 410)
+})
+
+// ---- SEC-04 mitigation: on real money /official is self-authenticating — the run goes official
+// only against a deposit that is on-chain, tagged for THIS run, of the stated amount, unused ----
+
+const TREASURY = 'NQ07 0000 0000 0000 0000 0000 0000 0000 0000'
+const HASH_A = 'ab26a26b433509a034a4ca8ef531ee467321910a1a8412577d1de1637499e3b5'
+const HASH_B = 'bb26a26b433509a034a4ca8ef531ee467321910a1a8412577d1de1637499e3b5'
+async function realMoney<T>(chain: (treasury: string, id: string, hash: string) => Promise<{ from: string; valueLuna: number; hash: string; at: number } | null>, fn: () => Promise<T>): Promise<T> {
+  const prev = process.env.STAKES_TREASURY_ADDRESS
+  const saved = { ...chainDeps }
+  process.env.STAKES_TREASURY_ADDRESS = TREASURY
+  chainDeps.lookupStakeDeposit = chain
+  chainDeps.retryDelayMs = 1
+  chainDeps.attempts = 2
+  try {
+    return await fn()
+  } finally {
+    if (prev === undefined) delete process.env.STAKES_TREASURY_ADDRESS
+    else process.env.STAKES_TREASURY_ADDRESS = prev
+    Object.assign(chainDeps, saved)
+  }
+}
+const depositOf = (id: string, hash: string, nim: number) => ({ from: 'NQ15 PG6C SOME SUB ADDR', valueLuna: nim * 100_000, hash, at: 1 })
+
+test('real money: /official without a deposit hash is refused (402) and the run stays a taste', async () => {
+  const addr = 'NQ77 7777 7777 7777 7777 7777 7777 7777 7777'
+  const start = await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr })
+  const id = start.body.id
+  const r = await realMoney(async () => null, () => j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 60, stake: 100 }))
+  assert.equal(r.status, 402)
+  const me = await j('GET', `/me?address=${encodeURIComponent(addr)}`)
+  assert.equal(me.body.active.status, 'window', 'nobody can flip a run official without a deposit → no lockout')
+  assert.equal(me.body.active.durationDays, 0)
+})
+
+test('real money: a hash the chain does not know is refused (402, retried briefly)', async () => {
+  const addr = 'NQ88 8888 8888 8888 8888 8888 8888 8888 8888'
+  const id = (await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr })).body.id
+  let calls = 0
+  const r = await realMoney(async () => { calls++; return null }, () => j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 100, depositTxHash: HASH_A }))
+  assert.equal(r.status, 402)
+  assert.equal(calls, 2, 'looked up again after a short wait (inclusion lag)')
+})
+
+test('real money: a deposit of the wrong amount, or below the minimum stake, is refused', async () => {
+  const addr = 'NQ99 9999 9999 9999 9999 9999 9999 9999 9999'
+  const id = (await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr })).body.id
+  const wrong = await realMoney(async (_t, cid, h) => depositOf(cid, h, 1), () => j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 100, depositTxHash: HASH_A }))
+  assert.equal(wrong.status, 400)
+  assert.match(wrong.body.error, /amount/)
+  const tiny = await realMoney(async (_t, cid, h) => depositOf(cid, h, 1), () => j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 1, depositTxHash: HASH_A }))
+  assert.equal(tiny.status, 400)
+  assert.match(tiny.body.error, /at least 50/)
+})
+
+test('real money: a matching on-chain deposit makes it official, confirmed at once; the hash cannot be reused', async () => {
+  const addr = 'NQ12 1212 1212 1212 1212 1212 1212 1212 1212'
+  const id = (await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr })).body.id
+  const chain = async (_t: string, cid: string, h: string) => (cid === id && h === HASH_A ? depositOf(cid, h, 100) : null)
+  const ok = await realMoney(chain, () => j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 100, depositTxHash: HASH_A.toUpperCase() }))
+  assert.equal(ok.status, 200)
+  assert.equal(ok.body.status, 'official')
+  const p = db.getChallenge(id)!.participants[0]
+  assert.equal(p.depositConfirmed, 1, 'confirmed right away — settlement can pay without a second lookup')
+  assert.equal(p.depositTxHash, HASH_A, 'canonical lower-case hash stored')
+  // retry after a lost response: idempotent, still 200
+  const retry = await realMoney(chain, () => j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 100, depositTxHash: HASH_A }))
+  assert.equal(retry.status, 200)
+  // the same deposit cannot back a second run (consume-once)
+  const addr2 = 'NQ13 1313 1313 1313 1313 1313 1313 1313 1313'
+  const id2 = (await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr2 })).body.id
+  const reuse = await realMoney(async (_t, cid, h) => depositOf(cid, h, 100), () => j('POST', `/challenges/${id2}/official`, { address: addr2, durationDays: 7, stake: 100, depositTxHash: HASH_A }))
+  assert.equal(reuse.status, 409)
+  const fresh = await realMoney(async (_t, cid, h) => (cid === id2 && h === HASH_B ? depositOf(cid, h, 100) : null), () => j('POST', `/challenges/${id2}/official`, { address: addr2, durationDays: 7, stake: 100, depositTxHash: HASH_B }))
+  assert.equal(fresh.status, 200)
 })

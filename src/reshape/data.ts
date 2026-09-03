@@ -267,7 +267,9 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       /* non-JSON */
     }
-    throw new Error(msg)
+    const err = new Error(msg) as Error & { status?: number }
+    err.status = res.status
+    throw err
   }
   const text = await res.text()
   return (text ? JSON.parse(text) : undefined) as T
@@ -347,10 +349,25 @@ const serverApi: DataApi = {
       ref = receipt.ref ?? ''
       saveReceipt(id, total, stake.days, ref)
     }
-    const ch = await api<Challenge>(`/challenges/${id}/official`, {
-      method: 'POST',
-      body: JSON.stringify({ address, durationDays: stake.days, stake: total, depositTxHash: ref }),
-    })
+    // The server registers the run only once the deposit is visible on-chain (402 until then —
+    // inclusion takes a moment after the wallet returns). Retry quietly; the receipt is kept, so a
+    // retry re-posts the same hash and never deposits again.
+    let ch: Challenge | undefined
+    for (let attempt = 0; ; attempt++) {
+      try {
+        ch = await api<Challenge>(`/challenges/${id}/official`, {
+          method: 'POST',
+          body: JSON.stringify({ address, durationDays: stake.days, stake: total, depositTxHash: ref }),
+        })
+        break
+      } catch (e) {
+        if ((e as { status?: number }).status === 402 && attempt < 3) {
+          await new Promise((r) => setTimeout(r, 3000))
+          continue
+        }
+        throw e
+      }
+    }
     clearReceipt(id)
     return ch
   },

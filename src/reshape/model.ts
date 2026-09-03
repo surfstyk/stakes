@@ -220,7 +220,7 @@ export function payoffOf(ch: Challenge): Payoff {
     stake: ch.stake,
     durationDays: total,
     results: [{ account: ch.creatorAddress, daysCompleted: kept }],
-    nimBonusPerFinisher: finisherBonus(ch.stake),
+    nimBonusPerFinisher: finisherBonus(ch.stake, ch.durationDays),
   })
   const p = s.perParticipant[0]
   return {

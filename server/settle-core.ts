@@ -101,7 +101,7 @@ type View = NonNullable<ReturnType<typeof getChallenge>>
 // cap). The stake is always returned in full; only the bonus line is withheld. Read at call time so
 // the knobs are testable.
 const bonusCooldownMs = () => Number(process.env.STAKES_BONUS_WALLET_COOLDOWN_MS ?? 24 * 3600_000)
-const bonusDailyCapNim = () => Number(process.env.STAKES_BONUS_DAILY_CAP_NIM ?? 1000)
+const bonusDailyCapNim = () => Number(process.env.STAKES_BONUS_DAILY_CAP_NIM ?? 500)
 const DAY_MS = 24 * 3600_000
 
 export interface BonusDecision {

@@ -4,14 +4,17 @@
 //   GET  /api/health
 //   POST /api/challenges                              create → { id }
 //   GET  /api/challenges/:id                          full view (+ participants, checkins)
-//   POST /api/challenges/:id/join                     { address, name, depositTxHash? }
-//   POST /api/challenges/:id/checkins                 { address, day, note, emoji? } → { id }
-//   POST /api/challenges/:id/checkins/:cid/cheer
+//   POST /api/challenges/:id/official                 { address, durationDays, stake, depositTxHash }
+//   POST /api/challenges/:id/checkins                 { address, day, stampTxHash? }
 //   GET  /api/challenges/:id/settlement               computed payouts
 //   POST /api/seed                                    { address, challengeId } → queue the silent sliver
+//   POST /api/challenges/:id/join · …/checkins/:cid/cheer   crew mode — OFF unless STAKES_CREW=1
 //
-// Writes are trust-on-use for the MVP (address in body); signMessage verification is a
-// hardening fast-follow (see surfstyk-notes/MVP.md).
+// Writes carry the wallet address in the body and are not signed (SEC-04). What keeps that safe:
+// money only ever moves to a wallet's own confirmed on-chain deposit, and the two writes that could
+// lock a wallet out are self-defending — /official requires the deposit to be visible on-chain
+// (tagged for this exact run, unused, at least the minimum stake), and a new taste replaces a
+// never-staked one instead of being blocked by it. Full signMessage auth is post-competition.
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash } from 'node:crypto'
@@ -20,6 +23,7 @@ import {
   addCheckin,
   archiveChallenge,
   cheer,
+  confirmDeposit,
   countActiveFor,
   countSeedsSince,
   createChallenge,
@@ -30,6 +34,7 @@ import {
   getSeed,
   getSettlement,
   getSettlementRecord,
+  isDepositHashUsed,
   joinChallenge,
   keptDaysFor,
   requestSeed,
@@ -38,15 +43,40 @@ import {
   statsStartedThisWeek,
   type ChallengeRow,
 } from './db.ts'
-import { normAddr } from './rpc.ts'
+import { HASH_RE, lookupStakeDeposit, normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
 
 const GRACE_MS = 15 * 60_000
 const WEEK_MS = 7 * 86400_000
 const DAY_MS = 24 * 3600_000
+const LUNA_PER_NIM = 100_000
 // Real-money deployment iff a treasury is configured (mirrors server/verify.ts + the client
-// invariant "mock money ⟺ mock build"). Used to refuse client-chosen fast clocks on real funds.
-const REAL_MONEY = Boolean((process.env.STAKES_TREASURY_ADDRESS ?? process.env.VITE_TREASURY_NIM_ADDRESS ?? '').trim())
+// invariant "mock money ⟺ mock build"). Read at call time so the real-money paths are testable.
+const treasuryAddr = () => (process.env.STAKES_TREASURY_ADDRESS ?? process.env.VITE_TREASURY_NIM_ADDRESS ?? '').trim()
+const realMoney = () => Boolean(treasuryAddr())
+// The UI's smallest stake is 50 NIM/day × 1 day. Enforced server-side on real money so a stranger
+// who wants to register a run under someone else's address has to fund it with at least this much
+// of their own NIM — which the run's owner then receives at settlement.
+const minStakeNim = () => Number(process.env.STAKES_MIN_STAKE_NIM ?? 50)
+// Crew mode (join / cheer) is off for the solo-first Cycle II — dead surface stays closed.
+const CREW = process.env.STAKES_CREW === '1'
+
+/** Chain access for /official, swappable in tests (the retry cadence too). */
+export const chainDeps = { lookupStakeDeposit, retryDelayMs: 1250, attempts: 8 }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+/** Find a reported deposit on-chain, retrying briefly — the wallet returns before inclusion. */
+async function findDeposit(treasury: string, challengeId: string, hash: string) {
+  for (let i = 0; i < chainDeps.attempts; i++) {
+    if (i > 0) await sleep(chainDeps.retryDelayMs)
+    try {
+      const d = await chainDeps.lookupStakeDeposit(treasury, challengeId, hash)
+      if (d) return d
+    } catch (e) {
+      console.warn('official: deposit lookup failed —', (e as Error).message)
+    }
+  }
+  return null
+}
 
 // ---- reshape serialization (Cycle II) — the shapes src/reshape/model.ts reads --------------
 function reshapeChallenge(row: ChallengeRow) {
@@ -236,12 +266,17 @@ export const server = createServer(async (req, res) => {
       const creatorAddress = str(b.creatorAddress)
       if (!goal || !creatorAddress) return send(res, 400, { error: 'goal and creatorAddress required' })
       // The invariant, enforced at the API (the trust boundary): ≤1 live run per address.
-      // A finished/lapsed run is retired first; a still-live one blocks the new start.
+      // A finished/lapsed run is retired first. A never-staked taste is REPLACED, not a blocker:
+      // it holds no money and no progress, and writes aren't signed (SEC-04) — if it could block,
+      // one unauthenticated POST under someone else's address would lock them out for a day.
+      // Only a staked (official) run still blocks a new start.
       const existing = getActiveRowFor(creatorAddress)
       if (existing) {
         const term = computeTerminal(existing, Date.now())
-        if (!term) return send(res, 409, { error: 'you already have a challenge running' })
-        archiveChallenge(existing.id, term)
+        if (term) archiveChallenge(existing.id, term)
+        else if (existing.status === 'window' && !existing.stakedAt && deleteWindowChallenge(existing.id)) {
+          /* replaced */
+        } else return send(res, 409, { error: 'you already have a challenge running' })
       }
       // The compressed "fast clock" is a dev/testnet affordance only (the client strips it from
       // the public build; see src/lib/flags.ts DEV_TOOLS). On a real-money deployment every run
@@ -250,7 +285,7 @@ export const server = createServer(async (req, res) => {
       // insider fast clock is ever needed on the live box, gate it behind a server-side secret,
       // never an open request field.
       const dl = num(b.dayLengthMs)
-      const dayLengthMs = !REAL_MONEY && Number.isFinite(dl) && dl > 0 && dl <= 90 * 86400_000 ? dl : DAY_MS
+      const dayLengthMs = !realMoney() && Number.isFinite(dl) && dl > 0 && dl <= 90 * 86400_000 ? dl : DAY_MS
       createChallenge({
         goal,
         emoji: str(b.emoji) || '🔥',
@@ -323,10 +358,27 @@ export const server = createServer(async (req, res) => {
         // SEC-05: bound the numbers server-side (the API is the trust boundary).
         if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 60) return send(res, 400, { error: 'durationDays must be a whole number between 1 and 60' })
         if (!(stake > 0) || stake > 1_000_000) return send(res, 400, { error: 'stake must be greater than 0 and at most 1000000' })
+        let depositTxHash = str(b.depositTxHash) || undefined
+        if (realMoney()) {
+          // Self-authenticating on real money (SEC-04 mitigation): the run goes official only
+          // against a deposit that is actually on-chain, tagged `official:<this id>`, of the stated
+          // amount, and not already backing anyone. Nothing here trusts the body beyond what the
+          // chain confirms. (The sender is NOT matched to the address: Nimiq Pay pays from a
+          // sub-address that differs from its listAccounts identity — verified on mainnet.)
+          if (stake < minStakeNim()) return send(res, 400, { error: `stake must be at least ${minStakeNim()} NIM` })
+          const hash = (depositTxHash ?? '').toLowerCase()
+          if (!HASH_RE.test(hash)) return send(res, 402, { error: 'a deposit transaction is required to make it official' })
+          if (isDepositHashUsed(hash)) return send(res, 409, { error: 'that deposit is already registered' })
+          const d = await findDeposit(treasuryAddr(), id, hash)
+          if (!d) return send(res, 402, { error: 'deposit not found on-chain yet — retrying is safe' })
+          if (Math.abs(d.valueLuna - Math.round(stake * LUNA_PER_NIM)) > 1) return send(res, 400, { error: 'the deposit amount does not match the stake' })
+          depositTxHash = d.hash.toLowerCase()
+        }
         setOfficial(id, { durationDays, stake, stakedAt: Date.now() })
         // the solo player becomes the sole participant, with their tagged deposit (official:<id>)
-        joinChallenge(id, { address, name: view.creatorName, depositTxHash: str(b.depositTxHash) || undefined })
-        return send(res, 200, reshapeChallenge(getActiveRowFor(address)!))
+        joinChallenge(id, { address: view.creatorAddress, name: view.creatorName, depositTxHash })
+        if (realMoney()) confirmDeposit(id, view.creatorAddress, depositTxHash ?? null, true)
+        return send(res, 200, reshapeChallenge(getActiveRowFor(view.creatorAddress)!))
       }
 
       // GET /api/challenges/:id/settlement (verify deposits first → count confirmed only)
@@ -342,8 +394,9 @@ export const server = createServer(async (req, res) => {
         return result ? send(res, 200, { ...result, challenge: publicChallenge(getChallenge(id)) }) : send(res, 404, { error: 'challenge not found' })
       }
 
-      // POST /api/challenges/:id/join
+      // POST /api/challenges/:id/join — crew mode, off for solo-first Cycle II
       if (method === 'POST' && seg[3] === 'join' && seg.length === 4) {
+        if (!CREW) return send(res, 410, { error: 'joining a challenge is not available' })
         if (!getChallenge(id)) return send(res, 404, { error: 'challenge not found' })
         const b = await readJson(req)
         const address = str(b.address)
@@ -381,8 +434,9 @@ export const server = createServer(async (req, res) => {
         return send(res, 200, reshapeChallenge(getActiveRowFor(address)!))
       }
 
-      // POST /api/challenges/:id/checkins/:cid/cheer
+      // POST /api/challenges/:id/checkins/:cid/cheer — crew mode, off for solo-first Cycle II
       if (method === 'POST' && seg[3] === 'checkins' && seg[4] && seg[5] === 'cheer') {
+        if (!CREW) return send(res, 410, { error: 'cheering is not available' })
         cheer(seg[4])
         return send(res, 200, { ok: true })
       }

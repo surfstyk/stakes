@@ -66,15 +66,20 @@ export function computeSettlement(input: SettlementInput): SettlementOutput {
   return { perParticipant, burnedPot, perfectFinishers }
 }
 
-// ---- the completion-bonus policy (decided 2026-08-28) ---------------------------------------
-// A share of the stake, capped — never a flat amount, so a tiny stake can't farm a large bonus
-// across throwaway wallets. One place, used by both the server plan (server/db.ts) and the
-// in-app preview (ResultsScreen). "One bonus per wallet per day" follows from one-run-at-a-time
-// (a run is ≥ 1 day), enforced with that invariant in the API.
+// ---- the completion-bonus policy (decided 2026-08-28, amended 2026-09-03) --------------------
+// A share of the stake, capped, EARNED BY DAYS KEPT: a full week earns the full bonus, a shorter
+// run a proportional share (1 day = 1/7). So the bonus rewards following through, not deposit size
+// or run-slicing — a 1-day run can't collect a whole week's bonus, and a wallet earns roughly the
+// same per kept day however it cuts its runs (audit H1). One place, used by both the server plan
+// (server/db.ts) and the in-app preview (model.ts). The settler additionally enforces one bonus per
+// wallet per day + a global daily budget (server/settle-core.ts).
 export const FINISHER_BONUS_RATE = 0.15
 export const FINISHER_BONUS_CAP_NIM = 50
+export const FINISHER_BONUS_FULL_DAYS = 7
 
-export function finisherBonus(stake: number): number {
-  if (!(stake > 0)) return 0
-  return Math.min(FINISHER_BONUS_CAP_NIM, Math.round(stake * FINISHER_BONUS_RATE * 100) / 100)
+export function finisherBonus(stake: number, durationDays: number = FINISHER_BONUS_FULL_DAYS): number {
+  if (!(stake > 0) || !(durationDays > 0)) return 0
+  const full = Math.min(FINISHER_BONUS_CAP_NIM, stake * FINISHER_BONUS_RATE)
+  const share = Math.min(1, durationDays / FINISHER_BONUS_FULL_DAYS)
+  return Math.round(full * share * 100) / 100
 }

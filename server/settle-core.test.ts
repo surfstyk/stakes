@@ -51,7 +51,7 @@ test('listEndedUnsettled returns only challenges whose run has elapsed', () => {
 
 test('dry-run computes the exact payout + finisher bonus + burn plan', async () => {
   const a = nqAddr(), b = nqAddr()
-  // 3-day, 30 stake (slice = 10). A perfect (retain 30 + bonus 15% = 4.5, as its OWN tx); B did 1 day (retain 10, forfeit 20).
+  // 3-day, 30 stake (slice = 10). A perfect (retain 30 + bonus 15% = 4.5 × 3/7 days = 1.93, as its OWN tx); B did 1 day (retain 10, forfeit 20).
   const id = seed({ durationDays: 3, stake: 30, lockAt: ended(3), people: [
     { address: a, name: 'A', days: 3 },
     { address: b, name: 'B', days: 1 },
@@ -62,12 +62,12 @@ test('dry-run computes the exact payout + finisher bonus + burn plan', async () 
   const bonuses = (r.planned ?? []).filter((t) => t.kind === 'bonus')
   const burns = (r.planned ?? []).filter((t) => t.kind === 'burn')
   assert.equal(payouts.find((t) => t.to === a)?.nim, 30, 'perfect finisher: full stake back')
-  assert.equal(bonuses.find((t) => t.to === a)?.nim, 4.5, 'perfect finisher: the bonus is its own tx (15% of 30)')
+  assert.equal(bonuses.find((t) => t.to === a)?.nim, 1.93, 'perfect finisher: the bonus is its own tx (15% of 30, × 3/7 for a 3-day run)')
   assert.equal(payouts.find((t) => t.to === b)?.nim, 10, 'partial: retained slice only')
   assert.ok(!bonuses.some((t) => t.to === b), 'no bonus for a partial run')
   assert.equal(burns.length, 1)
   assert.equal(burns[0].nim, 20, 'forfeited slices are burned')
-  assert.equal(r.totalOut, 64.5)
+  assert.equal(r.totalOut, 61.93)
   assert.equal(r.burnedPot, 20)
 })
 
@@ -146,12 +146,17 @@ test('a dry run over an elapsed empty run reports the close but persists nothing
   assert.ok(db.listEndedUnsettled(Date.now()).includes(id), 'still queued for a real settle')
 })
 
-test('the bonus policy is a capped share of the stake, never a flat amount', async () => {
+test('the bonus policy is a capped share of the stake, earned by days kept (a full week = full bonus)', async () => {
   const { finisherBonus } = await import('../src/vault/settlement.ts')
-  assert.equal(finisherBonus(30), 4.5)
-  assert.equal(finisherBonus(1), 0.15)
-  assert.equal(finisherBonus(10_000), 50, 'capped')
-  assert.equal(finisherBonus(0), 0)
+  assert.equal(finisherBonus(30), 4.5, 'default = a full week')
+  assert.equal(finisherBonus(30, 7), 4.5)
+  assert.equal(finisherBonus(1, 7), 0.15)
+  assert.equal(finisherBonus(10_000, 7), 50, 'capped')
+  assert.equal(finisherBonus(10_000, 30), 50, 'longer than a week still caps at 50')
+  assert.equal(finisherBonus(500, 1), 7.14, 'a 1-day run earns 1/7 of the cap — nothing to gain by slicing runs')
+  assert.equal(finisherBonus(700, 3), 21.43, '3 of 7 days')
+  assert.equal(finisherBonus(0, 7), 0)
+  assert.equal(finisherBonus(30, 0), 0)
 })
 
 // ---- audit H1: the bonus guard — one bonus per wallet per cooldown + a global daily budget ----
@@ -160,7 +165,7 @@ test('H1: a wallet that just banked a bonus gets none on an immediate back-to-ba
   const a = nqAddr()
   const first = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: a, name: 'A', days: 1 }] })
   const r1 = await settleChallenge(first, { execute: false, kp, height: HEIGHT })
-  assert.equal((r1.planned ?? []).find((t) => t.kind === 'bonus')?.nim, 50, 'first run: bonus (capped at 50)')
+  assert.equal((r1.planned ?? []).find((t) => t.kind === 'bonus')?.nim, 7.14, 'first run: bonus (cap 50 × 1/7 for a 1-day run)')
   // commit that plan as if broadcast (the ledger the guard reads)
   db.startSettlement(first, JSON.stringify(r1.planned), 0, r1.totalOut ?? 0)
   db.finishSettlement(first, JSON.stringify(r1.planned))
@@ -175,17 +180,17 @@ test('H1: the global daily bonus budget caps what all wallets together can extra
   const prev = process.env.STAKES_BONUS_DAILY_CAP_NIM
   // the ledger is shared with the tests above: budget = what is already spent today + room for ONE bonus
   const spent = db.listBonusesSince(Date.now() - 86400_000).reduce((s, b) => s + b.nim, 0)
-  process.env.STAKES_BONUS_DAILY_CAP_NIM = String(spent + 60)
+  process.env.STAKES_BONUS_DAILY_CAP_NIM = String(spent + 10)
   try {
     const a = nqAddr(), b = nqAddr()
     const one = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: a, name: 'A', days: 1 }] })
     const r1 = await settleChallenge(one, { execute: false, kp, height: HEIGHT })
-    assert.equal((r1.planned ?? []).find((t) => t.kind === 'bonus')?.nim, 50)
+    assert.equal((r1.planned ?? []).find((t) => t.kind === 'bonus')?.nim, 7.14)
     db.startSettlement(one, JSON.stringify(r1.planned), 0, r1.totalOut ?? 0)
     db.finishSettlement(one, JSON.stringify(r1.planned))
     const two = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: b, name: 'B', days: 1 }] })
     const r2 = await settleChallenge(two, { execute: false, kp, height: HEIGHT })
-    assert.ok(!(r2.planned ?? []).some((t) => t.kind === 'bonus'), 'budget (room for one) exhausted by the first 50 → a second 50 is withheld')
+    assert.ok(!(r2.planned ?? []).some((t) => t.kind === 'bonus'), 'budget (room for one) exhausted by the first 7.14 → a second is withheld')
     assert.equal((r2.planned ?? []).find((t) => t.kind === 'payout')?.nim, 334, 'principal untouched')
   } finally {
     if (prev === undefined) delete process.env.STAKES_BONUS_DAILY_CAP_NIM

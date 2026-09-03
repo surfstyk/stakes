@@ -235,6 +235,11 @@ export function cheer(checkinId: string) {
   db.prepare(`UPDATE checkins SET cheers = cheers + 1 WHERE id = ?`).run(checkinId)
 }
 
+/** True if this on-chain deposit hash already backs a participant anywhere (consume-once, SEC-01). */
+export function isDepositHashUsed(hash: string): boolean {
+  return Boolean(db.prepare(`SELECT 1 FROM participants WHERE lower(depositTxHash) = lower(?) LIMIT 1`).get(hash))
+}
+
 /** Record whether a participant's stake deposit is confirmed (+ the canonical tx hash). */
 export function confirmDeposit(
   challengeId: string,
@@ -437,7 +442,7 @@ export function getSettlement(id: string) {
     stake: view.stake,
     durationDays: view.durationDays,
     results,
-    nimBonusPerFinisher: finisherBonus(view.stake), // the shared policy (% of stake, capped)
+    nimBonusPerFinisher: finisherBonus(view.stake, view.durationDays), // the shared policy (% of stake, capped, earned by days)
   })
   // attach display names back onto each payout row
   const nameByAddr = new Map(view.participants.map((p) => [p.address, p.name]))
