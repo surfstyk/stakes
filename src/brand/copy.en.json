@@ -140,9 +140,6 @@
     "missed": {
       "hLead": "Missed one. It happens",
       "sub": "Yesterday’s slice is gone, {slice} NIM. Your streak starts over. {tail}",
-      "hintPre": "One miss isn’t the story. ",
-      "hintEm": "Today is.",
-      "hintPost": " Tap me if it’s a hard one.",
       "cta": "Win today",
       "subKeptYes": "Every day you kept still stands.",
       "subKeptNo": "What you do next is what counts."
@@ -166,7 +163,15 @@
         "post": " I keep no score."
       },
       "pickCtx": "For your {label} week · day {day}",
-      "pickShare": "Share this"
+      "pickShare": "Share this",
+      "ask": "What’s the moment?",
+      "moods": {
+        "crave": "Craving",
+        "start": "Can’t start",
+        "grind": "Grinding",
+        "doubt": "Why bother",
+        "tired": "Wiped"
+      }
     },
     "shareCard": {
       "stampRecord": "ON THE RECORD",

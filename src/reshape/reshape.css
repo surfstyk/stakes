@@ -629,6 +629,32 @@
   cursor: pointer;
   box-shadow: 0 10px 22px -14px rgba(39, 53, 77, 0.85);
 }
+/* the moment chips — the dot hands the choice back (functional; the studio owns the polish).
+   emphasis is ink, not colour (§11.2: vermilion keeps its one job, the bead) */
+.rs .pop .moods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 13px;
+}
+.rs .pop .mood {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  line-height: 1;
+  padding: 8px 13px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.rs .pop .mood.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--cream);
+}
+
 @keyframes rs-card {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(calc(var(--camp) * -1)); }

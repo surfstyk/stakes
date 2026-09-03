@@ -161,9 +161,6 @@ export const copy = {
     missed: {
       hLead: en.rs.missed.hLead,
       sub: (slice: number, kept: number) => fmt(en.rs.missed.sub, { slice, tail: kept > 0 ? en.rs.missed.subKeptYes : en.rs.missed.subKeptNo }),
-      hintPre: en.rs.missed.hintPre,
-      hintEm: en.rs.missed.hintEm,
-      hintPost: en.rs.missed.hintPost,
       cta: en.rs.missed.cta,
     },
     lapsed: {
@@ -182,6 +179,8 @@ export const copy = {
       tasteHint: { pre: en.rs.sphere.tasteHint.pre, em: en.rs.sphere.tasteHint.em, post: en.rs.sphere.tasteHint.post },
       pickCtx: (label: string, day: number) => fmt(en.rs.sphere.pickCtx, { label, day }),
       pickShare: en.rs.sphere.pickShare,
+      ask: en.rs.sphere.ask,
+      moods: en.rs.sphere.moods,
     },
     shareCard: {
       stampRecord: en.rs.shareCard.stampRecord,
