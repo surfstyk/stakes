@@ -269,7 +269,7 @@ export function DayScreen({
 
   return (
     <Frame
-      sphere={<SphereWithPick challenge={challenge} mode={checked ? 'win' : 'ask'} />}
+      sphere={<SphereWithPick challenge={challenge} moment={checked ? 'win' : undefined} />}
       foot={
         checked ? (
           <Cta label={c.day.shareDay(dayNum)} variant="green" icon={Icon.share} onClick={onShare} />

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, DayMark, HistoryItem } from './model.ts'
 import { currentDay, keptDays, payoffOf, weekView } from './model.ts'
-import { pickLine, WEAK_MOMENTS, type Moment, type WeakMoment } from './sphere.ts'
+import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { TEMPLATES } from './templates.ts'
 import { Cta, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, WeekFrame, Wordmark } from './ui.tsx'
@@ -28,21 +28,15 @@ function shareText(text: string) {
   }
 }
 
-type PickMode = 'ask' | 'win' | 'slip'
-
 function SpherePickPop({
   challenge,
   tap,
-  mode,
   moment,
-  onMoment,
   onClose,
 }: {
   challenge: Challenge
   tap: number
-  mode: PickMode
-  moment: Moment
-  onMoment: (m: WeakMoment) => void
+  moment?: 'win' | 'slip'
   onClose: () => void
 }) {
   const dayIndex = Math.max(0, currentDay(challenge))
@@ -53,24 +47,14 @@ function SpherePickPop({
         <span className="d" />
         {c.sphere.pickCtx(labelOf(challenge), dayIndex + 1)}
       </span>
-      {/* ask mode: the dot hands the choice back — tap the moment you're in, the line re-rolls */}
-      {mode === 'ask' && (
-        <div className="moods" role="group" aria-label={c.sphere.ask}>
-          {WEAK_MOMENTS.map((m) => (
-            <button key={m} className={'mood' + (moment === m ? ' on' : '')} onClick={() => onMoment(m)}>
-              {c.sphere.moods[m]}
-            </button>
-          ))}
-        </div>
-      )}
       <p className="quote">{pick.text}</p>
       {pick.source && (
         <p className="sub" style={{ margin: '8px 0 0', fontStyle: 'italic' }}>
           — {pick.source}
         </p>
       )}
-      {/* a fresh miss is a private moment, not for sharing; a win has its own share CTA */}
-      {mode === 'ask' && (
+      {/* a context moment (a win / a fresh miss) is not a share prompt; a plain tap can share its line */}
+      {!moment && (
         <>
           <div className="hr" />
           <button className="share" onClick={() => shareText(pick.text)}>
@@ -83,38 +67,30 @@ function SpherePickPop({
   )
 }
 
-/** The pinned sphere that opens (and re-rolls) the pick on tap. `ask` hands back a moment
- *  chip row (the weak-moment set); `win` (a sealed day) and `slip` (a fresh miss) deploy that
- *  moment straight from context. Each tap advances the seed; closing keeps it, so the next
- *  open re-rolls to a new line rather than repeating pick #1 (rehearsal bug 2026-08-31). */
+/** The pinned sphere that opens (and re-rolls) the pick on tap. A plain tap hands a broad
+ *  supportive line; `moment` pins it to a context moment the app read from state — `win` (a
+ *  sealed day) or `slip` (a fresh miss). Each tap advances the seed; closing keeps it, so
+ *  the next open re-rolls to a new line rather than repeating pick #1 (rehearsal bug). */
 export function SphereWithPick({
   challenge,
-  mode = 'ask',
+  moment,
   autoOpen,
   raised,
 }: {
   challenge: Challenge
-  mode?: PickMode
+  moment?: 'win' | 'slip'
   autoOpen?: boolean
   raised?: boolean
 }) {
   const [open, setOpen] = useState(() => !!autoOpen || (DEV_TOOLS && new URLSearchParams(location.search).has('pick')))
   const [seed, setSeed] = useState(1)
-  const [asked, setAsked] = useState<WeakMoment | null>(null)
   const tapSphere = () => {
     setSeed((s) => s + 1)
     setOpen(true)
   }
-  const chooseMoment = (m: WeakMoment) => {
-    setAsked(m)
-    setSeed((s) => s + 1)
-  }
-  const moment: Moment = mode === 'win' ? 'win' : mode === 'slip' ? 'slip' : asked ?? 'any'
   return (
     <>
-      {open && (
-        <SpherePickPop challenge={challenge} tap={seed} mode={mode} moment={moment} onMoment={chooseMoment} onClose={() => setOpen(false)} />
-      )}
+      {open && <SpherePickPop challenge={challenge} tap={seed} moment={moment} onClose={() => setOpen(false)} />}
       <Sphere raised={raised} onClick={tapSphere} />
     </>
   )
@@ -423,7 +399,7 @@ export function MissedScreen({
   return (
     <Frame
       // the dot shows up for the slip — one of the studio's after-miss lines, blame-free
-      sphere={<SphereWithPick challenge={challenge} mode="slip" autoOpen />}
+      sphere={<SphereWithPick challenge={challenge} moment="slip" autoOpen />}
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <Wordmark onClick={onWordmark} />

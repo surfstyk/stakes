@@ -179,8 +179,6 @@ export const copy = {
       tasteHint: { pre: en.rs.sphere.tasteHint.pre, em: en.rs.sphere.tasteHint.em, post: en.rs.sphere.tasteHint.post },
       pickCtx: (label: string, day: number) => fmt(en.rs.sphere.pickCtx, { label, day }),
       pickShare: en.rs.sphere.pickShare,
-      ask: en.rs.sphere.ask,
-      moods: en.rs.sphere.moods,
     },
     shareCard: {
       stampRecord: en.rs.shareCard.stampRecord,

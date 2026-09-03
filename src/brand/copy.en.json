@@ -163,15 +163,7 @@
         "post": " I keep no score."
       },
       "pickCtx": "For your {label} week · day {day}",
-      "pickShare": "Share this",
-      "ask": "What’s the moment?",
-      "moods": {
-        "crave": "Craving",
-        "start": "Can’t start",
-        "grind": "Grinding",
-        "doubt": "Why bother",
-        "tired": "Wiped"
-      }
+      "pickShare": "Share this"
     },
     "shareCard": {
       "stampRecord": "ON THE RECORD",
