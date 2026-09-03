@@ -43,6 +43,10 @@ import { verifyChallenge } from './verify.ts'
 
 const GRACE_MS = 15 * 60_000
 const WEEK_MS = 7 * 86400_000
+const DAY_MS = 24 * 3600_000
+// Real-money deployment iff a treasury is configured (mirrors server/verify.ts + the client
+// invariant "mock money ⟺ mock build"). Used to refuse client-chosen fast clocks on real funds.
+const REAL_MONEY = Boolean((process.env.STAKES_TREASURY_ADDRESS ?? process.env.VITE_TREASURY_NIM_ADDRESS ?? '').trim())
 
 // ---- reshape serialization (Cycle II) — the shapes src/reshape/model.ts reads --------------
 function reshapeChallenge(row: ChallengeRow) {
@@ -229,8 +233,14 @@ export const server = createServer(async (req, res) => {
         if (!term) return send(res, 409, { error: 'you already have a challenge running' })
         archiveChallenge(existing.id, term)
       }
+      // The compressed "fast clock" is a dev/testnet affordance only (the client strips it from
+      // the public build; see src/lib/flags.ts DEV_TOOLS). On a real-money deployment every run
+      // uses a true 24h day: an attacker-chosen tiny dayLengthMs would let a "7-day" challenge
+      // complete in seconds and race settlement (bonus-farming / rapid payout loops). If an
+      // insider fast clock is ever needed on the live box, gate it behind a server-side secret,
+      // never an open request field.
       const dl = num(b.dayLengthMs)
-      const dayLengthMs = Number.isFinite(dl) && dl > 0 && dl <= 90 * 86400_000 ? dl : 24 * 3600_000
+      const dayLengthMs = !REAL_MONEY && Number.isFinite(dl) && dl > 0 && dl <= 90 * 86400_000 ? dl : DAY_MS
       createChallenge({
         goal,
         emoji: str(b.emoji) || '🔥',
