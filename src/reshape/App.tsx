@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { copy } from '../brand/index.ts'
 import type { Challenge, HistoryItem } from './model.ts'
 import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver, keptDays } from './model.ts'
 import { data, devSeed, type SeedKind } from './data.ts'
@@ -198,7 +199,7 @@ export function ReshapeApp() {
     case 'official':
       return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onWordmark={home} />
     case 'sealShare':
-      return <SealShareScreen challenge={challenge} onShare={() => void share(`Day one, on the record. ${challenge.emoji} ${challenge.goal} — I'm in.`)} onWordmark={home} />
+      return <SealShareScreen challenge={challenge} onShare={() => void share(copy.share.sealDay1(challenge.emoji, challenge.goal))} onWordmark={home} />
     case 'missed':
       return <MissedScreen challenge={challenge} onWinToday={() => setView('day')} onWordmark={home} />
     case 'lapsed':
@@ -207,7 +208,7 @@ export function ReshapeApp() {
       return (
         <BankedScreen
           challenge={challenge}
-          onShare={() => void share(`Banked the week. ${challenge.emoji} ${challenge.goal}. Run it back?`)}
+          onShare={() => void share(copy.share.bankedWeek(challenge.emoji, challenge.goal))}
           onGoAgain={() => setView('reup')}
           onReRun={() => reRun(challenge.templateId)}
           onSeeRecord={() => setView('reup')}
@@ -226,7 +227,7 @@ export function ReshapeApp() {
         />
       )
     case 'perfectweek':
-      return <PerfectWeekScreen onShare={() => void share(`Seven for seven. ${challenge.emoji} ${challenge.goal} — a clean week.`)} onWordmark={home} />
+      return <PerfectWeekScreen onShare={() => void share(copy.share.perfectWeek(challenge.emoji, challenge.goal))} onWordmark={home} />
     default:
       return (
         <DayScreen
@@ -234,7 +235,7 @@ export function ReshapeApp() {
           busy={busy}
           error={error}
           onSeal={onSeal}
-          onShare={() => void share(`Another day kept. ${challenge.emoji} ${challenge.goal} — still in.`)}
+          onShare={() => void share(copy.share.dayKept(challenge.emoji, challenge.goal))}
           onWordmark={home}
         />
       )

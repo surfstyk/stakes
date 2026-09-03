@@ -12,6 +12,18 @@
     "foot": "A commitment game built on trust, not surveillance.",
     "guarantee": "Free to move · held safe · back in your pocket"
   },
+  "claim": {
+    "hook": "Win your moment.",
+    "payoff": "Bank the day.",
+    "signature": "Makes every day count.",
+    "name": "stakes.day"
+  },
+  "share": {
+    "sealDay1": "Day one, on the record. {emoji} {goal}. I'm in.",
+    "dayKept": "Another day kept. {emoji} {goal}. Still in.",
+    "bankedWeek": "Banked the week. {emoji} {goal}. Run it back?",
+    "perfectWeek": "Seven for seven. {emoji} {goal}. A clean week."
+  },
   "rs": {
     "main": {
       "kicker": "Pick your one thing",
@@ -42,8 +54,8 @@
       "perDayUnit": "NIM / day",
       "lengthLabel": "For how long",
       "daysUnit": "days",
-      "backdateLead": "Runs from this morning — ",
-      "backdateBold": "day one is already yours.",
+      "backdateLead": "Runs from this morning. ",
+      "backdateBold": "Day one is already yours.",
       "needNim": "You need about {need} NIM in your wallet to make this official.",
       "cta": "Make it official.",
       "busy": "Making it official…",
@@ -80,7 +92,7 @@
       "rowStake": "Your stake, returned",
       "rowBonus": "Completion bonus",
       "rowBanked": "Banked",
-      "goAgainWeek": "Go again — another week",
+      "goAgainWeek": "Go again, another week",
       "shareWin": "Share the win",
       "kickerUp": "The run’s up",
       "hPartialLead": "You kept ",
@@ -91,15 +103,15 @@
       "rowBack": "Back",
       "partialFwdLead": "Every day you kept ",
       "partialFwdBold": "still stands",
-      "partialFwdTail": " on your record. Go again — clean this time.",
+      "partialFwdTail": " on your record. Go again, clean this time.",
       "seeRecord": "See your record",
-      "goAgainGoal": "Go again — {label}",
+      "goAgainGoal": "Go again, {label}",
       "hWipeout": "This one got away.",
       "burnedLbl": "Gone",
       "wipeoutNote": "No days kept, so nothing came back this time.",
       "wipeoutFwdLead": "It happens. ",
       "wipeoutFwdBold": "The next one’s yours",
-      "wipeoutFwdTail": " — start fresh whenever you’re ready.",
+      "wipeoutFwdTail": ". Start fresh whenever you’re ready.",
       "backHome": "Back to home",
       "tryAgain": "Try again"
     },
@@ -110,7 +122,7 @@
       "sub": "You’ve strung together more than most people ever do. Keep the chain alive.",
       "recordNum": "{n} days kept",
       "pickNew": "Pick a new goal",
-      "anotherWeek": "Another week — {label}"
+      "anotherWeek": "Another week, {label}"
     },
     "archive": {
       "h": "Your challenges",
@@ -127,7 +139,7 @@
     },
     "missed": {
       "hLead": "Missed one. It happens",
-      "sub": "Yesterday’s slice is gone — {slice} NIM. Your streak starts over. {tail}",
+      "sub": "Yesterday’s slice is gone, {slice} NIM. Your streak starts over. {tail}",
       "hintPre": "One miss isn’t the story. ",
       "hintEm": "Today is.",
       "hintPost": " Tap me if it’s a hard one.",
@@ -137,14 +149,14 @@
     },
     "lapsed": {
       "hLead": "That one slipped by",
-      "sub": "Day one’s window closed before it became a real challenge. No harm done — start a fresh one whenever you’re ready.",
+      "sub": "Day one’s window closed before it became a real challenge. No harm done. Start a fresh one whenever you’re ready.",
       "cta": "Start day one, again"
     },
     "perfectweek": {
       "kicker": "Perfect week",
       "hLead": "Seven for ",
       "hEm": "seven",
-      "sub": "A clean week — the thing most people never string together. This is how a habit is born.",
+      "sub": "A clean week, the thing most people never string together. This is how a habit is born.",
       "cta": "Share the week"
     },
     "sphere": {
@@ -158,7 +170,6 @@
     },
     "shareCard": {
       "stampRecord": "ON THE RECORD",
-      "cta": "stakes.day · start yours",
       "no": "Nº {no}"
     },
     "proof": {
@@ -168,7 +179,7 @@
     }
   },
   "a11y": {
-    "home": "Stakes — home",
+    "home": "Stakes, home",
     "openSphere": "Open the sphere",
     "close": "Close"
   }

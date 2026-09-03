@@ -302,7 +302,10 @@ export function ShareCard({ emoji, seq, headline, stamp = copy.rs.shareCard.stam
         <Hex size={22} state="kept" />
       </div>
       <span className="stamp-record">{stamp}</span>
-      <div className="sc-cta">{copy.rs.shareCard.cta}</div>
+      {/* the traveling sign-off carries the claim: the name + the hook (story.md §7) */}
+      <div className="sc-cta">
+        {copy.claim.name} · {copy.claim.hook}
+      </div>
     </div>
   )
 }

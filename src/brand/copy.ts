@@ -27,6 +27,22 @@ export const copy = {
     guarantee: en.gate.guarantee,
   },
 
+  // The claim system (story.md §7) — canonical, so every surface draws the one wording.
+  claim: {
+    hook: en.claim.hook,
+    payoff: en.claim.payoff,
+    signature: en.claim.signature,
+    name: en.claim.name,
+  },
+
+  // Text that rides along with a shared link (solo).
+  share: {
+    sealDay1: (emoji: string, goal: string) => fmt(en.share.sealDay1, { emoji, goal }),
+    dayKept: (emoji: string, goal: string) => fmt(en.share.dayKept, { emoji, goal }),
+    bankedWeek: (emoji: string, goal: string) => fmt(en.share.bankedWeek, { emoji, goal }),
+    perfectWeek: (emoji: string, goal: string) => fmt(en.share.perfectWeek, { emoji, goal }),
+  },
+
   // ── The reshape (Cycle II) — the solo-first journey. Accent headlines keep
   // {lead, em, tail} as separate words so a locale can place the emphasis (§1.5).
   rs: {
@@ -169,7 +185,6 @@ export const copy = {
     },
     shareCard: {
       stampRecord: en.rs.shareCard.stampRecord,
-      cta: en.rs.shareCard.cta,
       no: (no: string) => fmt(en.rs.shareCard.no, { no }),
     },
     proof: {
