@@ -297,6 +297,28 @@ export function finishSettlement(id: string, sentJson: string) {
  * tick as a fresh settle. Guarded to never downgrade a 'broadcasting' row (whose signed
  * plan must be preserved for crash-recovery, not overwritten).
  */
+/**
+ * Finisher bonuses committed since `since` (records that are 'done' or 'broadcasting' — a signed,
+ * persisted plan is money already spoken for). The settler reads this to enforce the bonus policy's
+ * own invariant (one bonus per wallet per day) plus a global daily budget — without it a 1-day run
+ * settled + re-created back-to-back farms the bonus every settler tick (audit H1).
+ */
+export function listBonusesSince(since: number): { to: string; nim: number; at: number }[] {
+  const rows = db
+    .prepare(`SELECT at, plan, sent FROM settlements WHERE status IN ('done','broadcasting') AND at >= ?`)
+    .all(since) as { at: number; plan: string; sent: string | null }[]
+  const out: { to: string; nim: number; at: number }[] = []
+  for (const r of rows) {
+    try {
+      const txs = JSON.parse(r.sent ?? r.plan ?? '[]') as { kind: string; to: string; nim: number }[]
+      for (const t of txs) if (t.kind === 'bonus' && t.nim > 0) out.push({ to: t.to, nim: t.nim, at: r.at })
+    } catch {
+      /* malformed record: ignore */
+    }
+  }
+  return out
+}
+
 export function failSettlement(id: string, error: string) {
   db.prepare(
     `INSERT INTO settlements (challengeId, status, at, error) VALUES (?, 'failed', ?, ?)
@@ -319,6 +341,9 @@ export function listEndedUnsettled(now = Date.now()): string[] {
         `SELECT c.id FROM challenges c
            LEFT JOIN settlements s ON s.challengeId = c.id
           WHERE (s.status IS NULL OR s.status != 'done')
+            -- a taste (durationDays = 0) has nothing to settle and would otherwise count as
+            -- "elapsed" the instant it exists, putting every taste ever created on the queue forever
+            AND c.durationDays > 0
             AND (
               (c.lockAt + c.durationDays * c.dayLengthMs) <= ?
               OR (

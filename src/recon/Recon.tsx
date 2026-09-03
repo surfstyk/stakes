@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { STAMP_ADDRESS, STAMP_VALUE_LUNA, sendStamp } from '../vault/stamp.ts'
-import { getNimiq, nimToLuna, type NimiqProvider } from '../lib/nimiq.ts'
+import { getNimiq, nimToLuna, type NimiqProvider, txHashOrThrow } from '../lib/nimiq.ts'
 import {
   getChainId,
   getNativeBalance,
@@ -73,26 +73,28 @@ export function Recon() {
   const listNim = () =>
     run('listAccounts (NIM) — native dialog', async () => {
       const n = await ensureNimiq()
-      const accounts = await n.listAccounts()
-      setNimAddress(accounts[0] ?? null)
-      return accounts.join(', ') || '(none)'
+      const res = await n.listAccounts()
+      if (!Array.isArray(res)) throw new Error(res.error?.message ?? 'listAccounts failed')
+      setNimAddress(res[0] ?? null)
+      return res.join(', ') || '(none)'
     })
 
   const signNim = () =>
     run('sign("stakes recon") — native dialog', async () => {
       const n = await ensureNimiq()
-      const { signature } = await n.sign('stakes recon')
-      return `sig ${signature.slice(0, 18)}…`
+      const res = await n.sign('stakes recon')
+      if ('error' in res) throw new Error(res.error?.message ?? 'sign failed')
+      return `sig ${res.signature.slice(0, 18)}…`
     })
 
   const sendNimToSelf = () =>
     run(`★ send ${nimAmount} NIM to self — NATIVE NIM DIALOG`, async () => {
       const n = await ensureNimiq()
       if (!nimAddress) throw new Error('Run listAccounts first to get your NIM address.')
-      const hash = await n.sendBasicTransaction({
+      const hash = txHashOrThrow(await n.sendBasicTransaction({
         recipient: nimAddress,
         value: nimToLuna(Number(nimAmount)),
-      })
+      }))
       return `tx ${hash}`
     })
 

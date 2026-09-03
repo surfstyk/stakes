@@ -3,11 +3,16 @@ import { init } from '@nimiq/mini-app-sdk'
 // Local shape of the Nimiq provider per the API reference (nimiq.dev).
 // We cast the init() result to this so the recon tool compiles regardless of the
 // package's exact exported type names.
+/** The SDK types every wallet method as `T | ErrorResponse` — the host may RESOLVE an error. */
+export interface ErrorResponse {
+  error: { type: string; message: string }
+}
+
 export interface NimiqProvider {
-  listAccounts(): Promise<string[]>
+  listAccounts(): Promise<string[] | ErrorResponse>
   sign(
     message: string | { message: string; isHex?: boolean },
-  ): Promise<{ publicKey: string; signature: string }>
+  ): Promise<{ publicKey: string; signature: string } | ErrorResponse>
   isConsensusEstablished(): Promise<boolean>
   getBlockNumber(): Promise<number>
   sendBasicTransaction(args: {
@@ -15,14 +20,25 @@ export interface NimiqProvider {
     value: number
     fee?: number
     validityStartHeight?: number
-  }): Promise<string>
+  }): Promise<string | ErrorResponse>
   sendBasicTransactionWithData(args: {
     recipient: string
     value: number
     data: string
     fee?: number
     validityStartHeight?: number
-  }): Promise<string>
+  }): Promise<string | ErrorResponse>
+}
+
+/**
+ * A sent transaction's hash, or a thrown Error. The host wallet may resolve `{ error }` instead
+ * of rejecting; treating that object as a hash would register a stake that was never paid
+ * (a phantom "official" run). Anything that is not a non-empty string is a failure.
+ */
+export function txHashOrThrow(result: unknown): string {
+  if (typeof result === 'string' && result.trim()) return result.trim()
+  const msg = (result as ErrorResponse | null)?.error?.message
+  throw new Error(msg || 'The wallet did not return a transaction.')
 }
 
 export const LUNA_PER_NIM = 100_000

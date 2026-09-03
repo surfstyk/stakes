@@ -106,12 +106,22 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(json)
 }
 
+// Every legitimate body is < 1 KB. Past the cap the socket is DESTROYED, not just rejected —
+// otherwise the handler keeps buffering whatever the client streams until it hangs up (audit M3).
+const MAX_BODY_BYTES = 64 * 1024
 function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let raw = ''
+    let overflow = false
     req.on('data', (c) => {
+      if (overflow) return
       raw += c
-      if (raw.length > 1_000_000) reject(new Error('body too large'))
+      if (raw.length > MAX_BODY_BYTES) {
+        overflow = true
+        raw = ''
+        reject(new Error('body too large'))
+        req.destroy()
+      }
     })
     req.on('end', () => {
       if (!raw) return resolve({})
@@ -301,6 +311,14 @@ export const server = createServer(async (req, res) => {
         const stake = num(b.stake)
         if (!address) return send(res, 400, { error: 'address required' })
         if (normAddr(address) !== normAddr(view.creatorAddress)) return send(res, 403, { error: 'not your challenge' })
+        // Idempotent for the creator (audit M1): the wallet deposits BEFORE this POST, so a retry
+        // after a lost response must return the run, never 409 — a 409 reads as failure and invites
+        // a second real deposit. A retried deposit hash is kept if the first POST carried none.
+        if (view.status === 'official' && view.participants.some((p) => normAddr(p.address) === normAddr(address))) {
+          const hash = str(b.depositTxHash)
+          if (hash) joinChallenge(id, { address: view.participants.find((p) => normAddr(p.address) === normAddr(address))!.address, name: view.creatorName, depositTxHash: hash })
+          return send(res, 200, reshapeChallenge(getActiveRowFor(view.creatorAddress)!))
+        }
         if (view.status !== 'window') return send(res, 409, { error: 'this challenge is not a taste anymore' })
         // SEC-05: bound the numbers server-side (the API is the trust boundary).
         if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 60) return send(res, 400, { error: 'durationDays must be a whole number between 1 and 60' })

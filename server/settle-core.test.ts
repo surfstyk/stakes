@@ -153,3 +153,61 @@ test('the bonus policy is a capped share of the stake, never a flat amount', asy
   assert.equal(finisherBonus(10_000), 50, 'capped')
   assert.equal(finisherBonus(0), 0)
 })
+
+// ---- audit H1: the bonus guard — one bonus per wallet per cooldown + a global daily budget ----
+
+test('H1: a wallet that just banked a bonus gets none on an immediate back-to-back run (cooldown)', async () => {
+  const a = nqAddr()
+  const first = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: a, name: 'A', days: 1 }] })
+  const r1 = await settleChallenge(first, { execute: false, kp, height: HEIGHT })
+  assert.equal((r1.planned ?? []).find((t) => t.kind === 'bonus')?.nim, 50, 'first run: bonus (capped at 50)')
+  // commit that plan as if broadcast (the ledger the guard reads)
+  db.startSettlement(first, JSON.stringify(r1.planned), 0, r1.totalOut ?? 0)
+  db.finishSettlement(first, JSON.stringify(r1.planned))
+  const second = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: a, name: 'A', days: 1 }] })
+  const r2 = await settleChallenge(second, { execute: false, kp, height: HEIGHT })
+  assert.equal(r2.status, 'dry-run')
+  assert.equal((r2.planned ?? []).find((t) => t.kind === 'payout')?.nim, 334, 'the stake is still returned in full')
+  assert.ok(!(r2.planned ?? []).some((t) => t.kind === 'bonus'), 'no second bonus inside the cooldown')
+})
+
+test('H1: the global daily bonus budget caps what all wallets together can extract', async () => {
+  const prev = process.env.STAKES_BONUS_DAILY_CAP_NIM
+  // the ledger is shared with the tests above: budget = what is already spent today + room for ONE bonus
+  const spent = db.listBonusesSince(Date.now() - 86400_000).reduce((s, b) => s + b.nim, 0)
+  process.env.STAKES_BONUS_DAILY_CAP_NIM = String(spent + 60)
+  try {
+    const a = nqAddr(), b = nqAddr()
+    const one = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: a, name: 'A', days: 1 }] })
+    const r1 = await settleChallenge(one, { execute: false, kp, height: HEIGHT })
+    assert.equal((r1.planned ?? []).find((t) => t.kind === 'bonus')?.nim, 50)
+    db.startSettlement(one, JSON.stringify(r1.planned), 0, r1.totalOut ?? 0)
+    db.finishSettlement(one, JSON.stringify(r1.planned))
+    const two = seed({ durationDays: 1, stake: 334, lockAt: Date.now(), people: [{ address: b, name: 'B', days: 1 }] })
+    const r2 = await settleChallenge(two, { execute: false, kp, height: HEIGHT })
+    assert.ok(!(r2.planned ?? []).some((t) => t.kind === 'bonus'), 'budget (room for one) exhausted by the first 50 → a second 50 is withheld')
+    assert.equal((r2.planned ?? []).find((t) => t.kind === 'payout')?.nim, 334, 'principal untouched')
+  } finally {
+    if (prev === undefined) delete process.env.STAKES_BONUS_DAILY_CAP_NIM
+    else process.env.STAKES_BONUS_DAILY_CAP_NIM = prev
+  }
+})
+
+test('H1: applyBonusGuard is pure and deterministic', async () => {
+  const { applyBonusGuard } = await import('./settle-core.ts')
+  const now = 1_000_000_000_000
+  const rows = [{ account: 'X', nimBonus: 10 }, { account: 'Y', nimBonus: 10 }, { account: 'Z', nimBonus: 0 }]
+  const ledger = [{ to: 'x', nim: 5, at: now - 60_000 }] // same wallet, different case, 1 min ago
+  const out = applyBonusGuard(rows, ledger, now)
+  assert.deepEqual(out.map((o) => [o.account, o.nimBonus, o.withheld ?? null]), [['X', 0, 'cooldown'], ['Y', 10, null], ['Z', 0, null]])
+})
+
+// ---- audit M2: a taste (durationDays = 0) never enters the settler queue ----
+
+test('M2: a fresh taste (durationDays 0) is NOT on the settler queue', () => {
+  const id = db.createChallenge({
+    goal: 'taste', emoji: '🍩', durationDays: 0, stake: 0, asset: 'NIM',
+    creatorAddress: nqAddr(), creatorName: 'T', lockAt: Date.now() - 3 * 86400_000, dayLengthMs: 86400_000, status: 'window',
+  })
+  assert.ok(!db.listEndedUnsettled(Date.now()).includes(id), 'nothing to settle, nothing to rescan')
+})

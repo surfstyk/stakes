@@ -1,5 +1,5 @@
 import { buildPayload } from './payload.ts'
-import { getNimiq } from '../lib/nimiq.ts'
+import { getNimiq, txHashOrThrow } from '../lib/nimiq.ts'
 import { TREASURY_NIM_ADDRESS } from './custodialNim.ts'
 
 // The stamp — every check-in in every mode puts the day on the chain (ONBOARDING.md §1.8a).
@@ -36,10 +36,12 @@ export async function sendStamp(input: { challengeId: string; dayIndex: number }
     return { hash: `mock-stamp-${Date.now()}`, payload, mock: true }
   }
   const nimiq = await getNimiq()
-  const hash = await nimiq.sendBasicTransactionWithData({
-    recipient: STAMP_ADDRESS,
-    value: STAMP_VALUE_LUNA,
-    data: payload,
-  })
+  const hash = txHashOrThrow(
+    await nimiq.sendBasicTransactionWithData({
+      recipient: STAMP_ADDRESS,
+      value: STAMP_VALUE_LUNA,
+      data: payload,
+    }),
+  )
   return { hash, payload, mock: false }
 }

@@ -30,9 +30,10 @@ import {
   getChallenge,
   getSettlement,
   getSettlementRecord,
+  listBonusesSince,
   startSettlement,
 } from './db.ts'
-import { getBalanceLuna, getBlockNumber } from './rpc.ts'
+import { getBalanceLuna, getBlockNumber, normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
 import { BURN_ADDRESS, loadTreasury, lunaToNim, nimToLuna, treasuryAddress } from './treasury.ts'
 import { buildPayload } from '../src/vault/payload.ts'
@@ -91,6 +92,42 @@ function isPayable(addr: string): boolean {
 }
 
 type View = NonNullable<ReturnType<typeof getChallenge>>
+
+// ---- the bonus guard (audit H1) ----------------------------------------------------------------
+// The bonus policy (src/vault/settlement.ts) promises "one bonus per wallet per day"; the schedule
+// alone does not deliver it — a 1-day run is decided at its first check-in, settles on the next tick,
+// and the wallet can start again immediately, farming the bonus with the same recycled stake. So the
+// settler enforces it here, plus a global daily budget as the safety valve (same shape as the seed
+// cap). The stake is always returned in full; only the bonus line is withheld. Read at call time so
+// the knobs are testable.
+const bonusCooldownMs = () => Number(process.env.STAKES_BONUS_WALLET_COOLDOWN_MS ?? 24 * 3600_000)
+const bonusDailyCapNim = () => Number(process.env.STAKES_BONUS_DAILY_CAP_NIM ?? 1000)
+const DAY_MS = 24 * 3600_000
+
+export interface BonusDecision {
+  account: string
+  nimBonus: number
+  withheld?: 'cooldown' | 'budget'
+}
+
+/** Apply the cooldown + budget to a settlement's bonuses. Pure given the ledger; deterministic. */
+export function applyBonusGuard(
+  rows: { account: string; nimBonus: number }[],
+  ledger: { to: string; nim: number; at: number }[],
+  now: number,
+): BonusDecision[] {
+  const cooldown = bonusCooldownMs()
+  const cap = bonusDailyCapNim()
+  let spentToday = ledger.filter((b) => b.at >= now - DAY_MS).reduce((s, b) => s + b.nim, 0)
+  return rows.map((r) => {
+    if (!(r.nimBonus > 0)) return { account: r.account, nimBonus: 0 }
+    const recent = ledger.some((b) => normAddr(b.to) === normAddr(r.account) && b.at >= now - cooldown)
+    if (recent) return { account: r.account, nimBonus: 0, withheld: 'cooldown' }
+    if (spentToday + r.nimBonus > cap) return { account: r.account, nimBonus: 0, withheld: 'budget' }
+    spentToday += r.nimBonus
+    return { account: r.account, nimBonus: r.nimBonus }
+  })
+}
 
 /** Every participant has kept every day → nothing can change; the outcome is final now. */
 export function isDecided(view: View): boolean {
@@ -184,6 +221,12 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
     const kp = opts.kp ?? loadTreasury()
     const height = opts.height ?? (await getBlockNumber())
 
+    // Bonus guard (audit H1): one bonus per wallet per cooldown + a global daily budget.
+    const now = Date.now()
+    const guard = applyBonusGuard(settlement.perParticipant, listBonusesSince(now - Math.max(DAY_MS, bonusCooldownMs())), now)
+    const bonusFor = new Map(guard.map((g) => [g.account, g]))
+    for (const g of guard) if (g.withheld) log(`  ✨ bonus withheld for ${g.account}: ${g.withheld}`)
+
     const plan: PlanTx[] = []
     const skippedParticipants: { name: string; account: string; nim: number }[] = []
     const push = (kind: PlanKind, to: string, nim: number, data: string) => {
@@ -191,7 +234,8 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
       plan.push({ kind, to, nim, data, hash: signed.hash, hex: signed.hex })
     }
     for (const p of settlement.perParticipant) {
-      const amount = p.payout + p.nimBonus // retained stake + finisher bonus
+      const nimBonus = bonusFor.get(p.account)?.nimBonus ?? 0
+      const amount = p.payout + nimBonus // retained stake + finisher bonus (post-guard)
       if (amount <= 0) continue
       if (!isPayable(p.account)) {
         // BACKLOG #4: a non-NQ (e.g. dev-fallback) identity can't receive NIM — skip it and
@@ -201,7 +245,7 @@ export async function settleChallenge(id: string, opts: SettleOpts = {}): Promis
         continue
       }
       if (p.payout > 0) push('payout', p.account, p.payout, buildPayload('banked', id))
-      if (p.nimBonus > 0) push('bonus', p.account, p.nimBonus, buildPayload('bonus', id))
+      if (nimBonus > 0) push('bonus', p.account, nimBonus, buildPayload('bonus', id))
     }
     if (burn && settlement.burnedPot > 0) {
       push('burn', BURN_ADDRESS, settlement.burnedPot, buildPayload('burned', id))

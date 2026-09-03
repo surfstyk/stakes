@@ -31,7 +31,7 @@ export async function getMyAddress(): Promise<string> {
     try {
       const nim = await getNimiq(4000)
       const accounts = await nim.listAccounts()
-      if (accounts?.[0]) return (cachedAddress = accounts[0])
+      if (Array.isArray(accounts) && accounts[0]) return (cachedAddress = accounts[0])
     } catch {
       /* declined / unreachable → dev identity */
     }
@@ -273,6 +273,40 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return (text ? JSON.parse(text) : undefined) as T
 }
 
+// ---- the deposit receipt (audit M1): survives a failed register call and an app restart ----
+const RECEIPT_KEY = (id: string) => `stakes.receipt.${id}`
+interface Receipt {
+  ref: string
+  total: number
+  days: number
+  at: number
+}
+function loadReceipt(id: string, total: number): string | null {
+  try {
+    const raw = localStorage.getItem(RECEIPT_KEY(id))
+    if (!raw) return null
+    const r = JSON.parse(raw) as Receipt
+    // only reuse a receipt for the SAME amount — a different stake choice is a different deposit
+    return r.total === total && r.ref ? r.ref : null
+  } catch {
+    return null
+  }
+}
+function saveReceipt(id: string, total: number, days: number, ref: string) {
+  try {
+    localStorage.setItem(RECEIPT_KEY(id), JSON.stringify({ ref, total, days, at: Date.now() } satisfies Receipt))
+  } catch {
+    /* private mode / quota: the server-side idempotency still covers the lost-response case */
+  }
+}
+function clearReceipt(id: string) {
+  try {
+    localStorage.removeItem(RECEIPT_KEY(id))
+  } catch {
+    /* ignore */
+  }
+}
+
 async function seedSilently(challengeId: string, address: string): Promise<void> {
   if (IS_MOCK) return
   try {
@@ -303,11 +337,22 @@ const serverApi: DataApi = {
   async makeOfficial(id, stake) {
     const address = await getMyAddress()
     const total = stake.perDay * stake.days
-    const receipt = await getVault().deposit({ challengeId: id, amount: total, asset: 'NIM' })
-    return api<Challenge>(`/challenges/${id}/official`, {
+    // The deposit is real money and happens BEFORE the register call. If that call fails (network
+    // blip, app killed in between), a retry must never deposit twice: the receipt is persisted the
+    // moment the wallet returns it and reused until the server has acknowledged the run (audit M1).
+    // The server's /official is idempotent for the creator, so re-posting a stored receipt is safe.
+    let ref = loadReceipt(id, total)
+    if (!ref) {
+      const receipt = await getVault().deposit({ challengeId: id, amount: total, asset: 'NIM' })
+      ref = receipt.ref ?? ''
+      saveReceipt(id, total, stake.days, ref)
+    }
+    const ch = await api<Challenge>(`/challenges/${id}/official`, {
       method: 'POST',
-      body: JSON.stringify({ address, durationDays: stake.days, stake: total, depositTxHash: receipt.ref }),
+      body: JSON.stringify({ address, durationDays: stake.days, stake: total, depositTxHash: ref }),
     })
+    clearReceipt(id)
+    return ch
   },
   async sealDay(id) {
     const address = await getMyAddress()

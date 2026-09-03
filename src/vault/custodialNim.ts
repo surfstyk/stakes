@@ -1,5 +1,5 @@
 import type { StakeRecord, StakeVault } from './types.ts'
-import { getNimiq, nimToLuna } from '../lib/nimiq.ts'
+import { getNimiq, nimToLuna, txHashOrThrow } from '../lib/nimiq.ts'
 import { buildPayload } from './payload.ts'
 
 // Cycle-I money layer (locked 2026-06-23): custodial-NIM.
@@ -22,11 +22,13 @@ export function createCustodialNimVault(currentAccount = 'me'): StakeVault {
       if (asset !== 'NIM') throw new Error('Cycle-I custodial vault supports NIM only.')
       if (!TREASURY_NIM_ADDRESS) throw new Error('Treasury address not configured.')
       const nimiq = await getNimiq()
-      const hash = await nimiq.sendBasicTransactionWithData({
-        recipient: TREASURY_NIM_ADDRESS,
-        value: nimToLuna(amount),
-        data: buildPayload('official', challengeId), // `stakes.day official:<id>` — the backend attributes the deposit by this tag (legacy `stakes:<id>` still parses)
-      })
+      const hash = txHashOrThrow(
+        await nimiq.sendBasicTransactionWithData({
+          recipient: TREASURY_NIM_ADDRESS,
+          value: nimToLuna(amount),
+          data: buildPayload('official', challengeId), // `stakes.day official:<id>` — the backend attributes the deposit by this tag (legacy `stakes:<id>` still parses)
+        }),
+      )
       const rec: StakeRecord = { challengeId, account: currentAccount, amount, confirmed: true, ref: hash }
       return rec
     },

@@ -74,3 +74,47 @@ test('mock/dev (no treasury): a null-hash deposit still auto-confirms so the bro
   assert.equal(r?.confirmed, 1, 'mock build (no treasury) keeps the loop clickable')
   assert.equal(db.getChallenge(id)!.participants[0].depositConfirmed, 1)
 })
+
+// ---- audit H2: a reported hash is looked up DIRECTLY, so a deposit can never be "lost" once the
+// treasury's traffic grows past the address-scan window; the scan stays as the sender fallback.
+
+const DEPOSITOR = 'NQ11 1111 1111 1111 1111 1111 1111 1111 1111'
+const HASH = 'ab26a26b433509a034a4ca8ef531ee467321910a1a8412577d1de1637499e3b5'
+
+test('H2: a deposit outside the scan window is still confirmed via the direct hash lookup', async () => {
+  const id = officialRun(DEPOSITOR, HASH.toUpperCase()) // the wallet may report upper-case
+  const chain = {
+    listStakeDeposits: async () => [], // evicted from the newest-N scan
+    lookupStakeDeposit: async (_t: string, _c: string, h: string) => (h === HASH ? { from: DEPOSITOR, valueLuna: 10_000 * 100_000, hash: HASH, at: 1 } : null),
+  }
+  const r = await withTreasury(() => verifyChallenge(id, chain))
+  assert.equal(r?.confirmed, 1)
+  assert.equal(r?.confirmedLuna, 10_000 * 100_000)
+  assert.equal(db.getChallenge(id)!.participants[0].depositTxHash, HASH, 'the canonical lower-case chain hash is stored')
+})
+
+test('H2: a reported hash that is not a deposit for THIS challenge does not confirm', async () => {
+  const id = officialRun(DEPOSITOR, HASH)
+  const chain = { listStakeDeposits: async () => [], lookupStakeDeposit: async () => null }
+  const r = await withTreasury(() => verifyChallenge(id, chain))
+  assert.equal(r?.confirmed, 0)
+})
+
+test('H2: the same deposit seen by both the lookup and the scan is counted once', async () => {
+  const id = officialRun(DEPOSITOR, HASH)
+  const d = { from: DEPOSITOR, valueLuna: 10_000 * 100_000, hash: HASH, at: 1 }
+  const chain = { listStakeDeposits: async () => [d], lookupStakeDeposit: async () => d }
+  const r = await withTreasury(() => verifyChallenge(id, chain))
+  assert.equal(r?.confirmed, 1)
+  assert.equal(r?.confirmedLuna, d.valueLuna, 'no double counting toward the settlement invariant')
+})
+
+test('H2: a transport failure leaves the deposit unconfirmed (settlement skips + retries), never throws', async () => {
+  const id = officialRun(DEPOSITOR, HASH)
+  const chain = {
+    listStakeDeposits: async () => { throw new Error('RPC down') },
+    lookupStakeDeposit: async () => { throw new Error('RPC down') },
+  }
+  const r = await withTreasury(() => verifyChallenge(id, chain))
+  assert.equal(r?.confirmed, 0)
+})

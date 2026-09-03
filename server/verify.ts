@@ -14,7 +14,7 @@
 
 import { attributeDeposits } from './attribute.ts'
 import { confirmDeposit, getChallenge } from './db.ts'
-import { listStakeDeposits } from './rpc.ts'
+import { HASH_RE, listStakeDeposits, lookupStakeDeposit, type StakeDeposit } from './rpc.ts'
 
 // Public treasury address only — the API never holds the treasury KEY (it stays off the
 // internet-facing box; see DEPLOYMENT.md). Verification is read-only chain access. Read at
@@ -31,8 +31,15 @@ export interface VerifyResult {
   confirmedLuna: number // total on-chain value backing confirmations (for the settlement invariant)
 }
 
+/** The chain reads verify needs — injectable so the real-money path is testable offline. */
+export interface ChainReader {
+  listStakeDeposits: (treasury: string, challengeId: string) => Promise<StakeDeposit[]>
+  lookupStakeDeposit: (treasury: string, challengeId: string, hash: string) => Promise<StakeDeposit | null>
+}
+const liveChain: ChainReader = { listStakeDeposits, lookupStakeDeposit }
+
 /** Confirm a challenge's stake deposits and persist the result. */
-export async function verifyChallenge(challengeId: string): Promise<VerifyResult | null> {
+export async function verifyChallenge(challengeId: string, chain: ChainReader = liveChain): Promise<VerifyResult | null> {
   const view = getChallenge(challengeId)
   if (!view) return null
 
@@ -45,13 +52,28 @@ export async function verifyChallenge(challengeId: string): Promise<VerifyResult
   const REAL_MONEY = Boolean(TREASURY)
   const onChain = REAL_MONEY && view.participants.some((p) => !isMock(p.depositTxHash))
 
+  // Two sources, merged and deduped by hash: (1) every participant's REPORTED hash looked up
+  // directly — permanent, immune to the treasury's traffic volume (audit H2); (2) the newest-N scan
+  // of the treasury, which is what recovers the sender when the wallet never reported a hash. A
+  // transport failure on either side leaves deposits unconfirmed (settlement skips + retries).
   let deposits: { from: string; valueLuna: number; hash: string }[] = []
   if (onChain) {
-    try {
-      deposits = await listStakeDeposits(TREASURY, challengeId)
-    } catch (e) {
-      console.warn('verify: chain read failed; real deposits stay unconfirmed —', (e as Error).message)
+    const byHash = new Map<string, StakeDeposit>()
+    const reported = view.participants.map((p) => p.depositTxHash ?? '').filter((h) => HASH_RE.test(h))
+    for (const h of new Set(reported.map((h) => h.toLowerCase()))) {
+      try {
+        const d = await chain.lookupStakeDeposit(TREASURY, challengeId, h)
+        if (d) byHash.set(d.hash.toLowerCase(), d)
+      } catch (e) {
+        console.warn('verify: hash lookup failed; that deposit stays unconfirmed —', (e as Error).message)
+      }
     }
+    try {
+      for (const d of await chain.listStakeDeposits(TREASURY, challengeId)) byHash.set(d.hash.toLowerCase(), d)
+    } catch (e) {
+      console.warn('verify: chain scan failed; unreported deposits stay unconfirmed —', (e as Error).message)
+    }
+    deposits = [...byHash.values()].map((d) => ({ ...d, hash: d.hash.toLowerCase() }))
   }
 
   let confirmed = 0
@@ -77,7 +99,10 @@ export async function verifyChallenge(challengeId: string): Promise<VerifyResult
 
   // Real deposits: attribute on-chain deposits to participants, consuming each once
   // (server/attribute.ts). This is what stops one real deposit confirming two people.
-  const real = view.participants.filter((p) => !isMock(p.depositTxHash))
+  // Hashes compare case-insensitively (the wallet may report upper-case; the chain returns lower).
+  const real = view.participants
+    .filter((p) => !isMock(p.depositTxHash))
+    .map((p) => ({ ...p, depositTxHash: p.depositTxHash?.toLowerCase() ?? null }))
   for (const m of attributeDeposits(real, deposits, expectedLuna)) {
     confirmDeposit(challengeId, m.address, m.hash, m.confirmed)
     if (m.confirmed) {

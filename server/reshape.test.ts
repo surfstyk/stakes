@@ -187,3 +187,37 @@ test('GET /stats/social counts started-this-week by template, and never invents'
   // the sugar/run/meditate/cold tastes started above are counted honestly
   assert.ok((s.body.startedThisWeek.sugar ?? 0) >= 1)
 })
+
+// ---- audit M1: /official is idempotent for the creator (a retry after a lost response must
+// return the run, not 409 — a 409 reads as failure and invites a second real deposit) ----
+
+test('M1: a second POST /official from the creator returns the run (200), not 409', async () => {
+  const addr = 'NQ55 5555 5555 5555 5555 5555 5555 5555 5555'
+  const start = await j('POST', '/challenges', { templateId: 'run', goal: 'running', emoji: '🏃', creatorAddress: addr })
+  const id = start.body.id
+  const first = await j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 70, depositTxHash: 'mock-a' })
+  assert.equal(first.status, 200)
+  const retry = await j('POST', `/challenges/${id}/official`, { address: addr, durationDays: 7, stake: 70, depositTxHash: 'mock-a' })
+  assert.equal(retry.status, 200, 'idempotent for the creator')
+  assert.equal(retry.body.id, id)
+  assert.equal(retry.body.status, 'official')
+  assert.equal(retry.body.stake, 70, 'the original stake stands; a retry cannot re-parameterize the run')
+  const stranger = await j('POST', `/challenges/${id}/official`, { address: NQ, durationDays: 7, stake: 70 })
+  assert.equal(stranger.status, 403, 'still not anyone else\'s to touch')
+})
+
+// ---- audit M3: an oversized body is cut off, not buffered until the client hangs up ----
+
+test('M3: a body past the cap is refused and the socket is closed', async () => {
+  const big = JSON.stringify({ goal: 'x'.repeat(200_000), creatorAddress: NQ })
+  let status: number | 'reset' = 'reset'
+  try {
+    const res = await fetch(base + '/api/challenges', { method: 'POST', headers: { 'content-type': 'application/json' }, body: big })
+    status = res.status
+  } catch {
+    status = 'reset' // connection destroyed mid-upload — also the intended outcome
+  }
+  assert.ok(status === 'reset' || status === 400, `oversized body refused (got ${status})`)
+  const me = await j('GET', `/me?address=${encodeURIComponent(NQ)}`)
+  assert.equal(me.status, 200, 'the API is still up afterwards')
+})

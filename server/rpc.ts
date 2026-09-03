@@ -59,6 +59,11 @@ export interface ChainTx {
   executionResult: boolean
 }
 
+/** One transaction by hash (throws if the node doesn't know it). */
+export function getTransactionByHash(hash: string): Promise<ChainTx> {
+  return rpc<ChainTx>('getTransactionByHash', [hash])
+}
+
 /** Most-recent transactions touching `address` (newest first). */
 export function getTransactionsByAddress(address: string, max = 100): Promise<ChainTx[]> {
   // signature: (address, max, startAt | null)
@@ -90,15 +95,34 @@ export interface StakeDeposit {
 export async function listStakeDeposits(
   treasury: string,
   challengeId: string,
-  max = 200,
+  max = 1000,
 ): Promise<StakeDeposit[]> {
   const txs = await getTransactionsByAddress(treasury, max)
-  return txs
-    .filter(
-      (t) =>
-        normAddr(t.to) === normAddr(treasury) &&
-        t.executionResult !== false &&
-        isDepositTag(decodeData(t.recipientData), challengeId),
-    )
-    .map((t) => ({ from: t.from, valueLuna: t.value, hash: t.hash, at: t.timestamp }))
+  return txs.filter((t) => isStakeDepositTx(t, treasury, challengeId)).map(toStakeDeposit)
+}
+
+/** The one predicate that makes a chain tx a stake deposit for `challengeId` at `treasury`. */
+export function isStakeDepositTx(t: ChainTx, treasury: string, challengeId: string): boolean {
+  return normAddr(t.to) === normAddr(treasury) && t.executionResult !== false && isDepositTag(decodeData(t.recipientData), challengeId)
+}
+const toStakeDeposit = (t: ChainTx): StakeDeposit => ({ from: t.from, valueLuna: t.value, hash: t.hash, at: t.timestamp })
+
+export const HASH_RE = /^[0-9a-f]{64}$/i
+
+/**
+ * Look up ONE reported deposit hash directly. A finalized tx is permanent, so — unlike the
+ * newest-N address scan above — this can never "lose" a deposit once traffic at the treasury grows
+ * past the scan window (audit H2). Returns null if the tx is unknown or is not a deposit for this
+ * challenge; throws only on transport failure (the caller treats that as "stay unconfirmed, retry").
+ */
+export async function lookupStakeDeposit(treasury: string, challengeId: string, hash: string): Promise<StakeDeposit | null> {
+  if (!HASH_RE.test(hash)) return null
+  let t: ChainTx
+  try {
+    t = await getTransactionByHash(hash.toLowerCase())
+  } catch (e) {
+    if (/not found/i.test((e as Error).message)) return null
+    throw e
+  }
+  return isStakeDepositTx(t, treasury, challengeId) ? toStakeDeposit(t) : null
 }
