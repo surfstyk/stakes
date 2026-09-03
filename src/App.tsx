@@ -60,10 +60,9 @@ export function App() {
     )
   }
   if (gate === 'gate') {
-    const c = new URLSearchParams(location.search).get('c')
     return (
       <div className="stakes">
-        <OpenInNimiqPay challengeId={c ?? undefined} />
+        <OpenInNimiqPay />
       </div>
     )
   }

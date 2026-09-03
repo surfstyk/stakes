@@ -5,12 +5,7 @@
 // tiny {placeholder} formatter (see ./format.ts); accent headlines stay {lead, em, tail}.
 // Components import `copy` and its shape is unchanged — editing a word is a JSON-only change,
 // and a locale (messages/de.json …) is a later drop-in reading window.nimiqPay.language.
-//
-// Brand-derived values (the wordmark / brand name) come from ./brand.ts, not the copy file,
-// so the name has one source of truth.
 
-import type { Asset } from '../vault/types.ts'
-import { brand } from './brand.ts'
 import { fmt } from './format.ts'
 import en from './copy.en.json'
 
@@ -21,168 +16,15 @@ export interface Headline {
 }
 
 export const copy = {
-  app: {
-    wordmark: brand.name,
-    recon: en.app.recon,
-    test: en.app.test,
-  },
-
   gate: {
     kicker: en.gate.kicker,
     h1: en.gate.h1 as Headline,
     sub: en.gate.sub,
-    invitedKicker: (creator: string) => fmt(en.gate.invitedKicker, { creator }),
-    invitedSub: en.gate.invitedSub,
-    expiredKicker: en.gate.expiredKicker,
-    expiredH1: en.gate.expiredH1 as Headline,
-    expiredSub: en.gate.expiredSub,
-    expiredOpen: en.gate.expiredOpen,
     open: en.gate.open,
     reassure: en.gate.reassure,
     get: en.gate.get,
     foot: en.gate.foot,
-  },
-
-  create: {
-    resumeGo: en.create.resumeGo,
-    kicker: en.create.kicker,
-    h1: en.create.h1 as Headline,
-    sub: en.create.sub,
-    customLabel: en.create.customLabel,
-    customPlaceholder: en.create.customPlaceholder,
-    durationLabel: en.create.durationLabel,
-    daysUnit: en.create.daysUnit,
-    stakeLabel: en.create.stakeLabel,
-    stakeNote: en.create.stakeNote,
-    windowLabel: en.create.windowLabel,
-    testWindowNote: en.create.testWindowNote,
-    nameLabel: en.create.nameLabel,
-    namePlaceholder: en.create.namePlaceholder,
-    cta: (stake: number, asset: Asset) => fmt(en.create.cta, { stake, asset }),
-    ctaBusy: en.create.ctaBusy,
-    errFallback: en.create.errFallback,
-    needGoal: en.create.needGoal,
-    needName: en.create.needName,
-  },
-
-  pledged: {
-    kicker: en.pledged.kicker,
-    h1: en.pledged.h1 as Headline,
-    sub: en.pledged.sub,
-    share: en.pledged.share,
-    inviteLead: en.pledged.inviteLead,
-    invite: en.pledged.invite,
-    inviteCopied: en.pledged.inviteCopied,
-    goChallenge: en.pledged.goChallenge,
-    preview: en.pledged.preview,
-    notFoundH1: en.pledged.notFoundH1,
-    notFoundSub: en.pledged.notFoundSub,
-    notFoundCta: en.pledged.notFoundCta,
-  },
-
-  join: {
-    kickerDared: (creator: string) => fmt(en.join.kickerDared, { creator }),
-    h1Lead: en.join.h1Lead,
-    h1: en.join.h1 as Headline,
-    sub: en.join.sub,
-    whosInOne: (a: string) => fmt(en.join.whosInOne, { a }),
-    whosInTwo: (a: string, b: string) => fmt(en.join.whosInTwo, { a, b }),
-    whosInMany: (a: string, b: string, extra: number) => fmt(en.join.whosInMany, { a, b, extra }),
-    crewRunning: en.join.crewRunning,
-    countdown: en.join.countdown,
-    nameLabel: en.join.nameLabel,
-    namePlaceholder: en.join.namePlaceholder,
-    needName: en.join.needName,
-    cta: (stake: number, asset: Asset) => fmt(en.join.cta, { stake, asset }),
-    ctaBusy: en.join.ctaBusy,
-    errCancel: en.join.errCancel,
-    errFallback: en.join.errFallback,
-    guarantee: en.join.guarantee,
-    offerExit: en.join.offerExit,
-    heldSafe: (stake: number, asset: Asset) => fmt(en.join.heldSafe, { stake, asset }),
-
-    joinedKicker: en.join.joinedKicker,
-    joinedH1: en.join.joinedH1 as Headline,
-    joinedSub: (stake: number, asset: Asset) => fmt(en.join.joinedSub, { stake, asset }),
-    youMake: (n: number) => fmt(en.join.youMake, { n }),
-    reshareQuote: en.join.reshareQuote,
-    pullFriend: en.join.pullFriend,
-    pullFriendCopied: en.join.pullFriendCopied,
-    later: en.join.later,
-
-    closedH1: en.join.closedH1,
-    closedSub: (creator: string, emoji: string) => fmt(en.join.closedSub, { creator, emoji }),
-    closedCta: en.join.closedCta,
-    closedFoot: (whosIn: string) => fmt(en.join.closedFoot, { whosIn }),
-
-    notFoundH1: en.join.notFoundH1,
-    notFoundSub: en.join.notFoundSub,
-    notFoundCta: en.join.notFoundCta,
-  },
-
-  progress: {
-    dayOf: (day: number, total: number) => fmt(en.progress.dayOf, { day, total }),
-    startsKicker: en.progress.startsKicker,
-    startsTitle: en.progress.startsTitle,
-    startsSub: (t: string) => fmt(en.progress.startsSub, { t }),
-    wrappedKicker: en.progress.wrappedKicker,
-    windowLeft: (t: string) => fmt(en.progress.windowLeft, { t }),
-    checkedTitle: en.progress.checkedTitle,
-    checkedSub: (t: string) => fmt(en.progress.checkedSub, { t }),
-    overTitle: en.progress.overTitle,
-    overSub: en.progress.overSub,
-    checkinLabel: en.progress.checkinLabel,
-    checkinPlaceholder: en.progress.checkinPlaceholder,
-    checkinCta: (day: number) => fmt(en.progress.checkinCta, { day }),
-    checkinBusy: en.progress.checkinBusy,
-    errFallback: en.progress.errFallback,
-    doneTitle: en.progress.doneTitle,
-    doneSub: en.progress.doneSub,
-    crewLabel: en.progress.crewLabel,
-    feedEmpty: en.progress.feedEmpty,
-    feedDay: (day: number) => fmt(en.progress.feedDay, { day }),
-    seeResults: en.progress.seeResults,
-    shareLabel: en.progress.shareLabel,
-    shareCta: en.progress.shareCta,
-    notFoundH1: en.progress.notFoundH1,
-    notFoundCta: en.progress.notFoundCta,
-  },
-
-  results: {
-    kicker: (emoji: string, goal: string) => fmt(en.results.kicker, { emoji, goal }),
-    h1Perfect: (unit: string) => ({ lead: en.results.h1Perfect.lead, em: fmt(en.results.h1Perfect.em, { unit }) }) as Headline,
-    h1Landed: en.results.h1Landed as Headline,
-    daysMeta: (done: number, total: number) => fmt(en.results.daysMeta, { done, total }),
-    back: (asset: string) => fmt(en.results.back, { asset }),
-    banked: (asset: string) => fmt(en.results.banked, { asset }),
-    yoursKicker: en.results.yoursKicker,
-    backPart: (amt: string, asset: string) => fmt(en.results.backPart, { amt, asset }),
-    bonusPart: (amt: string, asset: string) => fmt(en.results.bonusPart, { amt, asset }),
-    lostPart: (amt: string, asset: string) => fmt(en.results.lostPart, { amt, asset }),
-    landed: en.results.landed,
-    settling: en.results.settling,
-    perfectBadgeTitle: en.results.perfectBadgeTitle,
-    shareWin: en.results.shareWin,
-    shareWrap: en.results.shareWrap,
-    crewLabel: en.results.crewLabel,
-    you: en.results.you,
-    burnedSummary: (amt: string, asset: Asset) => fmt(en.results.burnedSummary, { amt, asset }),
-    burnedSub: (finishers: number) => fmt(en.results.burnedSub, { finishers }),
-    burnedTag: (amt: string) => fmt(en.results.burnedTag, { amt }),
-    runItBack: en.results.runItBack,
-    none: en.results.none,
-    home: en.results.home,
-  },
-
-  // Text that rides along with a shared link / image.
-  share: {
-    pledge: (emoji: string, goal: string, days: number, stake: number, asset: Asset) =>
-      fmt(en.share.pledge, { emoji, goal, days, stake, asset }),
-    joined: (creator: string, emoji: string) => fmt(en.share.joined, { creator, emoji }),
-    resultsWin: (emoji: string, goal: string, unit: string) => fmt(en.share.resultsWin, { emoji, goal, unit }),
-    resultsWrap: (emoji: string) => fmt(en.share.resultsWrap, { emoji, brand: brand.name }),
-    progress: (emoji: string, goal: string, day: number, total: number) =>
-      fmt(en.share.progress, { emoji, goal, day, total }),
+    guarantee: en.gate.guarantee,
   },
 
   // ── The reshape (Cycle II) — the solo-first journey. Accent headlines keep
@@ -342,23 +184,5 @@ export const copy = {
     home: en.a11y.home,
     openSphere: en.a11y.openSphere,
     close: en.a11y.close,
-  },
-
-  // On-card lettering (pledge ticket + results card). Shared by the live DOM cards
-  // and the canvas share-image renderer.
-  cards: {
-    brand: brand.name,
-    pledgeMeta: en.cards.pledgeMeta,
-    pledgeGoalLead: en.cards.pledgeGoalLead,
-    pledgeGoalFallback: en.cards.pledgeGoalFallback,
-    pledgeForDays: (days: number) => fmt(en.cards.pledgeForDays, { days }),
-    pledgeOnLine: en.cards.pledgeOnLine,
-    pledgeStamp: en.cards.pledgeStamp,
-    pledgeStampSub: en.cards.pledgeStampSub,
-    pledgeFoot: en.cards.pledgeFoot,
-    ticketSignedBy: en.cards.ticketSignedBy,
-    ticketSealed: en.cards.ticketSealed,
-    ticketCta: en.cards.ticketCta as Headline,
-    lockedIn: en.cards.lockedIn,
   },
 }

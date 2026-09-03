@@ -1,53 +1,19 @@
-import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { brand, copy } from '../brand/index.ts'
 import { Headline } from './Headline.tsx'
-import { Loading } from './Loading.tsx'
-import { PledgeTicket } from './PledgeTicket.tsx'
 import { NIMIQ_PAY_INSTALL_URL, openInNimiqPay } from '../lib/context.ts'
-import { getChallenge, type ChallengeRecord } from './store.ts'
 
-// The "Open in Nimiq Pay" gate / smart landing.
+// The "Open in Nimiq Pay" gate.
 //
 // Shown by App when a real-money build is opened OUTSIDE Nimiq Pay (the invite-link trap:
 // a shared https link tapped in a normal mobile browser). It NEVER lets a visitor silently
 // mock-stake real money — instead it routes them into Nimiq Pay, where their real wallet
 // and the real stake live, via the documented `nimiqpay://miniapp?url=…` deeplink that
-// preserves the current URL (incl. ?c=<id>), so they land right back on the join screen.
-//
-// For an invite (?c=<id>) it fetches the challenge and shows the pledge preview + who's-in,
-// keeping the social hook intact — the landing IS the pitch, not a dead-end wall.
+// preserves the current URL, so they land right back where they were. The solo journey has
+// no join/invite preview, so the gate is a single clean cross-over, not a social pitch.
 
-export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
-  const [rec, setRec] = useState<ChallengeRecord | null>(null)
-  const [loading, setLoading] = useState(!!challengeId)
-  const [expired, setExpired] = useState(false)
+export function OpenInNimiqPay() {
   const g = copy.gate
-
-  useEffect(() => {
-    if (!challengeId) return
-    let alive = true
-    // Same-origin /api works from a plain browser too, so we can show the invite preview
-    // before the user crosses over into Nimiq Pay.
-    getChallenge(challengeId).then((r) => {
-      if (!alive) return
-      if (r) setRec(r)
-      else setExpired(true) // link points at a challenge that's over / gone
-      setLoading(false)
-    })
-    return () => {
-      alive = false
-    }
-  }, [challengeId])
-
-  // Hold on a spinner while an invite is fetched, so we never flash the generic gate and
-  // then snap to the invite preview (the layout shift the audit flagged).
-  if (loading) return <Loading />
-
-  // For an expired invite, cross over to a CLEAN url (no ?c=) so they land on Create and can
-  // start their own — not back on the dead invite's "This one's gone".
-  const cleanUrl = location.origin + location.pathname
-
   return (
     <motion.div
       className="s-center"
@@ -59,53 +25,21 @@ export function OpenInNimiqPay({ challengeId }: { challengeId?: string }) {
         {brand.hasDot && <span className="dot" />} {brand.name}
       </span>
 
-      {expired ? (
-        <>
-          <p className="s-kicker" style={{ marginTop: 20 }}>
-            {g.expiredKicker}
-          </p>
-          <Headline h={g.expiredH1} className="s-h1" />
-          <p className="s-sub" style={{ margin: '0 auto 6px' }}>
-            {g.expiredSub}
-          </p>
-        </>
-      ) : rec ? (
-        <>
-          <p className="s-kicker" style={{ marginTop: 20 }}>
-            {g.invitedKicker(rec.creatorName)}
-          </p>
-          {/* the real pledge ticket — the same artifact they saw shared and will meet again
-              on the Join screen, so the invitee sees exactly what they're crossing over for */}
-          <div className="stage">
-            <PledgeTicket rec={rec} />
-          </div>
-          <p className="s-sub" style={{ margin: '14px auto 6px' }}>
-            {g.invitedSub}
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="s-kicker" style={{ marginTop: 20 }}>
-            {g.kicker}
-          </p>
-          <Headline h={g.h1} className="s-h1" />
-          <p className="s-sub" style={{ margin: '0 auto 6px' }}>
-            {g.sub}
-          </p>
-        </>
-      )}
+      <p className="s-kicker" style={{ marginTop: 20 }}>
+        {g.kicker}
+      </p>
+      <Headline h={g.h1} className="s-h1" />
+      <p className="s-sub" style={{ margin: '0 auto 6px' }}>
+        {g.sub}
+      </p>
 
       {/* reassurance — defuse the fear before the cross-over (no jargon) */}
       <div className="gate-trust">
         <ShieldCheck />
-        {copy.join.guarantee}
+        {g.guarantee}
       </div>
-      <button
-        className="s-cta s-cta--share"
-        data-variant="go"
-        onClick={() => openInNimiqPay(expired ? cleanUrl : undefined)}
-      >
-        {expired ? g.expiredOpen : g.open}
+      <button className="s-cta s-cta--share" data-variant="go" onClick={() => openInNimiqPay()}>
+        {g.open}
       </button>
       {/* gently pre-empt Nimiq Pay's first-access confirm + unlock so it doesn't feel broken */}
       <p className="gate-reassure">{g.reassure}</p>
