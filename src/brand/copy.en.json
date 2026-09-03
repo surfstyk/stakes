@@ -213,6 +213,7 @@
       "cta": "Make it official.",
       "busy": "Making it official…",
       "err": "That didn’t go through. Tap to try again.",
+      "errCancel": "You didn’t confirm, so nothing was taken. Make it official when you’re ready.",
       "stamp": "OFFICIAL",
       "contractWeek": "A week on the line",
       "contractDaysN": "{days} days on the line",

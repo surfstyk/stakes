@@ -223,6 +223,7 @@ export const copy = {
       cta: en.rs.official.cta,
       busy: en.rs.official.busy,
       err: en.rs.official.err,
+      errCancel: en.rs.official.errCancel,
       stamp: en.rs.official.stamp,
       contractWeek: en.rs.official.contractWeek,
       contractDaysN: (days: number) => fmt(en.rs.official.contractDaysN, { days }),

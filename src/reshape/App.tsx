@@ -7,6 +7,7 @@ import { DEV_TOOLS } from '../lib/flags.ts'
 import { DayScreen, MainScreen, MakeOfficialScreen, SealShareScreen, TasteScreen } from './screens.tsx'
 import { ArchiveScreen, BankedScreen, LapsedScreen, MissedScreen, PerfectWeekScreen, ReUpScreen } from './screens2.tsx'
 import { Frame, Wordmark } from './ui.tsx'
+import { isUserCancel } from '../lib/nimiq.ts'
 
 type View =
   | 'loading'
@@ -44,7 +45,7 @@ export function ReshapeApp() {
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ kind: 'cancel' | 'error' } | null>(null)
 
   // The landing rule (BUILD-HANDOFF §7): active run → its screen · else history → Archive · else Create.
   async function refresh() {
@@ -104,7 +105,10 @@ export function ReshapeApp() {
     try {
       await fn()
     } catch (e) {
-      setError((e as Error).message)
+      // Never surface a raw provider string: a user backing out of the native dialog
+      // is a calm "nothing happened", anything else is a clear, retryable failure.
+      if (import.meta.env.DEV) console.warn('[stakes] action failed:', e)
+      setError({ kind: isUserCancel(e) ? 'cancel' : 'error' })
     } finally {
       setBusy(false)
     }

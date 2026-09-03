@@ -155,7 +155,7 @@ export function MakeOfficialScreen({
 }: {
   challenge: Challenge
   busy: boolean
-  error: string | null
+  error: { kind: 'cancel' | 'error' } | null
   onOfficial: (stake: { perDay: number; days: number }) => void
   onWordmark: () => void
 }) {
@@ -233,8 +233,8 @@ export function MakeOfficialScreen({
         <ContractCard emoji={challenge.emoji} goalLabel={label} seq={challenge.seq} days={days} />
       </div>
       {error && (
-        <p className="sub" style={{ color: 'var(--stake)', marginTop: 10 }}>
-          {error}
+        <p className="sub" style={{ color: error.kind === 'cancel' ? 'var(--ink-soft)' : 'var(--stake)', marginTop: 10 }}>
+          {error.kind === 'cancel' ? c.official.errCancel : c.official.err}
         </p>
       )}
     </Frame>
@@ -254,7 +254,7 @@ export function DayScreen({
 }: {
   challenge: Challenge
   busy: boolean
-  error: string | null
+  error: { kind: 'cancel' | 'error' } | null
   onSeal: () => void
   onShare: () => void
   onWordmark: () => void
@@ -315,7 +315,7 @@ export function DayScreen({
       )}
       {error && (
         <p className="sub" style={{ color: 'var(--stake)', textAlign: 'center', marginTop: 16 }}>
-          {error}
+          {c.day.err}
         </p>
       )}
     </Frame>

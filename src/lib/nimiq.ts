@@ -50,3 +50,16 @@ export async function getNimiq(timeoutMs = 5000): Promise<NimiqProvider> {
 export function nimToLuna(nim: number): number {
   return Math.round(nim * LUNA_PER_NIM)
 }
+
+/**
+ * True when a provider error is the user backing out of the native Nimiq Pay dialog
+ * (declined / dismissed a payment or signature) rather than a real failure. Lets the UI
+ * treat a cancellation as a calm "nothing happened", not a red error. Covers the
+ * EIP-1193 user-rejected code (4001) and the common cancel wordings across providers.
+ */
+export function isUserCancel(e: unknown): boolean {
+  const code = (e as { code?: unknown } | null)?.code
+  if (code === 4001) return true
+  const msg = (e instanceof Error ? e.message : String(e ?? '')).toLowerCase()
+  return /cancel|reject|deni|declin|abort|dismiss|user closed|closed by user/.test(msg)
+}
