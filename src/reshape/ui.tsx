@@ -1,8 +1,8 @@
 import { type ReactNode, useId, useRef, useState } from 'react'
 import { RATIO, SQ3, roundedHex } from '../brand/hex.ts'
 import { copy } from '../brand/index.ts'
-import type { DayMark } from './model.ts'
-import type { Template } from './templates.ts'
+import { type Challenge, currentDay, effectiveStatus, type DayMark } from './model.ts'
+import { TEMPLATES, type Template } from './templates.ts'
 
 // The shared primitives, ported one-for-one from the finished onboarding-v2 artboards
 // (design source now in the studio brand repo). Faithful, not reskinned. Class names match
@@ -65,6 +65,43 @@ export function Wordmark({ onClick }: { onClick?: () => void }) {
     <button className="wm" onClick={onClick} aria-label={copy.a11y.home}>
       Stakes<span className="fs">.</span>
     </button>
+  )
+}
+
+// The header row: the wordmark, and (in a challenge) the persistent challenge indicator so you
+// always know which one you're in — handoff 2026-09-04, point 3.
+export function TopBar({ onWordmark, chip }: { onWordmark?: () => void; chip?: ReactNode }) {
+  return (
+    <div className="rs-top">
+      <Wordmark onClick={onWordmark} />
+      {chip}
+    </div>
+  )
+}
+
+// The challenge indicator: name + a day-hex glyph. Name-only during the taste (durationDays not
+// chosen yet); name + "Day n of N" once it's a running stake. Tappable back to the picker ONLY
+// pre-commit — choosing a different one there silently replaces the taste (the escape, point 2).
+// Never tappable once money is on it (forward-only). One green dot, never a bead: the live sphere
+// stays the single vermilion bead on the surface.
+export function ChallengeChip({ challenge, onPicker }: { challenge: Challenge; onPicker?: () => void }) {
+  const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
+  const running = effectiveStatus(challenge) === 'official'
+  const day = running ? Math.min(currentDay(challenge) + 1, challenge.durationDays) : 0
+  const tappable = effectiveStatus(challenge) === 'window' && !!onPicker
+  const inner = (
+    <>
+      <span className="cc-dot" />
+      <span className="cc-name">{label}</span>
+      {running && <span className="cc-day">{copy.rs.chip.dayOfN(day, challenge.durationDays)}</span>}
+    </>
+  )
+  return tappable ? (
+    <button className="challengechip" onClick={onPicker} aria-label={copy.a11y.changeChallenge}>
+      {inner}
+    </button>
+  ) : (
+    <span className="challengechip">{inner}</span>
   )
 }
 
@@ -344,6 +381,7 @@ export function Money({
   unit = 'NIM',
   gain,
   note,
+  action,
 }: {
   variant: 'win' | 'neutral' | 'quiet'
   label: string
@@ -351,9 +389,11 @@ export function Money({
   unit?: string
   gain?: string
   note?: string
+  action?: ReactNode
 }) {
   return (
     <div className={`money money--${variant}`}>
+      {action && <div className="money-act">{action}</div>}
       <div className="lbl">{label}</div>
       <div className="big">
         {amount} <small>{unit}</small>

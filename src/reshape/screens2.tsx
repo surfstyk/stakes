@@ -5,7 +5,7 @@ import { currentDay, keptDays, payoffOf, weekView } from './model.ts'
 import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { TEMPLATES } from './templates.ts'
-import { Cta, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, WeekFrame, Wordmark } from './ui.tsx'
+import { ChallengeChip, Cta, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, TopBar, WeekFrame, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
@@ -135,16 +135,11 @@ export function BankedScreen({
   if (p.outcome === 'banked') {
     return (
       <Frame
-        foot={
-          <div className="rs-foot-stack">
-            <button className="ghost" onClick={onGoAgain}>
-              {c.banked.goAgainWeek}
-            </button>
-            <Cta label={c.banked.shareWin} variant="green" icon={Icon.share} onClick={onShare} />
-          </div>
-        }
+        // One primary in the fixed slot, so the button never moves; sharing is a quiet action
+        // on the win card itself (handoff 2026-09-04).
+        foot={<Cta label={c.banked.goAgainWeek} variant="green" icon={Icon.arrow} onClick={onGoAgain} />}
       >
-        <Wordmark onClick={onWordmark} />
+        <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
         <div style={{ marginTop: 14 }}>
           <p className="kicker go" style={{ margin: '0 0 6px' }}>
             {c.banked.kicker}
@@ -158,7 +153,18 @@ export function BankedScreen({
           <WeekDots marks={marks} size={18} />
         </div>
         <div style={{ marginTop: 16 }}>
-          <Money variant="win" label={c.banked.moneyLbl} amount={Number(fmt(p.banked))} gain={c.banked.gain(Number(fmt(p.bonus)))} />
+          <Money
+            variant="win"
+            label={c.banked.moneyLbl}
+            amount={Number(fmt(p.banked))}
+            gain={c.banked.gain(Number(fmt(p.bonus)))}
+            action={
+              <button className="win-share" onClick={onShare}>
+                {c.banked.shareWin}
+                {Icon.share}
+              </button>
+            }
+          />
         </div>
         <div style={{ marginTop: 13 }}>
           <Ledger
@@ -185,7 +191,7 @@ export function BankedScreen({
           </div>
         }
       >
-        <Wordmark onClick={onWordmark} />
+        <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
         <div style={{ marginTop: 14 }}>
           <p className="kicker quiet" style={{ margin: '0 0 6px' }}>
             {c.banked.kickerUp}
@@ -233,7 +239,7 @@ export function BankedScreen({
         </div>
       }
     >
-      <Wordmark onClick={onWordmark} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <div style={{ marginTop: 16, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <p className="kicker quiet" style={{ margin: '0 0 6px', alignSelf: 'flex-start' }}>
           {c.banked.kickerUp}
@@ -402,7 +408,7 @@ export function MissedScreen({
       sphere={<SphereWithPick challenge={challenge} moment="slip" autoOpen />}
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
-      <Wordmark onClick={onWordmark} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <div className="goal" style={{ marginTop: 22 }}>
         {challenge.emoji} {label}
       </div>

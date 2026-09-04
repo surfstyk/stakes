@@ -117,10 +117,19 @@ export function ReshapeApp() {
 
   const onStart = (t: Template) =>
     guard(async () => {
+      // Point 2 (handoff 2026-09-04): starting a different challenge while a taste is still
+      // running silently REPLACES it — the soft escape, no cancel dialog. Only ever a taste
+      // (unstaked `window`); a staked run is forward-only and never reached from the picker.
+      if (challenge && effectiveStatus(challenge) === 'window') {
+        await data.deleteAttempt(challenge.id)
+      }
       const ch = await data.startChallenge(t.id)
       setChallenge(ch)
       setView('taste')
     })
+
+  // The challenge chip's tap during a taste → back to the picker (where starting another replaces it).
+  const toPicker = () => setView('main')
 
   const onOfficial = (stake: { perDay: number; days: number }) =>
     guard(async () => {
@@ -163,13 +172,6 @@ export function ReshapeApp() {
       }
     })
 
-  const onExitTaste = () =>
-    guard(async () => {
-      if (challenge) await data.deleteAttempt(challenge.id)
-      setChallenge(null)
-      setView('main')
-    })
-
   // ---- render ----
   if (view === 'loading') {
     return (
@@ -195,9 +197,9 @@ export function ReshapeApp() {
 
   switch (view) {
     case 'taste':
-      return <TasteScreen challenge={challenge} onMakeCount={() => setView('official')} onExit={onExitTaste} onWordmark={home} />
+      return <TasteScreen challenge={challenge} onMakeCount={() => setView('official')} onPicker={toPicker} onWordmark={home} />
     case 'official':
-      return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onWordmark={home} />
+      return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onPicker={toPicker} onWordmark={home} />
     case 'sealShare':
       return <SealShareScreen challenge={challenge} onShare={() => void share(copy.share.sealDay1(challenge.emoji, challenge.goal))} onWordmark={home} />
     case 'missed':

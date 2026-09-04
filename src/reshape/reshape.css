@@ -110,13 +110,59 @@
   color: var(--stake);
 }
 
-/* ---- type ------------------------------------------------------------------- */
-.rs .kicker {
+/* ---- the header row: wordmark + the persistent challenge chip ---------------- */
+.rs .rs-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rs .challengechip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 62%;
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 11.5px;
+  color: var(--ink);
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 5px 11px;
+}
+button.challengechip {
+  cursor: pointer;
+}
+button.challengechip:active {
+  transform: scale(0.98);
+}
+.rs .cc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--go);
+  flex: none;
+}
+.rs .cc-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs .cc-day {
+  color: var(--ink-soft);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* ---- type ------------------------------------------------------------------- */
+.rs .kicker {
+  /* Eyebrows read as sentence case, not tracked all-caps (brand §9) — the small meta
+     labels (WEEK n / A CLEAN WEEK) keep their caps; this is only the headline eyebrow. */
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.005em;
   color: var(--stake);
   margin: 0;
 }
@@ -432,17 +478,6 @@
   background: var(--grey);
 }
 
-.rs .streakpill {
-  font-family: var(--sans);
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--go-deep);
-  background: var(--go-tint);
-  border: 1px solid rgba(12, 95, 53, 0.28);
-  border-radius: 20px;
-  padding: 5px 11px;
-  white-space: nowrap;
-}
 .rs .chip-onchain {
   display: inline-flex;
   align-items: center;
@@ -790,12 +825,12 @@
   font-size: 21px;
 }
 .rs .stepper .amt small {
+  /* sentence case (brand §9): renders "NIM / day", "days" as authored — NIM stays a ticker */
   font-family: var(--sans);
   font-weight: 700;
   font-size: 10.5px;
   color: var(--ink-soft);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 .rs .stepper .pm {
   width: 34px;
@@ -882,14 +917,48 @@
 
 /* ---- the money + the ledger (the payoff) ----------------------------------- */
 .rs .money {
+  position: relative;
   border-radius: 20px;
   padding: 20px 22px;
   text-align: center;
+}
+/* the demoted share — a quiet action pinned to the win card, so the primary foot never moves */
+.rs .money-act {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.rs .win-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--cream);
+  background: rgba(255, 255, 255, 0.16);
+  border: 0;
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.rs .win-share:active {
+  background: rgba(255, 255, 255, 0.26);
+}
+.rs .win-share .ico {
+  width: 15px;
+  height: 15px;
 }
 .rs .money--win {
   background: linear-gradient(180deg, #1d7042, #00592f);
   color: var(--cream);
   box-shadow: 0 18px 38px -22px rgba(12, 95, 53, 0.7);
+  /* left-aligned like a statement so the corner Share reads as intentional */
+  text-align: left;
+}
+/* keep the top-left label clear of the pinned Share pill */
+.rs .money--win .lbl {
+  padding-right: 78px;
 }
 .rs .money--neutral {
   background: var(--paper-card);
@@ -901,11 +970,11 @@
   border: 1px solid var(--line);
 }
 .rs .money .lbl {
+  /* sentence case, not tracked all-caps (brand §9) — matches the win-card mockup */
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.005em;
 }
 .rs .money--win .lbl {
   color: rgba(255, 255, 255, 0.75);

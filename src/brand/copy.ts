@@ -58,10 +58,10 @@ export const copy = {
       hLead: en.rs.taste.hLead,
       hEm: en.rs.taste.hEm,
       hTail: en.rs.taste.hTail,
+      sub: en.rs.taste.sub,
       hintPre: en.rs.taste.hintPre,
       hintEm: en.rs.taste.hintEm,
       hintPost: en.rs.taste.hintPost,
-      exit: en.rs.taste.exit,
       cta: en.rs.taste.cta,
     },
     official: {
@@ -95,7 +95,6 @@ export const copy = {
       cta: en.rs.seal.cta,
     },
     day: {
-      streakPill: (n: number) => fmt(en.rs.day.streakPill, { n }),
       cta: en.rs.day.cta,
       sealing: en.rs.day.sealing,
       sealedKicker: (day: number) => fmt(en.rs.day.sealedKicker, { day }),
@@ -189,12 +188,16 @@ export const copy = {
       brand: en.rs.proof.brand,
       post: en.rs.proof.post,
     },
+    chip: {
+      dayOfN: (n: number, total: number) => fmt(en.rs.chip.dayOfN, { n, total }),
+    },
   },
 
   // Accessibility labels (screen-reader only).
   a11y: {
     home: en.a11y.home,
     openSphere: en.a11y.openSphere,
+    changeChallenge: en.a11y.changeChallenge,
     close: en.a11y.close,
   },
 }

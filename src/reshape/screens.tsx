@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, Social } from './model.ts'
-import {
-  currentDay,
-  dayFill,
-  isCheckedToday,
-  keptDays,
-  streak as streakOf,
-  weekView,
-} from './model.ts'
+import { currentDay, dayFill, isCheckedToday, keptDays, weekView } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { ContractCard, Cta, Deck, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, WeekFrame, Wordmark } from './ui.tsx'
+import { ChallengeChip, ContractCard, Cta, Deck, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, TopBar, WeekFrame, Wordmark } from './ui.tsx'
 import { SphereWithPick } from './screens2.tsx'
 
 const c = copy.rs
@@ -24,26 +17,6 @@ function useNow(active: boolean, fast = false): number {
     return () => clearInterval(id)
   }, [active, fast])
   return now
-}
-
-// A one-time-per-context hint (auto-shows once, remembered) — JOURNEY §7 open-call 4.
-function useOnceFlag(key: string): [boolean, () => void] {
-  const [seen, setSeen] = useState(() => {
-    try {
-      return localStorage.getItem('stakes.rs.hint.' + key) === '1'
-    } catch {
-      return false
-    }
-  })
-  const mark = () => {
-    try {
-      localStorage.setItem('stakes.rs.hint.' + key, '1')
-    } catch {
-      /* ignore */
-    }
-    setSeen(true)
-  }
-  return [seen, mark]
 }
 
 // ============================================================================
@@ -83,29 +56,26 @@ function DeckSelector({ social, onSelect, onIndexChange }: { social: Social; onS
 export function TasteScreen({
   challenge,
   onMakeCount,
-  onExit,
+  onPicker,
   onWordmark,
 }: {
   challenge: Challenge
   onMakeCount: () => void
-  onExit: () => void
+  onPicker: () => void
   onWordmark: () => void
 }) {
   const now = useNow(true, true)
   const fill = dayFill(challenge, now)
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
-  const [seen, mark] = useOnceFlag('taste')
-  const [open, setOpen] = useState(!seen)
-  const close = () => {
-    setOpen(false)
-    mark()
-  }
+  // First contact: no frost on arrival. The dot just bobs livelily to invite a tap; the hint
+  // pop-over opens only when the user reaches for it (handoff 2026-09-04).
+  const [open, setOpen] = useState(false)
   return (
     <Frame
       sphere={
         <>
           {open && (
-            <PopOver variant="hint" onClose={close}>
+            <PopOver variant="hint" onClose={() => setOpen(false)}>
               <p className="hintline">
                 {c.taste.hintPre}
                 <em>{c.taste.hintEm}</em>
@@ -113,29 +83,30 @@ export function TasteScreen({
               </p>
             </PopOver>
           )}
-          <Sphere onClick={() => setOpen(true)} motion={open ? 'lively' : 'calm'} />
+          <Sphere onClick={() => setOpen(true)} motion="lively" />
         </>
       }
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
-      <Wordmark onClick={onWordmark} />
-      <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26 }}>
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
+      <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26 }}>
         <div className="goal" style={{ textAlign: 'center' }}>
           {challenge.emoji} {label}
         </div>
         <HeroDot fill={fill} size={136} />
-        <h1 className="h" style={{ textAlign: 'center' }}>
-          <span className="hh-top">{c.taste.hTop}</span>
-          {c.taste.hLead}
-          <em>{c.taste.hEm}</em>
-          {c.taste.hTail}
-          <span className="fs">.</span>
-        </h1>
+        <div style={{ textAlign: 'center' }}>
+          <h1 className="h" style={{ textAlign: 'center' }}>
+            <span className="hh-top">{c.taste.hTop}</span>
+            {c.taste.hLead}
+            <em>{c.taste.hEm}</em>
+            {c.taste.hTail}
+            <span className="fs">.</span>
+          </h1>
+          <p className="sub" style={{ margin: '10px auto 0', maxWidth: '28ch' }}>
+            {c.taste.sub}
+          </p>
+        </div>
       </div>
-      <div style={{ flex: 1 }} />
-      <button className="textlink" onClick={onExit} style={{ marginBottom: 8 }}>
-        {c.taste.exit}
-      </button>
     </Frame>
   )
 }
@@ -151,12 +122,14 @@ export function MakeOfficialScreen({
   busy,
   error,
   onOfficial,
+  onPicker,
   onWordmark,
 }: {
   challenge: Challenge
   busy: boolean
   error: { kind: 'cancel' | 'error' } | null
   onOfficial: (stake: { perDay: number; days: number }) => void
+  onPicker: () => void
   onWordmark: () => void
 }) {
   const [pdi, setPdi] = useState(1) // 100 NIM/day
@@ -184,7 +157,7 @@ export function MakeOfficialScreen({
       }
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
-      <Wordmark onClick={onWordmark} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
       <div style={{ marginTop: 14 }}>
         <h1 className="h">
           {c.official.hLead}
@@ -263,7 +236,6 @@ export function DayScreen({
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   const checked = isCheckedToday(challenge, now)
   const wv = weekView(challenge, now)
-  const streak = streakOf(challenge, now)
   const dayNum = currentDay(challenge, now) + 1
   const remaining = challenge.durationDays - keptDays(challenge).size
 
@@ -278,12 +250,11 @@ export function DayScreen({
         )
       }
     >
-      <Wordmark onClick={onWordmark} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <div className="goalrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 22 }}>
         <div className="goal">
           {challenge.emoji} {label}
         </div>
-        {streak > 0 && <span className="streakpill">{c.day.streakPill(streak)}</span>}
       </div>
 
       {checked ? (
@@ -341,7 +312,7 @@ export function SealShareScreen({
       sphere={<Sphere onClick={() => {}} />}
       foot={<Cta label={c.seal.cta} variant="green" icon={Icon.share} onClick={onShare} />}
     >
-      <Wordmark onClick={onWordmark} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <div style={{ marginTop: 8 }}>
         <p className="kicker go" style={{ margin: '0 0 5px' }}>
           {c.seal.kicker}
