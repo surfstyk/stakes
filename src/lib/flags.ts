@@ -12,8 +12,8 @@
 export const DEV_TOOLS = import.meta.env.VITE_PUBLIC_BUILD !== '1'
 
 /**
- * Prototype gate for the One Light challenge illustrations (the picture-forward deck card + the
- * in-journey day banner). RUNTIME so it can be flipped on the device-test build with `?illus`
- * before the studio's on-device green light — no rebuild needed. Becomes always-on at integration.
+ * The One Light challenge illustrations (picture-forward deck card + in-journey day banner).
+ * ALWAYS ON since 2026-09-04, after Hendrik approved the on-device rendering. NB: this is the
+ * illustration ENGINE only — the per-screen visual design is a separate, still-owed studio sweep.
  */
-export const ILLUS = typeof location !== 'undefined' && new URLSearchParams(location.search).has('illus')
+export const ILLUS = true
