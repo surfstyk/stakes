@@ -6,7 +6,7 @@
 
 **Stakes** is a **social commitment game** built as a [Nimiq Pay](https://www.nimiq.com/nimiq-pay/) Mini App. You stake a small amount of NIM on a personal goal for a week, do it daily — kept honest by your friends and social proof, *not* surveillance — and reclaim your stake plus a share of what the quitters forfeit (plus a little NIM) if you follow through. Miss a day, forfeit that day's slice.
 
-Built for the **[Nimiq Mini Apps Competition](https://miniappscompetition.com/)**, Cycle I. Live on **mainnet** at **[stakes.surfstyk.com](https://stakes.surfstyk.com)** (open inside Nimiq Pay) · **[▶ 2-min demo](https://www.youtube.com/watch?v=ptgumWH57r4)** · **[📖 the story](https://blog.surfstyk.com/the-key-i-left-in-2021/)**.
+Built for the **[Nimiq Mini Apps Competition](https://miniappscompetition.com/)**, Cycle II. Live on **mainnet** at **[app.stakes.day](https://app.stakes.day)** (open inside Nimiq Pay) · **[▶ 2-min demo](https://www.youtube.com/watch?v=ptgumWH57r4)** · **[📖 the story](https://blog.surfstyk.com/the-key-i-left-in-2021/)**.
 
 <p align="center">
   <img src="public/screens/stakes-screen-1-create.png" width="22%" alt="Create a challenge">
@@ -26,7 +26,7 @@ Built for the **[Nimiq Mini Apps Competition](https://miniappscompetition.com/)*
 4. **Settle.** When the challenge ends, finishers get their stake back, a share of the forfeited pool, and a small NIM completion bonus.
 
 ## The money
-Stakes are real NIM, moved inside Nimiq Pay. In this **Cycle-I build the money layer is custodial**: participants deposit their stake to a Stakes-run treasury, and payouts are settled automatically when the challenge ends. It is built behind a swappable `StakeVault` interface (`src/vault/`) so a **trustless on-chain escrow (USDT) can slot in for Cycle II** without changing the product. The settlement math is a single pure function (`src/vault/settlement.ts`) shared by both the app and the settlement job, so the preview you see and the on-chain payout can't diverge. There is **no game of chance** — every outcome is determined purely by who checked in.
+Stakes are real NIM, moved inside Nimiq Pay. In this **Cycle-II build the money layer is custodial**: participants deposit their stake to a Stakes-run treasury, and payouts are settled automatically when the challenge ends. It is built behind a swappable `StakeVault` interface (`src/vault/`) so a **trustless on-chain escrow (USDT) can slot in later** without changing the product. The settlement math is a single pure function (`src/vault/settlement.ts`) shared by both the app and the settlement job, so the preview you see and the on-chain payout can't diverge. There is **no game of chance** — every outcome is determined purely by who checked in.
 
 ## Architecture
 - **Front end** — a Vite + React single-page app that runs inside the Nimiq Pay WebView, talking to the wallet over [`@nimiq/mini-app-sdk`](https://nimiq.dev/mini-apps/) (list accounts, NIM payments, message signing). Share cards are rendered to canvas; all brand copy and theme are centralized in `src/brand/`.
