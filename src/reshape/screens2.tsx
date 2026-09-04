@@ -4,6 +4,7 @@ import type { Challenge, DayMark, HistoryItem } from './model.ts'
 import { currentDay, keptDays, payoffOf, weekView } from './model.ts'
 import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
+import { journeyArt } from './illus.ts'
 import { TEMPLATES } from './templates.ts'
 import { ChallengeChip, Cta, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, TopBar, WeekFrame, Wordmark } from './ui.tsx'
 
@@ -308,14 +309,12 @@ export function ReUpScreen({
       </div>
       <div className="record" style={{ marginTop: 20 }}>
         <div className="rectop">
-          <span className="recgoal">
-            {challenge.emoji} {label}
-          </span>
+          <span className="recgoal">{label}</span>
           <span className="recnum">{c.reup.recordNum(record)}</span>
         </div>
         <div className="field">
           {Array.from({ length: dots }, (_, i) => (
-            <span key={i} className="fd" />
+            <Hex key={i} size={22} state="kept" />
           ))}
         </div>
       </div>
@@ -366,7 +365,9 @@ export function ArchiveScreen({
           const meta = h.outcome === 'lapsed' ? c.archive.metaLapsed : c.archive.meta(h.kept, h.total, h.stake, whenLabel(h.endedAt))
           return (
             <button key={h.id} className="row" onClick={() => onRow(h.templateId)}>
-              <span className="av">{h.emoji}</span>
+              <span className="av">
+                <img src={journeyArt(h.templateId)} alt="" draggable={false} loading="lazy" decoding="async" />
+              </span>
               <div className="mid">
                 <div className="rgoal">{labelFromGoal(h)}</div>
                 <div className="meta">{meta}</div>
@@ -410,10 +411,10 @@ export function MissedScreen({
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <div className="goal" style={{ marginTop: 22 }}>
-        {challenge.emoji} {label}
+        {label}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
-        <HeroDot state="missed" fill={0.9} size={132} />
+        <HeroDot state="missed" size={132} />
       </div>
       <div style={{ textAlign: 'center', marginTop: 26 }}>
         <h1 className="h" style={{ textAlign: 'center' }}>
@@ -434,12 +435,12 @@ export function MissedScreen({
 // ============================================================================
 // ⓼ Lapsed — the taste's 24h passed without a commit (no shame, restartable)
 // ============================================================================
-export function LapsedScreen({ challenge, onStartAgain, onWordmark }: { challenge: Challenge; onStartAgain: () => void; onWordmark: () => void }) {
+export function LapsedScreen({ onStartAgain, onWordmark }: { challenge: Challenge; onStartAgain: () => void; onWordmark: () => void }) {
   return (
     <Frame foot={<Cta label={c.lapsed.cta} variant="blue" icon={Icon.arrow} onClick={onStartAgain} />}>
       <Wordmark onClick={onWordmark} />
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 56 }}>
-        <HeroDot state="faded" size={132} emoji={challenge.emoji} />
+        <HeroDot state="faded" size={132} />
       </div>
       <div style={{ textAlign: 'center', marginTop: 32 }}>
         <h1 className="h" style={{ textAlign: 'center' }}>

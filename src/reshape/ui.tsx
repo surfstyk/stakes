@@ -1,10 +1,9 @@
-import { type ReactNode, useId, useRef, useState } from 'react'
-import { type PanInfo, animate, motion, useMotionValue, useTransform } from 'motion/react'
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { RATIO, SQ3, roundedHex } from '../brand/hex.ts'
 import { copy } from '../brand/index.ts'
 import { type Challenge, currentDay, effectiveStatus, type DayMark } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { cardArt, illusOn, journeyArt } from './illus.ts'
+import { cardArt, journeyArt } from './illus.ts'
 
 // The shared primitives, ported one-for-one from the finished onboarding-v2 artboards
 // (design source now in the studio brand repo). Faithful, not reskinned. Class names match
@@ -179,7 +178,13 @@ export function PopOver({
 }
 
 // ---- the mark in the UI: the locked Stakes Hex (src/brand/hex.ts · RATIO 0.4) ----
-// A day is a hex. fill = time (rising bottom-up) · solid = you (with the bead).
+// A day is the softened hex — never a bead, never a plain circle (design-sweep §1a). Four states:
+//   future → outline only (--line)          today  → fill rises bottom-up, outline --go
+//   kept/sealed → solid --go + a cream check  missed/faded → flat --grey
+// fill = time (rising) · the cream check = you (sealed). Live SVG, no riso — so the check is
+// opaque on NORMAL blend (a multiply blend erases cream over green); its p1/p2/p3 geometry is the
+// studio engine's kept(). The today rise is a discrete green-dot halftone on the big hero (canon
+// §8) and a solid fill in the small in-UI hexes (≤~40px), where a halftone just muddies.
 export type HexState = 'today' | 'kept' | 'future' | 'missed' | 'sealed' | 'faded'
 export function Hex({
   size,
@@ -196,19 +201,36 @@ export function Hex({
 }) {
   const uid = useId().replace(/:/g, '')
   const R = size / 2
+
+  // below the floor a rounded hex reads as mud — draw a plain dot instead (§1a)
+  if (size < 18) {
+    const solid = state === 'kept' || state === 'sealed' ? 'var(--go)' : state === 'missed' || state === 'faded' ? 'var(--grey)' : 'transparent'
+    return (
+      <span className="hex" style={{ display: 'inline-block', width: size, height: size, lineHeight: 0 }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" style={{ display: 'block' }}>
+          <circle cx={R} cy={R} r={R - 1} fill={solid} stroke={state === 'future' ? 'var(--line-strong)' : 'none'} strokeWidth={state === 'future' ? 1.5 : 0} />
+        </svg>
+      </span>
+    )
+  }
+
   const H = SQ3 * R
-  const shell = roundedHex(R, H / 2, R, RATIO * R)
-  const beadR = RATIO * R
-  const shellFill =
-    state === 'kept' || state === 'sealed'
-      ? 'var(--go)'
-      : state === 'missed'
-        ? 'var(--grey)'
-        : state === 'future'
-          ? 'transparent'
-          : '#e3ddcf' // today / faded shell
-  const rise = fillColor ?? (state === 'today' ? 'var(--go)' : null)
-  const bead = state === 'kept'
+  const cx = R
+  const cy = H / 2
+  const shell = roundedHex(cx, cy, R, RATIO * R)
+  const kept = state === 'kept' || state === 'sealed'
+  const solidShell = kept ? 'var(--go)' : state === 'missed' || state === 'faded' ? 'var(--grey)' : null
+  const isToday = state === 'today'
+  const rise = fillColor ?? 'var(--go)'
+  const halftone = isToday && size >= 40 && !fillColor // discrete green-dot halftone on the hero; solid below (canon §8)
+  const cell = Math.max(4.5, R * 0.13)
+  // the cream check (§1a) — the engine's kept() geometry, stroked opaque on normal blend
+  const p1 = [cx - 0.3 * R, cy + 0.04 * R]
+  const p2 = [cx - 0.07 * R, cy + 0.25 * R]
+  const p3 = [cx + 0.34 * R, cy - 0.24 * R]
+  const check = `M${p1[0].toFixed(2)} ${p1[1].toFixed(2)}L${p2[0].toFixed(2)} ${p2[1].toFixed(2)}L${p3[0].toFixed(2)} ${p3[1].toFixed(2)}`
+  const outline = Math.max(1.5, R * 0.05)
+
   return (
     <span className="hex" style={{ display: 'inline-block', position: 'relative', width: size, height: H, lineHeight: 0 }}>
       <svg width={size} height={H} viewBox={`0 0 ${size} ${H}`} aria-hidden="true" style={{ display: 'block', overflow: 'visible' }}>
@@ -216,59 +238,44 @@ export function Hex({
           <clipPath id={'hc' + uid}>
             <path d={shell} />
           </clipPath>
-          {bead && (
-            <radialGradient id={'hb' + uid} cx="34%" cy="28%" r="72%">
-              <stop offset="0" stopColor="#ff8a4a" />
-              <stop offset="0.18" stopColor="#ff7a3f" />
-              <stop offset="0.55" stopColor="#ef2d06" />
-              <stop offset="1" stopColor="#b81f04" />
-            </radialGradient>
+          {halftone && (
+            <pattern id={'ht' + uid} width={cell} height={cell} patternUnits="userSpaceOnUse" patternTransform="rotate(12)">
+              <circle cx={cell / 2} cy={cell / 2} r={cell * 0.42} fill="var(--go)" />
+            </pattern>
           )}
         </defs>
-        <path d={shell} fill={shellFill} stroke={state === 'future' ? '#cfc6b4' : 'none'} strokeWidth={state === 'future' ? 2 : 0} />
-        {rise && fill > 0 && <rect x={0} y={H * (1 - fill)} width={size} height={H * fill} fill={rise} clipPath={`url(#hc${uid})`} />}
-        {bead && <circle cx={R} cy={H / 2} r={beadR} fill={`url(#hb${uid})`} />}
+        {/* the solid states fill the shell; today/future leave the paper showing */}
+        {solidShell && <path d={shell} fill={solidShell} />}
+        {/* today: the fill rises bottom-up (halftone on the hero, solid in the small hexes) */}
+        {isToday && fill > 0 && (
+          <rect x={0} y={H * (1 - fill)} width={size} height={H * fill} fill={halftone ? `url(#ht${uid})` : rise} clipPath={`url(#hc${uid})`} />
+        )}
+        {/* the outline: --go for today, --line for future; the solid states carry none */}
+        {(isToday || state === 'future') && <path d={shell} fill="none" stroke={state === 'future' ? 'var(--line)' : 'var(--go)'} strokeWidth={outline} />}
+        {/* kept / sealed: the cream check, opaque, normal blend */}
+        {kept && <path d={check} fill="none" stroke="var(--cream)" strokeWidth={R * 0.15} strokeLinecap="round" strokeLinejoin="round" />}
       </svg>
       {children != null && <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>{children}</span>}
     </span>
   )
 }
 
-// ---- the hero dot — now the hero HEX (§11.3: the sealed hero keeps the cream check) ----
+// ---- the hero — the same day-hex at ~150px (§1b): today halftone · sealed green + cream check ·
+// missed / faded flat grey. No emoji, no placeholder two-tone; the check comes from Hex itself. ----
 export function HeroDot({
   fill = 0,
   state = 'filling',
   size = 140,
-  emoji,
 }: {
   fill?: number
   state?: 'filling' | 'sealed' | 'missed' | 'faded'
   size?: number
-  emoji?: string
 }) {
-  const w = Math.round(size / 0.866) // a flat-top hex is 0.866× as tall as wide — widen to hold the old presence
-  if (state === 'sealed') {
-    return (
-      <span className="heroHex sealed">
-        <Hex size={w} state="sealed">
-          <span className="heroCheck">{Icon.check}</span>
-        </Hex>
-      </span>
-    )
-  }
-  if (state === 'faded') {
-    return (
-      <span className="heroHex faded">
-        <Hex size={w} state="today" fill={0.5} fillColor="var(--grey)">
-          <span className="heroEmoji">{emoji}</span>
-        </Hex>
-      </span>
-    )
-  }
-  // filling + missed both rise bottom-up; missed rises in grey and keeps its level
+  const w = Math.round(size / 0.866) // a flat-top hex is 0.866× as tall as wide — widen to hold the presence
+  const hexState: HexState = state === 'filling' ? 'today' : state
   return (
-    <span className="heroHex">
-      <Hex size={w} state="today" fill={fill} fillColor={state === 'missed' ? 'var(--grey)' : undefined} />
+    <span className={'heroHex' + (state === 'sealed' ? ' sealed' : state === 'faded' ? ' faded' : '')}>
+      <Hex size={w} state={hexState} fill={state === 'filling' ? fill : 0} />
     </span>
   )
 }
@@ -320,18 +327,18 @@ export function Stepper({
 }
 
 // ---- the contract card (backdates: day one already kept + OFFICIAL) ---------
-export function ContractCard({ emoji, goalLabel, seq, days }: { emoji: string; goalLabel: string; seq: number; days: number }) {
+// Identity is the name only (no emoji, §1f); the day-row is day-hexes — day one kept (a check),
+// the rest outline — never circles (§3).
+export function ContractCard({ goalLabel, seq, days }: { goalLabel: string; seq: number; days: number }) {
   const no = String(seq).padStart(3, '0')
   return (
     <div className="contract">
-      <div className="cg">
-        {emoji} {goalLabel}
-      </div>
+      <div className="cg">{goalLabel}</div>
       <div className="csn">{days === 7 ? copy.rs.official.contractWeek : copy.rs.official.contractDaysN(days)} · {copy.rs.official.contractNo(no)}</div>
       <div className="cw">
-        <span className="dot dot--kept" />
+        <Hex size={18} state="kept" />
         {Array.from({ length: Math.max(0, days - 1) }, (_, i) => (
-          <span key={i} className="dot dot--future" />
+          <Hex key={i} size={18} state="future" />
         ))}
         <span className="stamp-official" style={{ marginLeft: 'auto' }}>
           {copy.rs.official.stamp}
@@ -342,7 +349,10 @@ export function ContractCard({ emoji, goalLabel, seq, days }: { emoji: string; g
 }
 
 // ---- the shareable trophy card + the Nimiq on-chain proof -------------------
-export function ShareCard({ emoji, seq, headline, stamp = copy.rs.shareCard.stampRecord }: { emoji: string; seq: number; headline: ReactNode; stamp?: string }) {
+// The in-app preview carries the challenge's dot-free One Light scene (§3) — the live sphere is
+// the surface's one bead, so no second dot and no separate beaded hex. (An exported PNG, a
+// standalone surface, would use the --card art whose printed dot is then its own one bead.)
+export function ShareCard({ templateId, seq, headline, stamp = copy.rs.shareCard.stampRecord }: { templateId: string; seq: number; headline: ReactNode; stamp?: string }) {
   return (
     <div className="sharecard">
       <div className="sc-top">
@@ -351,11 +361,10 @@ export function ShareCard({ emoji, seq, headline, stamp = copy.rs.shareCard.stam
         </span>
         <span className="sc-no">{copy.rs.shareCard.no(String(seq).padStart(3, '0'))}</span>
       </div>
-      <div className="sc-emoji">{emoji}</div>
-      <div className="sc-h">{headline}</div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Hex size={22} state="kept" />
+      <div className="sc-art">
+        <img src={journeyArt(templateId)} alt="" draggable={false} loading="lazy" decoding="async" />
       </div>
+      <div className="sc-h">{headline}</div>
       <span className="stamp-record">{stamp}</span>
       {/* the traveling sign-off carries the claim: the name + the hook (story.md §7) */}
       <div className="sc-cta">
@@ -468,142 +477,163 @@ export function PerfectRing() {
   )
 }
 
-// ---- the swipe deck: a stack you flick through ------------------------------
-// Cards lie in a stack; the top one is draggable. Flick it far enough (or fast enough) and it
-// flies off-screen while the card underneath rises into its place — physically like dealing off
-// the top of a deck (handoff feedback 2026-09-04). Motion (already a dependency) owns the
-// gesture: it runs the drag off the React render loop, disambiguates tap-vs-drag automatically
-// (a >3px move cancels the tap), and re-seats on an animation-complete promise, not a fragile
-// CSS transitionend — which is what made the hand-rolled version feel "blocked" and mis-tap.
-export function Deck({
+// ---- the cold-open snap carousel: browse the nine, pick with the one button ----
+// A native CSS scroll-snap track — no gesture library (design-sweep §0, replacing the retired
+// Motion card-stack). `scroll-snap-type:x mandatory` + each card `scroll-snap-align:center` +
+// `scroll-snap-stop:always` gives one card per swipe, locked to centre. The centred card (nearest
+// the track's midpoint) drives the foot CTA; tapping an off-centre card scrolls it to centre.
+// Swipe = browse only, never a start. No pagination chrome — the peek + a recurring nudge teach it.
+export function Carousel({
   templates,
   startedThisWeek,
-  onSelect,
   onIndexChange,
 }: {
   templates: Template[]
   startedThisWeek: Record<string, number>
-  onSelect: (t: Template) => void
   onIndexChange?: (t: Template) => void
 }) {
-  const [index, setIndex] = useState(0)
-  const n = templates.length
-  const at = (o: number) => templates[(index + o) % n]
-  // the visible stack: the top card + the two beneath it
-  const stack = [at(0), at(1), at(2)]
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(0)
+  // keep the callback current without re-arming the scroll listener each render
+  const report = useRef(onIndexChange)
+  report.current = onIndexChange
 
-  const advance = () => {
-    const next = (index + 1) % n
-    setIndex(next)
-    onIndexChange?.(templates[next])
+  // the centred card = the one whose middle is nearest the track's midpoint (rAF-throttled)
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    let raf = 0
+    const measure = () => {
+      raf = 0
+      const mid = track.scrollLeft + track.clientWidth / 2
+      let best = 0
+      let bestD = Infinity
+      Array.from(track.children).forEach((node, i) => {
+        const el = node as HTMLElement
+        const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid)
+        if (d < bestD) {
+          bestD = d
+          best = i
+        }
+      })
+      setActive(best)
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(measure)
+    }
+    track.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      track.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  // tell the foot CTA which card it commits
+  useEffect(() => {
+    report.current?.(templates[active])
+  }, [active, templates])
+
+  // the recurring nudge: eases toward the next card and springs back — on open, then every 10s
+  // while idle. The first real swipe (a pointerdown on the track) retires it for good.
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let busy = false
+    let holding = false
+    let interval = 0
+    let raf = 0
+    const tween = (from: number, to: number, ms: number, done?: () => void) => {
+      const t0 = performance.now()
+      const step = (now: number) => {
+        const p = Math.min(1, (now - t0) / ms)
+        const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2 // easeInOutQuad
+        track.scrollLeft = from + (to - from) * e
+        if (p < 1) raf = requestAnimationFrame(step)
+        else done?.()
+      }
+      raf = requestAnimationFrame(step)
+    }
+    const nudge = () => {
+      if (busy || holding) return // never yank an active swipe
+      busy = true
+      const snap = track.style.scrollSnapType
+      track.style.scrollSnapType = 'none' // don't let snap fight the tween
+      const base = track.scrollLeft
+      tween(base, base + 42, 460, () =>
+        tween(base + 42, base, 520, () => {
+          track.style.scrollSnapType = snap || 'x mandatory'
+          busy = false
+        }),
+      )
+    }
+    const retire = () => {
+      holding = true
+      if (interval) {
+        window.clearInterval(interval)
+        interval = 0
+      }
+    }
+    const release = () => {
+      holding = false
+    }
+    track.addEventListener('pointerdown', retire)
+    window.addEventListener('pointerup', release)
+    const open = window.setTimeout(nudge, 700)
+    interval = window.setInterval(nudge, 10_000)
+    return () => {
+      window.clearTimeout(open)
+      if (interval) window.clearInterval(interval)
+      if (raf) cancelAnimationFrame(raf)
+      track.removeEventListener('pointerdown', retire)
+      window.removeEventListener('pointerup', release)
+      track.style.scrollSnapType = ''
+    }
+  }, [])
+
+  const center = (i: number) => {
+    const el = trackRef.current?.children[i] as HTMLElement | undefined
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }
 
   return (
-    <>
-      <div className="deck">
-        {stack.map((t, i) => (
-          <DeckCard key={t.id} template={t} depth={i} interactive={i === 0} started={startedThisWeek[t.id] ?? 0} onSelect={() => onSelect(t)} onFlung={advance} />
-        ))}
-      </div>
-      <div className="dots">
+    <div className="carousel">
+      <div className="track" ref={trackRef} tabIndex={0} role="group" aria-label={copy.rs.main.kicker}>
         {templates.map((t, i) => (
-          <span key={t.id} className={'pd' + (i === index ? ' on' : '')} />
+          <CarouselCard key={t.id} template={t} active={i === active} started={startedThisWeek[t.id] ?? 0} onTap={() => center(i)} />
         ))}
       </div>
-    </>
+    </div>
   )
 }
 
-// One card. The interactive (top) one drags; the two beneath spring to their depth. Each card
-// owns its own motion value keyed by template id, so a flung card (which unmounts) never leaks a
-// stale offset onto the card that rises to take its place.
-function DeckCard({
-  template: t,
-  depth,
-  interactive,
-  started,
-  onSelect,
-  onFlung,
-}: {
-  template: Template
-  depth: number
-  interactive: boolean
-  started: number
-  onSelect: () => void
-  onFlung: () => void
-}) {
-  const x = useMotionValue(0)
-  const rotate = useTransform(x, [-220, 220], [-15, 15])
-  const [flinging, setFlinging] = useState(false)
-  // Motion fires onTap AND onDragEnd for a drag (they are independent recognizers), so a swipe
-  // would otherwise also count as a tap and start the challenge. Track whether a drag actually
-  // began and let a tap select ONLY when it didn't (handoff bug 2026-09-04).
-  const dragged = useRef(false)
-
-  const body = (
-    <>
-      <div className="cname">{t.label}</div>
-      <p className="cline">{t.blurb}</p>
-      {interactive && started > 0 && <StartedTag n={started} />}
-    </>
-  )
+// One card: the with-dot One Light scene fills the top, name + line beneath. The card's own
+// printed dot is this surface's single vermilion (no live sphere on the cold open, §0).
+function CarouselCard({ template: t, active, started, onTap }: { template: Template; active: boolean; started: number; onTap: () => void }) {
   return (
-    <motion.div
-      className={'card' + (illusOn ? ' illus' : '')}
-      style={interactive ? { x, rotate, zIndex: 4 } : { zIndex: 4 - depth }}
-      animate={{ y: interactive ? 0 : depth * 16, scale: interactive ? 1 : 1 - depth * 0.05, opacity: !interactive && depth >= 2 ? 0.92 : 1 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-      drag={interactive && !flinging ? 'x' : false}
-      onPointerDownCapture={interactive ? () => (dragged.current = false) : undefined}
-      onDragStart={interactive ? () => (dragged.current = true) : undefined}
-      onTap={interactive ? () => !dragged.current && onSelect() : undefined}
-      onDragEnd={
-        interactive
-          ? (_, info: PanInfo) => {
-              // a real flick counts by distance OR speed, so a fast short flick still fires
-              const flung = Math.abs(info.offset.x) > 100 || Math.abs(info.velocity.x) > 500
-              if (!flung) {
-                void animate(x, 0, { type: 'spring', stiffness: 500, damping: 40, velocity: info.velocity.x }) // springs home
-                return
-              }
-              setFlinging(true)
-              const dir = info.offset.x < 0 ? -1 : 1
-              const w = typeof window !== 'undefined' ? window.innerWidth : 420
-              void animate(x, dir * w * 1.15, { type: 'spring', stiffness: 550, damping: 46, velocity: info.velocity.x }).then(onFlung)
-            }
-          : undefined
-      }
-    >
-      {illusOn ? (
-        <>
-          {/* picture-forward: the with-dot scene fills the top, name + line beneath (board B) */}
-          <div className="cardart">
-            <img src={cardArt(t.id)} alt="" draggable={false} loading="lazy" decoding="async" />
-          </div>
-          <div className="cardbody">{body}</div>
-        </>
-      ) : (
-        <>
-          <div className="medallion">{t.emoji}</div>
-          {body}
-        </>
-      )}
-    </motion.div>
+    <div className={'card' + (active ? ' active' : '')} onClick={onTap}>
+      <div className="cardart">
+        <img src={cardArt(t.id)} alt="" draggable={false} loading="lazy" decoding="async" />
+      </div>
+      <div className="cardbody">
+        <div className="cname">{t.label}</div>
+        <p className="cline">{t.blurb}</p>
+        {active && started > 0 && <StartedTag n={started} />}
+      </div>
+    </div>
   )
 }
 
+// The live per-challenge count — shown on the focused card only (CSS hides it off-active).
 function StartedTag({ n }: { n: number }) {
   return (
-    <>
-      <div className="cdiv" />
-      <span className="clive">
-        <svg className="ppl" viewBox="0 0 24 24">
-          {P('M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2')}
-          <circle cx="9" cy="7" r="4" />
-          {P('M23 21v-2a4 4 0 0 0-3-3.87')}
-        </svg>
-        {n.toLocaleString()} started this week
-      </span>
-    </>
+    <span className="clive">
+      <svg className="ppl" viewBox="0 0 24 24">
+        {P('M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2')}
+        <circle cx="9" cy="7" r="4" />
+        {P('M23 21v-2a4 4 0 0 0-3-3.87')}
+      </svg>
+      {n.toLocaleString()} started this week
+    </span>
   )
 }

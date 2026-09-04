@@ -27,6 +27,9 @@
   --nimiq-blue: #1f2348;
   --nimiq-gold-a: #ec991c;
   --nimiq-gold-b: #e9b213;
+  /* one warm-ink shadow family, two elevations (design-sweep §1e): card + button read as one system */
+  --elev-card: 0 16px 34px -18px rgba(28, 24, 19, 0.34);
+  --elev-cta: 0 12px 26px -14px rgba(28, 24, 19, 0.3);
   /* motion tokens — the sphere leads, the card trails; a system HINT is livelier
      than a calm PICK (set per-variant on the pop-over) */
   --amp: 6px;
@@ -108,7 +111,8 @@
   cursor: pointer;
 }
 .rs .wm .fs {
-  color: var(--stake);
+  /* the wordmark's full stop is ink — the one vermilion is the live sphere / the card's own dot (§1c) */
+  color: var(--ink);
 }
 
 /* ---- the header row: wordmark + the persistent challenge chip ---------------- */
@@ -164,7 +168,8 @@ button.challengechip:active {
   font-weight: 700;
   font-size: 12.5px;
   letter-spacing: 0.005em;
-  color: var(--stake);
+  /* the eyebrow is green, never vermilion (§1d) — red is the companion's alone */
+  color: var(--go-deep);
   margin: 0;
 }
 .rs .kicker.go {
@@ -192,7 +197,7 @@ button.challengechip:active {
   color: inherit;
 }
 .rs .h .fs {
-  color: var(--stake);
+  color: var(--ink);
 }
 .rs .hh-top {
   display: block;
@@ -254,11 +259,11 @@ button.challengechip:active {
 }
 .rs .cta--blue {
   background: linear-gradient(180deg, #31405b, #27354d);
-  box-shadow: 0 10px 22px -14px rgba(39, 53, 77, 0.85);
+  box-shadow: var(--elev-cta);
 }
 .rs .cta--green {
   background: linear-gradient(180deg, #186c3f, #0c5f35);
-  box-shadow: 0 10px 22px -14px rgba(12, 95, 53, 0.7);
+  box-shadow: var(--elev-cta);
 }
 .rs .ghost {
   font-family: var(--sans);
@@ -304,123 +309,17 @@ button.challengechip:active {
   flex: none;
 }
 
-/* ---- the hero dot — fill = time, solid = you -------------------------------- */
-.rs .heroDot {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-  border: 3px solid var(--go);
-  background: var(--paper-card);
-  box-shadow: inset 0 2px 8px rgba(28, 24, 19, 0.09);
-}
-.rs .heroDot .liquid {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 0;
-  background: #0c5f35;
-  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.24);
-  transition: height 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.rs .heroDot .liquid::after {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
-}
-.rs .heroDot .glass {
-  position: absolute;
-  top: 15%;
-  left: 22%;
-  width: 22%;
-  height: 34%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%);
-  transform: rotate(-16deg);
-}
-/* sealed — solid + the seal check + a soft glow ring */
-.rs .heroDot.sealed {
-  border-color: var(--go);
-  background: var(--go);
-  overflow: visible;
-  box-shadow: 0 0 0 11px var(--go-tint), inset -8px -10px 20px rgba(0, 71, 33, 0.4),
-    inset 5px 7px 15px rgba(150, 225, 175, 0.28);
-}
-.rs .heroDot.sealed .seal {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-}
-.rs .heroDot.sealed .seal svg {
-  width: 44%;
-  height: 44%;
-  stroke: var(--cream);
-  fill: none;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-/* missed — filled by the clock, gone grey (time ran, never sealed) */
-.rs .heroDot.missed {
-  border-color: rgba(28, 24, 19, 0.2);
-}
-.rs .heroDot.missed .liquid {
-  background: linear-gradient(180deg, #cdc4b2, #c8c0b0);
-  transition: none;
-}
-/* lapsed — a full, faded, closed dot (the taste that never launched) */
-.rs .heroDot.faded {
-  border: 3px dashed rgba(28, 24, 19, 0.22);
-  opacity: 0.9;
-}
-.rs .heroDot.faded .liquid {
-  height: 100%;
-  background: linear-gradient(180deg, #d7cfbe, #c3baa7);
-  transition: none;
-}
-.rs .heroDot.faded .goalEmoji {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 44px;
-  opacity: 0.5;
-  filter: grayscale(0.4);
-}
-@media (prefers-reduced-motion: reduce) {
-  .rs .heroDot .liquid {
-    transition: none;
-  }
-}
-
-/* the hero hex wrapper (§11.3) — the sealed hero keeps the cream check + a soft glow */
+/* ---- the hero — the day-hex at ~150px (the Hex component draws every state) ----------- */
 .rs .heroHex {
   display: inline-block;
   line-height: 0;
 }
+/* sealed keeps a soft glow behind the green + cream check; faded (lapsed) is muted grey */
 .rs .heroHex.sealed {
   filter: drop-shadow(0 6px 14px rgba(12, 95, 53, 0.3)) drop-shadow(0 0 5px var(--go-tint));
 }
-.rs .heroCheck svg {
-  width: 54px;
-  height: 54px;
-  stroke: var(--cream);
-  fill: none;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.rs .heroEmoji {
-  font-size: 44px;
-  opacity: 0.5;
-  filter: grayscale(0.4);
+.rs .heroHex.faded {
+  opacity: 0.72;
 }
 
 /* ---- the week frame — small, a glance, never the star ----------------------- */
@@ -443,40 +342,6 @@ button.challengechip:active {
   gap: 9px;
   align-items: center;
   justify-content: center;
-}
-.rs .wd {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  box-sizing: border-box;
-  flex: none;
-  position: relative;
-  overflow: hidden;
-}
-.rs .wd--kept {
-  border: 2px solid var(--go);
-  background: var(--go);
-}
-.rs .wd--today {
-  border: 2px solid var(--go);
-  background: var(--paper-card);
-}
-.rs .wd--today::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 56%;
-  background: var(--go);
-}
-.rs .wd--future {
-  border: 2px solid rgba(28, 24, 19, 0.24);
-  background: transparent;
-}
-.rs .wd--missed {
-  border: 2px solid rgba(28, 24, 19, 0.2);
-  background: var(--grey);
 }
 
 .rs .chip-onchain {
@@ -678,147 +543,122 @@ button.challengechip:active {
   }
 }
 
-/* ---- the swipe deck — one card, neighbours peeking ------------------------- */
-.rs .deck {
-  position: relative;
-  height: 384px;
-  margin-top: 20px;
-  touch-action: pan-y;
+/* ---- the cold-open snap carousel — browse the nine, pick with the one button ---- */
+/* Native CSS scroll-snap, no gesture library (design-sweep §0, replacing the retired Motion
+   card-stack). Full-bleed: the carousel escapes the canvas's 22px side padding so the track's
+   55px sides set the true ~41px peek; the 26/44 top/bottom give the card shadow room on both
+   axes (§1e). One card per swipe; the centred card drives Start Now. */
+.rs .carousel {
+  display: flex;
+  align-items: center;
+  margin: 8px -22px 0;
 }
-.rs .deck .card {
-  position: absolute;
-  left: 30px;
-  right: 30px;
-  top: 0;
-  bottom: 0;
-  z-index: 2;
+.rs .track {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 26px 55px 44px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.rs .track::-webkit-scrollbar {
+  display: none;
+}
+.rs .track .card {
+  flex: 0 0 280px;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
   background: var(--paper-card);
   border: 1.5px solid var(--line-strong);
-  border-radius: 22px;
-  box-shadow: 0 26px 50px -28px rgba(28, 24, 19, 0.55);
-  padding: 14px 22px 22px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--elev-card);
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transform: scale(0.93);
+  opacity: 0.55;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.rs .track .card.active {
+  transform: scale(1);
+  opacity: 1;
+  animation: rs-lockin 0.26s cubic-bezier(0.34, 1.25, 0.5, 1);
+}
+.rs .track .cardart {
+  height: 212px;
+  flex: none;
+  background: var(--paper-sunk);
+}
+.rs .track .cardart img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 40%;
+  display: block;
+}
+.rs .track .cardbody {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  cursor: pointer;
-  user-select: none;
-  will-change: transform;
-}
-.rs .deck .card::before {
-  content: '';
-  position: absolute;
-  inset: 7px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  pointer-events: none;
-}
-/* the drag / fling / spring-back / rise are all driven by Motion (motion/react) inline — no CSS
-   transition here, which would fight Motion's inline transform */
-.rs .medallion {
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
-  background: var(--paper-sunk);
-  display: grid;
-  place-items: center;
-  font-size: 58px;
-  margin-bottom: 18px;
-  box-shadow: inset 0 2px 7px rgba(28, 24, 19, 0.09);
+  gap: 10px;
+  padding: 20px 22px 22px;
 }
 .rs .cname {
   font-family: var(--serif);
-  font-weight: 600;
-  font-size: 32px;
+  font-weight: 400;
+  font-size: 27px;
+  line-height: 1.05;
   letter-spacing: -0.01em;
-  line-height: 1;
+  color: var(--ink);
 }
 .rs .cline {
-  font-size: 14.5px;
+  font-size: 14px;
   color: var(--ink-soft);
-  line-height: 1.4;
-  margin: 11px 4px 0;
-  max-width: 24ch;
-}
-.rs .cdiv {
-  height: 1px;
-  background: var(--line);
-  align-self: stretch;
-  margin: 18px 10px 14px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 26ch;
 }
 .rs .clive {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--go-deep);
 }
+.rs .track .card:not(.active) .clive {
+  display: none; /* the live count shows on the focused card only */
+}
 .rs .clive .ppl {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   stroke: var(--go-deep);
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.rs .dots {
-  display: flex;
-  gap: 7px;
-  justify-content: center;
-  margin-top: 22px;
+@keyframes rs-lockin {
+  0% { transform: scale(0.93); }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
-.rs .pd {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(28, 24, 19, 0.16);
-  transition: width 0.2s ease, background 0.2s ease;
-}
-.rs .pd.on {
-  background: var(--stake);
-  width: 20px;
-  border-radius: 4px;
-}
-
-/* ---- One Light illustrations (ILLUS prototype) ------------------------------ */
-/* picture-forward deck card: the with-dot scene fills the top, name + line beneath (board B) */
-.rs .deck .card.illus {
-  padding: 0;
-  justify-content: flex-start;
-  overflow: hidden; /* clips the bleed art to the card's rounded rect */
-}
-.rs .deck .card.illus::before {
-  display: none; /* the inner hairline border fights the bleeding art */
-}
-.rs .cardart {
-  width: 100%;
-  height: 218px;
-  flex: none;
-  background: var(--paper-sunk);
-}
-.rs .cardart img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.rs .cardbody {
-  flex: 1;
-  min-height: 0;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 6px 22px 18px;
-}
-.rs .cardbody .cname {
-  font-size: 27px;
+@media (prefers-reduced-motion: reduce) {
+  .rs .track .card {
+    transition: none;
+    animation: none !important;
+  }
 }
 /* the in-journey day banner: dot-free scene + name + "Day n of N" */
 .rs .daybanner {
@@ -835,13 +675,14 @@ button.challengechip:active {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 62%;
+  object-position: 82% 50%; /* frame the scene's motif on the right, legible behind the text (§2) */
 }
 .rs .daybanner::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--paper) 44%, transparent);
+  /* a left scrim carries the name + "Day n of N"; the scene stays legible on the right */
+  background: linear-gradient(to right, #fffdf7 40%, rgba(255, 253, 247, 0.15) 74%, transparent);
 }
 .rs .db-text {
   position: absolute;
@@ -955,22 +796,6 @@ button.challengechip:active {
   padding: 4px 9px;
   display: inline-block;
   transform: rotate(-3deg);
-}
-.rs .dot {
-  border-radius: 50%;
-  box-sizing: border-box;
-  display: inline-block;
-  flex: none;
-  width: 14px;
-  height: 14px;
-}
-.rs .dot--future {
-  border: 2px solid rgba(28, 24, 19, 0.26);
-  background: transparent;
-}
-.rs .dot--kept {
-  border: 2px solid var(--go);
-  background: var(--go);
 }
 
 /* ---- the money + the ledger (the payoff) ----------------------------------- */
@@ -1152,19 +977,11 @@ button.challengechip:active {
   border-radius: 20px;
   padding: 5px 11px;
 }
+/* the record is a chain of kept days — small day-hexes with a cream check, not green circles (§3) */
 .rs .field {
-  display: grid;
-  grid-template-columns: repeat(14, minmax(0, 1fr));
-  gap: 7px;
-}
-.rs .fd {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--go);
-}
-.rs .fd.m {
-  background: var(--paper-sunk);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 6px;
 }
 
 /* ---- the shareable trophy card + the Nimiq on-chain proof ------------------- */
@@ -1201,7 +1018,7 @@ button.challengechip:active {
   font-size: 15px;
 }
 .rs .sharecard .wm2 .fs {
-  color: var(--stake);
+  color: var(--ink);
 }
 .rs .sharecard .sc-no {
   font-family: var(--sans);
@@ -1211,10 +1028,20 @@ button.challengechip:active {
   text-transform: uppercase;
   color: var(--ink-faint);
 }
-.rs .sharecard .sc-emoji {
-  font-size: 52px;
-  line-height: 1;
+.rs .sharecard .sc-art {
+  width: 100%;
+  aspect-ratio: 320 / 150;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper-sunk);
   margin-top: 2px;
+}
+.rs .sharecard .sc-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 46%;
+  display: block;
 }
 .rs .sharecard .sc-h {
   font-family: var(--serif);
@@ -1318,15 +1145,19 @@ button.challengechip:active {
   border-bottom: 0;
 }
 .rs .list .av {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  overflow: hidden;
   flex: none;
-  background: var(--paper-card);
+  background: var(--paper-sunk);
   border: 1px solid var(--line);
+}
+.rs .list .av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .rs .list .mid {
   flex: 1;

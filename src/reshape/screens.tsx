@@ -3,7 +3,7 @@ import { copy } from '../brand/index.ts'
 import type { Challenge, Social } from './model.ts'
 import { currentDay, dayFill, isCheckedToday, keptDays, weekView } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { ChallengeChip, ContractCard, Cta, DayBanner, Deck, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, TopBar, WeekFrame, Wordmark } from './ui.tsx'
+import { Carousel, ChallengeChip, ContractCard, Cta, DayBanner, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, TopBar, WeekFrame, Wordmark } from './ui.tsx'
 import { SphereWithPick } from './screens2.tsx'
 import { illusOn } from './illus.ts'
 
@@ -41,14 +41,14 @@ export function MainScreen({ social, onStart, onWordmark }: { social: Social; on
           <span className="fs">.</span>
         </h1>
       </div>
-      <DeckSelector social={social} onSelect={onStart} onIndexChange={setSel} />
+      <CarouselSelector social={social} onIndexChange={setSel} />
     </Frame>
   )
 }
 
-// the deck drives the foot CTA's target as you swipe
-function DeckSelector({ social, onSelect, onIndexChange }: { social: Social; onSelect: (t: Template) => void; onIndexChange?: (t: Template) => void }) {
-  return <Deck templates={TEMPLATES} startedThisWeek={social.startedThisWeek} onSelect={onSelect} onIndexChange={onIndexChange} />
+// the centred card drives the foot CTA's target as you browse; the button is the only commit
+function CarouselSelector({ social, onIndexChange }: { social: Social; onIndexChange?: (t: Template) => void }) {
+  return <Carousel templates={TEMPLATES} startedThisWeek={social.startedThisWeek} onIndexChange={onIndexChange} />
 }
 
 // ============================================================================
@@ -92,7 +92,7 @@ export function TasteScreen({
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
       <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26 }}>
         <div className="goal" style={{ textAlign: 'center' }}>
-          {challenge.emoji} {label}
+          {label}
         </div>
         <HeroDot fill={fill} size={136} />
         <div style={{ textAlign: 'center' }}>
@@ -159,18 +159,18 @@ export function MakeOfficialScreen({
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
-      <div style={{ marginTop: 14 }}>
-        <h1 className="h">
+      <div style={{ marginTop: 10 }}>
+        <h1 className="h" style={{ fontSize: 30 }}>
           {c.official.hLead}
           <em>{c.official.hEm}</em>
           <span className="fs">.</span>
         </h1>
-        <p className="sub" style={{ marginTop: 8, maxWidth: '36ch' }}>
+        <p className="sub" style={{ marginTop: 6 }}>
           {c.official.sub}
         </p>
       </div>
 
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 14 }}>
         <p className="flbl">{c.official.perDayLabel}</p>
         <Stepper
           value={perDay}
@@ -181,7 +181,7 @@ export function MakeOfficialScreen({
           canInc={pdi < PER_DAY.length - 1}
         />
       </div>
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 10 }}>
         <p className="flbl">{c.official.lengthLabel}</p>
         <Stepper
           value={days}
@@ -193,7 +193,7 @@ export function MakeOfficialScreen({
         />
       </div>
 
-      <div className="softcard" style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="softcard" style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap' }}>
           {total} <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', fontWeight: 700 }}>NIM</span>
         </div>
@@ -203,8 +203,8 @@ export function MakeOfficialScreen({
         </div>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <ContractCard emoji={challenge.emoji} goalLabel={label} seq={challenge.seq} days={days} />
+      <div style={{ marginTop: 10 }}>
+        <ContractCard goalLabel={label} seq={challenge.seq} days={days} />
       </div>
       {error && (
         <p className="sub" style={{ color: error.kind === 'cancel' ? 'var(--ink-soft)' : 'var(--stake)', marginTop: 10 }}>
@@ -329,7 +329,7 @@ export function SealShareScreen({
       </div>
       <div style={{ marginTop: 12 }}>
         <ShareCard
-          emoji={challenge.emoji}
+          templateId={challenge.templateId}
           seq={challenge.seq}
           headline={
             <>
