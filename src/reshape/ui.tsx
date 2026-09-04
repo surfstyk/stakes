@@ -1,4 +1,5 @@
 import { type ReactNode, useId, useRef, useState } from 'react'
+import { type PanInfo, animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { RATIO, SQ3, roundedHex } from '../brand/hex.ts'
 import { copy } from '../brand/index.ts'
 import { type Challenge, currentDay, effectiveStatus, type DayMark } from './model.ts'
@@ -467,7 +468,13 @@ export function PerfectRing() {
   )
 }
 
-// ---- the swipe deck ---------------------------------------------------------
+// ---- the swipe deck: a stack you flick through ------------------------------
+// Cards lie in a stack; the top one is draggable. Flick it far enough (or fast enough) and it
+// flies off-screen while the card underneath rises into its place — physically like dealing off
+// the top of a deck (handoff feedback 2026-09-04). Motion (already a dependency) owns the
+// gesture: it runs the drag off the React render loop, disambiguates tap-vs-drag automatically
+// (a >3px move cancels the tap), and re-seats on an animation-complete promise, not a fragile
+// CSS transitionend — which is what made the hand-rolled version feel "blocked" and mis-tap.
 export function Deck({
   templates,
   startedThisWeek,
@@ -480,96 +487,123 @@ export function Deck({
   onIndexChange?: (t: Template) => void
 }) {
   const [index, setIndex] = useState(0)
-  const [dragX, setDragX] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const start = useRef<number | null>(null)
   const n = templates.length
-  const at = (o: number) => templates[(index + o + n) % n]
-  const cur = at(0)
-  const started = startedThisWeek[cur.id] ?? 0
-  // the "N started this week" tail — shared by both card layouts so it isn't duplicated
-  const startedTag =
-    started > 0 ? (
-      <>
-        <div className="cdiv" />
-        <span className="clive">
-          <svg className="ppl" viewBox="0 0 24 24">
-            {P('M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2')}
-            <circle cx="9" cy="7" r="4" />
-            {P('M23 21v-2a4 4 0 0 0-3-3.87')}
-          </svg>
-          {started.toLocaleString()} started this week
-        </span>
-      </>
-    ) : null
+  const at = (o: number) => templates[(index + o) % n]
+  // the visible stack: the top card + the two beneath it
+  const stack = [at(0), at(1), at(2)]
 
-  const move = (dir: -1 | 1) => {
-    const next = (index + dir + n) % n
+  const advance = () => {
+    const next = (index + 1) % n
     setIndex(next)
     onIndexChange?.(templates[next])
-  }
-
-  const onDown = (e: React.PointerEvent) => {
-    start.current = e.clientX
-    setDragging(true)
-    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-  }
-  const onMove = (e: React.PointerEvent) => {
-    if (start.current == null) return
-    setDragX(e.clientX - start.current)
-  }
-  const onUp = () => {
-    const dx = dragX
-    start.current = null
-    setDragging(false)
-    setDragX(0)
-    if (Math.abs(dx) < 8) {
-      onSelect(cur) // a tap = pick this one
-    } else if (Math.abs(dx) > 56) {
-      move(dx < 0 ? 1 : -1)
-    }
   }
 
   return (
     <>
       <div className="deck">
-        <div className="peek l">{at(-1).emoji}</div>
-        <div className="peek r">{at(1).emoji}</div>
-        <div
-          className={'card' + (illusOn ? ' illus' : '') + (dragging ? ' swiping' : ' settle')}
-          style={{ transform: `translateX(${dragX}px) rotate(${dragX * 0.02}deg)` }}
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onUp}
-        >
-          {illusOn ? (
-            <>
-              {/* picture-forward: the with-dot scene fills the top, name + line beneath (board B) */}
-              <div className="cardart">
-                <img src={cardArt(cur.id)} alt="" draggable={false} loading="lazy" decoding="async" />
-              </div>
-              <div className="cardbody">
-                <div className="cname">{cur.label}</div>
-                <p className="cline">{cur.blurb}</p>
-                {startedTag}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="medallion">{cur.emoji}</div>
-              <div className="cname">{cur.label}</div>
-              <p className="cline">{cur.blurb}</p>
-              {startedTag}
-            </>
-          )}
-        </div>
+        {stack.map((t, i) => (
+          <DeckCard key={t.id} template={t} depth={i} interactive={i === 0} started={startedThisWeek[t.id] ?? 0} onSelect={() => onSelect(t)} onFlung={advance} />
+        ))}
       </div>
       <div className="dots">
         {templates.map((t, i) => (
           <span key={t.id} className={'pd' + (i === index ? ' on' : '')} />
         ))}
       </div>
+    </>
+  )
+}
+
+// One card. The interactive (top) one drags; the two beneath spring to their depth. Each card
+// owns its own motion value keyed by template id, so a flung card (which unmounts) never leaks a
+// stale offset onto the card that rises to take its place.
+function DeckCard({
+  template: t,
+  depth,
+  interactive,
+  started,
+  onSelect,
+  onFlung,
+}: {
+  template: Template
+  depth: number
+  interactive: boolean
+  started: number
+  onSelect: () => void
+  onFlung: () => void
+}) {
+  const x = useMotionValue(0)
+  const rotate = useTransform(x, [-220, 220], [-15, 15])
+  const [flinging, setFlinging] = useState(false)
+  // Motion fires onTap AND onDragEnd for a drag (they are independent recognizers), so a swipe
+  // would otherwise also count as a tap and start the challenge. Track whether a drag actually
+  // began and let a tap select ONLY when it didn't (handoff bug 2026-09-04).
+  const dragged = useRef(false)
+
+  const body = (
+    <>
+      <div className="cname">{t.label}</div>
+      <p className="cline">{t.blurb}</p>
+      {interactive && started > 0 && <StartedTag n={started} />}
+    </>
+  )
+  return (
+    <motion.div
+      className={'card' + (illusOn ? ' illus' : '')}
+      style={interactive ? { x, rotate, zIndex: 4 } : { zIndex: 4 - depth }}
+      animate={{ y: interactive ? 0 : depth * 16, scale: interactive ? 1 : 1 - depth * 0.05, opacity: !interactive && depth >= 2 ? 0.92 : 1 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      drag={interactive && !flinging ? 'x' : false}
+      onPointerDownCapture={interactive ? () => (dragged.current = false) : undefined}
+      onDragStart={interactive ? () => (dragged.current = true) : undefined}
+      onTap={interactive ? () => !dragged.current && onSelect() : undefined}
+      onDragEnd={
+        interactive
+          ? (_, info: PanInfo) => {
+              // a real flick counts by distance OR speed, so a fast short flick still fires
+              const flung = Math.abs(info.offset.x) > 100 || Math.abs(info.velocity.x) > 500
+              if (!flung) {
+                void animate(x, 0, { type: 'spring', stiffness: 500, damping: 40, velocity: info.velocity.x }) // springs home
+                return
+              }
+              setFlinging(true)
+              const dir = info.offset.x < 0 ? -1 : 1
+              const w = typeof window !== 'undefined' ? window.innerWidth : 420
+              void animate(x, dir * w * 1.15, { type: 'spring', stiffness: 550, damping: 46, velocity: info.velocity.x }).then(onFlung)
+            }
+          : undefined
+      }
+    >
+      {illusOn ? (
+        <>
+          {/* picture-forward: the with-dot scene fills the top, name + line beneath (board B) */}
+          <div className="cardart">
+            <img src={cardArt(t.id)} alt="" draggable={false} loading="lazy" decoding="async" />
+          </div>
+          <div className="cardbody">{body}</div>
+        </>
+      ) : (
+        <>
+          <div className="medallion">{t.emoji}</div>
+          {body}
+        </>
+      )}
+    </motion.div>
+  )
+}
+
+function StartedTag({ n }: { n: number }) {
+  return (
+    <>
+      <div className="cdiv" />
+      <span className="clive">
+        <svg className="ppl" viewBox="0 0 24 24">
+          {P('M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2')}
+          <circle cx="9" cy="7" r="4" />
+          {P('M23 21v-2a4 4 0 0 0-3-3.87')}
+        </svg>
+        {n.toLocaleString()} started this week
+      </span>
     </>
   )
 }

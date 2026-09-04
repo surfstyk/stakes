@@ -69,6 +69,7 @@
   inset: 0;
   z-index: 1;
   overflow-y: auto;
+  overflow-x: hidden; /* a flung deck card rides off the side without adding a scroll region */
   -webkit-overflow-scrolling: touch;
   padding: max(22px, env(safe-area-inset-top)) 22px 128px;
   display: flex;
@@ -684,29 +685,6 @@ button.challengechip:active {
   margin-top: 20px;
   touch-action: pan-y;
 }
-.rs .peek {
-  position: absolute;
-  top: 12px;
-  bottom: 12px;
-  width: 46px;
-  border-radius: 22px;
-  background: var(--paper-card);
-  border: 1.5px solid var(--line);
-  opacity: 0.55;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  z-index: 1;
-}
-.rs .peek.l {
-  left: -20px;
-  transform: scale(0.97);
-}
-.rs .peek.r {
-  right: -20px;
-  transform: scale(0.97);
-}
 .rs .deck .card {
   position: absolute;
   left: 30px;
@@ -726,6 +704,7 @@ button.challengechip:active {
   text-align: center;
   cursor: pointer;
   user-select: none;
+  will-change: transform;
 }
 .rs .deck .card::before {
   content: '';
@@ -735,12 +714,8 @@ button.challengechip:active {
   border-radius: 16px;
   pointer-events: none;
 }
-.rs .deck .card.swiping {
-  transition: none;
-}
-.rs .deck .card.settle {
-  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.28s ease;
-}
+/* the drag / fling / spring-back / rise are all driven by Motion (motion/react) inline — no CSS
+   transition here, which would fight Motion's inline transform */
 .rs .medallion {
   width: 112px;
   height: 112px;

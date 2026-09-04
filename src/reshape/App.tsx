@@ -134,9 +134,12 @@ export function ReshapeApp() {
   const onOfficial = (stake: { perDay: number; days: number }) =>
     guard(async () => {
       if (!challenge) return
+      // makeOfficial REJECTS if the native deposit is declined/cancelled (custodial vault →
+      // txHashOrThrow), so a cancel throws here and never advances. Only move to the running
+      // day once the stake is genuinely on — never on a decline (handoff 2026-09-04).
       const ch = await data.makeOfficial(challenge.id, stake)
       setChallenge(ch)
-      setView('day')
+      if (ch.status === 'official') setView('day')
     })
 
   const onSeal = () =>
