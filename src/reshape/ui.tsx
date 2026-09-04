@@ -113,7 +113,7 @@ export function DayBanner({ challenge }: { challenge: Challenge }) {
   const day = Math.min(currentDay(challenge) + 1, challenge.durationDays)
   return (
     <div className="daybanner">
-      <img className="db-art" src={journeyArt(challenge.templateId)} alt="" draggable={false} />
+      <img className="db-art" src={journeyArt(challenge.templateId)} alt="" draggable={false} loading="lazy" decoding="async" />
       <div className="db-text">
         <div className="db-name">{label}</div>
         <div className="db-day">{copy.rs.chip.dayOfN(day, challenge.durationDays)}</div>
@@ -547,7 +547,7 @@ export function Deck({
             <>
               {/* picture-forward: the with-dot scene fills the top, name + line beneath (board B) */}
               <div className="cardart">
-                <img src={cardArt(cur.id)} alt="" draggable={false} />
+                <img src={cardArt(cur.id)} alt="" draggable={false} loading="lazy" decoding="async" />
               </div>
               <div className="cardbody">
                 <div className="cname">{cur.label}</div>
