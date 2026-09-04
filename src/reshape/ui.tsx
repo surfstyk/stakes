@@ -3,6 +3,7 @@ import { RATIO, SQ3, roundedHex } from '../brand/hex.ts'
 import { copy } from '../brand/index.ts'
 import { type Challenge, currentDay, effectiveStatus, type DayMark } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
+import { cardArt, illusOn, journeyArt } from './illus.ts'
 
 // The shared primitives, ported one-for-one from the finished onboarding-v2 artboards
 // (design source now in the studio brand repo). Faithful, not reskinned. Class names match
@@ -102,6 +103,22 @@ export function ChallengeChip({ challenge, onPicker }: { challenge: Challenge; o
     </button>
   ) : (
     <span className="challengechip">{inner}</span>
+  )
+}
+
+// The in-journey day banner: the challenge's dot-free scene carrying its name + "Day n of N".
+// Dot-free so the pinned live sphere stays the one bead. Behind the ILLUS flag (prototype).
+export function DayBanner({ challenge }: { challenge: Challenge }) {
+  const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
+  const day = Math.min(currentDay(challenge) + 1, challenge.durationDays)
+  return (
+    <div className="daybanner">
+      <img className="db-art" src={journeyArt(challenge.templateId)} alt="" draggable={false} />
+      <div className="db-text">
+        <div className="db-name">{label}</div>
+        <div className="db-day">{copy.rs.chip.dayOfN(day, challenge.durationDays)}</div>
+      </div>
+    </div>
   )
 }
 
@@ -470,6 +487,21 @@ export function Deck({
   const at = (o: number) => templates[(index + o + n) % n]
   const cur = at(0)
   const started = startedThisWeek[cur.id] ?? 0
+  // the "N started this week" tail — shared by both card layouts so it isn't duplicated
+  const startedTag =
+    started > 0 ? (
+      <>
+        <div className="cdiv" />
+        <span className="clive">
+          <svg className="ppl" viewBox="0 0 24 24">
+            {P('M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2')}
+            <circle cx="9" cy="7" r="4" />
+            {P('M23 21v-2a4 4 0 0 0-3-3.87')}
+          </svg>
+          {started.toLocaleString()} started this week
+        </span>
+      </>
+    ) : null
 
   const move = (dir: -1 | 1) => {
     const next = (index + dir + n) % n
@@ -504,27 +536,31 @@ export function Deck({
         <div className="peek l">{at(-1).emoji}</div>
         <div className="peek r">{at(1).emoji}</div>
         <div
-          className={'card' + (dragging ? ' swiping' : ' settle')}
+          className={'card' + (illusOn ? ' illus' : '') + (dragging ? ' swiping' : ' settle')}
           style={{ transform: `translateX(${dragX}px) rotate(${dragX * 0.02}deg)` }}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
         >
-          <div className="medallion">{cur.emoji}</div>
-          <div className="cname">{cur.label}</div>
-          <p className="cline">{cur.blurb}</p>
-          {started > 0 && (
+          {illusOn ? (
             <>
-              <div className="cdiv" />
-              <span className="clive">
-                <svg className="ppl" viewBox="0 0 24 24">
-                  {P('M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2')}
-                  <circle cx="9" cy="7" r="4" />
-                  {P('M23 21v-2a4 4 0 0 0-3-3.87')}
-                </svg>
-                {started.toLocaleString()} started this week
-              </span>
+              {/* picture-forward: the with-dot scene fills the top, name + line beneath (board B) */}
+              <div className="cardart">
+                <img src={cardArt(cur.id)} alt="" draggable={false} />
+              </div>
+              <div className="cardbody">
+                <div className="cname">{cur.label}</div>
+                <p className="cline">{cur.blurb}</p>
+                {startedTag}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="medallion">{cur.emoji}</div>
+              <div className="cname">{cur.label}</div>
+              <p className="cline">{cur.blurb}</p>
+              {startedTag}
             </>
           )}
         </div>

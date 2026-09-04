@@ -3,8 +3,9 @@ import { copy } from '../brand/index.ts'
 import type { Challenge, Social } from './model.ts'
 import { currentDay, dayFill, isCheckedToday, keptDays, weekView } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { ChallengeChip, ContractCard, Cta, Deck, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, TopBar, WeekFrame, Wordmark } from './ui.tsx'
+import { ChallengeChip, ContractCard, Cta, DayBanner, Deck, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, TopBar, WeekFrame, Wordmark } from './ui.tsx'
 import { SphereWithPick } from './screens2.tsx'
+import { illusOn } from './illus.ts'
 
 const c = copy.rs
 
@@ -251,11 +252,15 @@ export function DayScreen({
       }
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
-      <div className="goalrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 22 }}>
-        <div className="goal">
-          {challenge.emoji} {label}
+      {illusOn ? (
+        <DayBanner challenge={challenge} />
+      ) : (
+        <div className="goalrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 22 }}>
+          <div className="goal">
+            {challenge.emoji} {label}
+          </div>
         </div>
-      </div>
+      )}
 
       {checked ? (
         <div style={{ textAlign: 'center', marginTop: 34 }}>

@@ -10,3 +10,10 @@
  * compile-time literal — the recon code is tree-shaken out of the bundle.
  */
 export const DEV_TOOLS = import.meta.env.VITE_PUBLIC_BUILD !== '1'
+
+/**
+ * Prototype gate for the One Light challenge illustrations (the picture-forward deck card + the
+ * in-journey day banner). RUNTIME so it can be flipped on the device-test build with `?illus`
+ * before the studio's on-device green light — no rebuild needed. Becomes always-on at integration.
+ */
+export const ILLUS = typeof location !== 'undefined' && new URLSearchParams(location.search).has('illus')

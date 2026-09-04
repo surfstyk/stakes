@@ -809,6 +809,89 @@ button.challengechip:active {
   border-radius: 4px;
 }
 
+/* ---- One Light illustrations (ILLUS prototype) ------------------------------ */
+/* picture-forward deck card: the with-dot scene fills the top, name + line beneath (board B) */
+.rs .deck .card.illus {
+  padding: 0;
+  justify-content: flex-start;
+  overflow: hidden; /* clips the bleed art to the card's rounded rect */
+}
+.rs .deck .card.illus::before {
+  display: none; /* the inner hairline border fights the bleeding art */
+}
+.rs .cardart {
+  width: 100%;
+  height: 218px;
+  flex: none;
+  background: var(--paper-sunk);
+}
+.rs .cardart img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rs .cardbody {
+  flex: 1;
+  min-height: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 22px 18px;
+}
+.rs .cardbody .cname {
+  font-size: 27px;
+}
+/* the in-journey day banner: dot-free scene + name + "Day n of N" */
+.rs .daybanner {
+  position: relative;
+  height: 96px;
+  margin-top: 20px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.rs .db-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 62%;
+}
+.rs .daybanner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--paper) 44%, transparent);
+}
+.rs .db-text {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 18px;
+}
+.rs .db-name {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.05;
+  color: var(--ink);
+}
+.rs .db-day {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
 /* ---- steppers + the contract card ------------------------------------------ */
 .rs .stepper {
   display: flex;
