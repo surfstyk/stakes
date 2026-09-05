@@ -9,10 +9,14 @@ import { isInsideNimiqPay, isRealMoney, watchInsideNimiqPay } from './lib/contex
 // Recon is a dev tool — lazy-load it so its (dark) styles never touch the product. The
 // inline DEV_TOOLS literal lets the bundler drop the recon chunk entirely in the public build.
 const Recon = DEV_TOOLS ? lazy(() => import('./recon/Recon.tsx').then((m) => ({ default: m.Recon }))) : null
+// ?heal — the resume-freeze (#209) lifecycle probe. Dev-only + lazy, so it's out of the public build.
+const HealProbe = DEV_TOOLS ? lazy(() => import('./product/HealProbe.tsx').then((m) => ({ default: m.HealProbe }))) : null
 
 export function App() {
   // Recon is a mount-time diagnostic (?recon), not part of the product's navigation.
   const [isRecon] = useState(() => DEV_TOOLS && new URLSearchParams(location.search).has('recon'))
+  // ?heal — the resume-freeze probe overlay, mounted over every state (loading/gate/app).
+  const [healOn] = useState(() => DEV_TOOLS && new URLSearchParams(location.search).has('heal'))
   // The "Open in Nimiq Pay" gate decision. Mock builds are never gated; a real-money build
   // that already sees the host is OK immediately; otherwise we wait briefly for injection
   // (Android seeds the provider a beat after first render) before concluding we're outside.
@@ -49,28 +53,45 @@ export function App() {
     )
   }
 
+  // The probe sits above whatever the gate resolves to, so it observes the lifecycle from the
+  // first paint through the whole session, regardless of loading/gate/app state.
+  const probe = healOn && HealProbe ? (
+    <Suspense fallback={null}>
+      <HealProbe />
+    </Suspense>
+  ) : null
+
   // The viral-loop gate: in a real-money build the app only works inside Nimiq Pay (real
   // wallet identity + real deposits). Opened outside it, route the user IN instead of letting
   // them silently transact against the mock vault under a throwaway identity.
   if (gate === 'checking') {
     return (
-      <div className="stakes">
-        <Loading />
-      </div>
+      <>
+        {probe}
+        <div className="stakes">
+          <Loading />
+        </div>
+      </>
     )
   }
   if (gate === 'gate') {
     return (
-      <div className="stakes">
-        <OpenInNimiqPay />
-      </div>
+      <>
+        {probe}
+        <div className="stakes">
+          <OpenInNimiqPay />
+        </div>
+      </>
     )
   }
 
   // The reshape (Cycle II) — the solo-first journey lives in its own `.rs` frame + state machine.
   return (
-    <div className="rs">
-      <ReshapeApp />
-    </div>
+    <>
+      {probe}
+      <div className="rs">
+        <ReshapeApp />
+      </div>
+    </>
   )
 }
