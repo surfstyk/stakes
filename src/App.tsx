@@ -15,8 +15,13 @@ const HealProbe = DEV_TOOLS ? lazy(() => import('./product/HealProbe.tsx').then(
 export function App() {
   // Recon is a mount-time diagnostic (?recon), not part of the product's navigation.
   const [isRecon] = useState(() => DEV_TOOLS && new URLSearchParams(location.search).has('recon'))
-  // ?heal — the resume-freeze probe overlay, mounted over every state (loading/gate/app).
-  const [healOn] = useState(() => DEV_TOOLS && new URLSearchParams(location.search).has('heal'))
+  // ?heal — resume-freeze probe (observe only). ?selfheal — probe + auto-reload-on-resume (Step 2).
+  // Both are single-token params so they survive the Nimiq Pay deeplink round-trip verbatim.
+  const [{ healOn, selfHeal }] = useState(() => {
+    const p = new URLSearchParams(location.search)
+    const selfHeal = DEV_TOOLS && p.has('selfheal')
+    return { healOn: selfHeal || (DEV_TOOLS && p.has('heal')), selfHeal }
+  })
   // The "Open in Nimiq Pay" gate decision. Mock builds are never gated; a real-money build
   // that already sees the host is OK immediately; otherwise we wait briefly for injection
   // (Android seeds the provider a beat after first render) before concluding we're outside.
@@ -57,7 +62,7 @@ export function App() {
   // first paint through the whole session, regardless of loading/gate/app state.
   const probe = healOn && HealProbe ? (
     <Suspense fallback={null}>
-      <HealProbe />
+      <HealProbe reload={selfHeal} />
     </Suspense>
   ) : null
 

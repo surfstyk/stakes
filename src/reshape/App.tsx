@@ -9,6 +9,7 @@ import { DayScreen, MainScreen, MakeOfficialScreen, SealShareScreen, TasteScreen
 import { ArchiveScreen, BankedScreen, LapsedScreen, MissedScreen, PerfectWeekScreen, ReUpScreen } from './screens2.tsx'
 import { Frame, Wordmark } from './ui.tsx'
 import { isUserCancel } from '../lib/nimiq.ts'
+import { markSensitiveOp } from '../lib/context.ts'
 
 type View =
   | 'loading'
@@ -103,6 +104,9 @@ export function ReshapeApp() {
   async function guard(fn: () => Promise<void>) {
     setError(null)
     setBusy(true)
+    // Latch "a native op is in flight" so the resume-heal reload (#209 Step 2) can never fire
+    // over a payment/deposit mid-signing. No-op unless ?selfheal is active.
+    markSensitiveOp(true)
     try {
       await fn()
     } catch (e) {
@@ -112,6 +116,7 @@ export function ReshapeApp() {
       setError({ kind: isUserCancel(e) ? 'cancel' : 'error' })
     } finally {
       setBusy(false)
+      markSensitiveOp(false)
     }
   }
 

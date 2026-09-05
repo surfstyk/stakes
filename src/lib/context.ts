@@ -134,6 +134,18 @@ export function watchResumeEvents(onEvent: (e: ResumeEvent) => void): () => void
   }
 }
 
+// A "native op in flight" latch — set while a native confirm dialog / on-chain tx is pending
+// (see ReshapeApp.guard). The resume-heal reload consults it so a self-heal can NEVER fire over
+// a payment/deposit that's mid-signing. It's a nesting counter, not a boolean, so overlapping
+// guarded calls don't clear it early.
+let sensitiveOps = 0
+export function markSensitiveOp(inFlight: boolean): void {
+  sensitiveOps = Math.max(0, sensitiveOps + (inFlight ? 1 : -1))
+}
+export function sensitiveOpInFlight(): boolean {
+  return sensitiveOps > 0
+}
+
 /** Official page to install Nimiq Pay (routes to the right store for iOS/Android). */
 export const NIMIQ_PAY_INSTALL_URL = 'https://www.nimiq.com/nimiq-pay/'
 

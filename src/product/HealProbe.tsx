@@ -1,99 +1,74 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { isResumeSignal, watchResumeEvents, type ResumeEvent } from '../lib/context.ts'
+import { appendHealLog, clearHealLog, startResumeHeal, type HealLogEntry } from '../lib/resumeHeal.ts'
 
 // ?heal — the on-device diagnostic for the Nimiq Pay resume-freeze (nimiq/developer-center#209).
 //
-// It answers ONE empirical question: when Nimiq Pay backgrounds our WebView and re-presents it
-// as the frozen composite over the wallet, does our JS still receive ANY lifecycle event on the
-// way back? If it does, a self-heal location.reload() on resume can clear the freeze (Step 2). If
-// it never fires, JS is suspended and no client-side workaround exists (escalate #209 only).
+// Step 1 (observe): ?heal logs every lifecycle event to answer whether our JS receives resume
+// signals inside the frozen composite. Proven on-device 2026-09-05 that it DOES — JS stays alive
+// and the DOM keeps repainting while frozen (a native input/z-order bug, not a JS suspension).
 //
-// The catch on iOS: navigator.vibrate is a no-op in WKWebView, AND if the frozen composite is a
-// static snapshot the on-screen counter won't repaint even while JS runs. So the DECISIVE signal
-// is the PERSISTED, timestamped log: trigger the freeze, force-quit Nimiq Pay, reopen with ?heal,
-// tap Copy, and read whether any `visible`/`pageshow`/`resume` entries are stamped DURING the
-// frozen window (i.e. after you backgrounded, before the fresh BOOT from reopening).
+// Step 2 (self-heal): ?selfheal adds an automatic, state-preserving location.reload() on the first
+// foreground signal after a real background — the workaround under test. `reload` toggles it.
 //
-// Dev-only: mounted by App behind DEV_TOOLS && ?heal, so it's tree-shaken out of the public build.
+// The catch on iOS: navigator.vibrate is a no-op in WKWebView, AND if the frozen composite were a
+// static snapshot the counter wouldn't repaint. So the DECISIVE record is the PERSISTED, timestamped
+// log (survives force-quit → reopen): tap Copy and read whether resume entries land during the
+// frozen window. Dev-only: mounted behind DEV_TOOLS, so it's tree-shaken out of the public build.
 
-type LogEntry = { type: string; vis: string; at: number; persisted?: boolean }
-
-const LOG_KEY = 'stakes.heal.log.v1'
-const MAX = 80
-
-function load(): LogEntry[] {
-  try {
-    const raw = localStorage.getItem(LOG_KEY)
-    if (raw) return JSON.parse(raw) as LogEntry[]
-  } catch {
-    /* private mode / corrupt — start clean */
-  }
-  return []
-}
-function save(entries: LogEntry[]) {
-  try {
-    localStorage.setItem(LOG_KEY, JSON.stringify(entries))
-  } catch {
-    /* ignore */
-  }
-}
+const MAX_VISIBLE = 14
 
 function fmt(t: number): string {
   const d = new Date(t)
   const p = (n: number, l = 2) => String(n).padStart(l, '0')
   return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`
 }
+function isResumeType(e: { type: string; vis: string }): boolean {
+  return e.type === 'focus' || e.type === 'pageshow' || e.type === 'resume' || (e.type === 'visibilitychange' && e.vis === 'visible')
+}
 
-export function HealProbe() {
+export function HealProbe({ reload = false }: { reload?: boolean }) {
   // Load prior sessions' log and append a BOOT marker so each open is visible in the record —
-  // everything logged between the PREVIOUS boot and this one that carries a live timestamp is
-  // proof JS ran while backgrounded/frozen.
-  const [entries, setEntries] = useState<LogEntry[]>(() => {
-    const next = [...load(), { type: 'BOOT', vis: document.visibilityState, at: Date.now() }].slice(-MAX)
-    save(next)
-    return next
-  })
+  // any resume entry stamped between the PREVIOUS boot and this one is proof JS ran while frozen.
+  const [entries, setEntries] = useState<HealLogEntry[]>(() =>
+    appendHealLog({ type: 'BOOT', vis: document.visibilityState, at: Date.now() }),
+  )
   const [now, setNow] = useState(() => Date.now())
   const [expanded, setExpanded] = useState(true)
   const [copied, setCopied] = useState(false)
   const bootAt = useRef(Date.now())
 
-  // Live clock: if this keeps ticking after you return from the background, the render thread
-  // is alive; if it's frozen at the pre-background time, the composite is a snapshot.
+  // Live clock: if this keeps ticking after you return from the background, the render thread is
+  // alive; if it's frozen at the pre-background time, the composite is a static snapshot.
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 250)
     return () => clearInterval(id)
   }, [])
 
   useEffect(() => {
-    return watchResumeEvents((e: ResumeEvent) => {
-      const entry: LogEntry = { type: e.type, vis: e.visibility, at: e.at, persisted: e.persisted }
-      // Best-effort haptic on a "we're back" signal. Android may buzz; iOS WKWebView ignores it.
-      if (isResumeSignal(e) && typeof navigator.vibrate === 'function') {
-        try {
-          navigator.vibrate(150)
-        } catch {
-          /* ignore */
+    return startResumeHeal({
+      reload,
+      onEvent: (entry, log) => {
+        // Best-effort haptic on a "we're back" signal. Android may buzz; iOS WKWebView ignores it.
+        if (isResumeType(entry) && typeof navigator.vibrate === 'function') {
+          try {
+            navigator.vibrate(150)
+          } catch {
+            /* ignore */
+          }
         }
-      }
-      setEntries((prev) => {
-        const next = [...prev, entry].slice(-MAX)
-        save(next)
-        return next
-      })
+        setEntries(log)
+      },
     })
-  }, [])
+  }, [reload])
 
   const sinceBoot = entries.filter((e) => e.at >= bootAt.current)
-  const resumes = sinceBoot.filter(
-    (e) => e.type === 'focus' || e.type === 'pageshow' || e.type === 'resume' || (e.type === 'visibilitychange' && e.vis === 'visible'),
-  ).length
+  const resumes = sinceBoot.filter(isResumeType).length
   const last = entries[entries.length - 1]
   const sinceLast = last ? Math.max(0, Math.round((now - last.at) / 1000)) : 0
 
   async function copy() {
     const text =
-      `stakes ?heal log — copied ${fmt(now)} (${entries.length} entries, resumes this session ${resumes})\n` +
+      `stakes ?${reload ? 'selfheal' : 'heal'} log — copied ${fmt(now)} (${entries.length} entries, resumes this session ${resumes})\n` +
       entries.map((e) => `${fmt(e.at)}  ${e.type}${e.persisted ? '·persisted' : ''}  vis=${e.vis}`).join('\n')
     try {
       await navigator.clipboard.writeText(text)
@@ -106,7 +81,7 @@ export function HealProbe() {
     }
   }
   function clear() {
-    save([])
+    clearHealLog()
     setEntries([])
     bootAt.current = Date.now()
   }
@@ -115,7 +90,7 @@ export function HealProbe() {
   return (
     <div style={S.wrap}>
       <div style={S.header}>
-        <span style={S.title}>?heal · #209 probe</span>
+        <span style={S.title}>{reload ? '?selfheal · #209 auto-reload' : '?heal · #209 probe'}</span>
         <button style={S.link} onClick={() => setExpanded((v) => !v)}>
           {expanded ? 'hide log ▾' : 'show log ▸'}
         </button>
@@ -136,17 +111,18 @@ export function HealProbe() {
         </div>
       </div>
 
-      <div style={S.lastline}>
-        last: {last ? `${last.type} · vis=${last.vis} · ${sinceLast}s ago` : '—'}
-      </div>
+      <div style={S.lastline}>last: {last ? `${last.type} · vis=${last.vis} · ${sinceLast}s ago` : '—'}</div>
 
       {expanded && (
         <div style={S.log}>
           {entries
-            .slice()
+            .slice(-MAX_VISIBLE)
             .reverse()
             .map((e, i) => (
-              <div key={entries.length - i} style={{ ...S.row, ...(e.type === 'BOOT' ? S.boot : null), ...(isResumeType(e) ? S.resume : null) }}>
+              <div
+                key={`${e.at}-${i}`}
+                style={{ ...S.row, ...(e.type === 'BOOT' || e.type === 'RELOAD' ? S.boot : null), ...(isResumeType(e) ? S.resume : null) }}
+              >
                 <span style={S.time}>{fmt(e.at)}</span>
                 <span style={S.type}>
                   {e.type}
@@ -168,10 +144,6 @@ export function HealProbe() {
       </div>
     </div>
   )
-}
-
-function isResumeType(e: LogEntry): boolean {
-  return e.type === 'focus' || e.type === 'pageshow' || e.type === 'resume' || (e.type === 'visibilitychange' && e.vis === 'visible')
 }
 
 // Self-contained inline styles — the probe must render legibly regardless of app CSS/theme.
