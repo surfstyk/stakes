@@ -77,11 +77,13 @@ export function SphereWithPick({
   moment,
   autoOpen,
   raised,
+  motion,
 }: {
   challenge: Challenge
   moment?: 'win' | 'slip'
   autoOpen?: boolean
   raised?: boolean
+  motion?: 'calm' | 'lively'
 }) {
   const [open, setOpen] = useState(() => !!autoOpen || (DEV_TOOLS && new URLSearchParams(location.search).has('pick')))
   const [seed, setSeed] = useState(1)
@@ -92,7 +94,7 @@ export function SphereWithPick({
   return (
     <>
       {open && <SpherePickPop challenge={challenge} tap={seed} moment={moment} onClose={() => setOpen(false)} />}
-      <Sphere raised={raised} onClick={tapSphere} />
+      <Sphere raised={raised} motion={motion} onClick={tapSphere} />
     </>
   )
 }
@@ -405,8 +407,9 @@ export function MissedScreen({
   const kept = keptDays(challenge).size
   return (
     <Frame
-      // the dot shows up for the slip — one of the studio's after-miss lines, blame-free
-      sphere={<SphereWithPick challenge={challenge} moment="slip" autoOpen />}
+      // No frost on arrival (mirrors taste, 2026-09-05): the screen stays readable and the dot bobs
+      // livelily to invite a tap — the blame-free after-miss line opens only when reached for.
+      sphere={<SphereWithPick challenge={challenge} moment="slip" motion="lively" />}
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
