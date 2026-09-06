@@ -169,10 +169,20 @@ const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : NaN)
 
 // ---- the seed faucet (ONBOARDING.md §7.5 abuse box) ----------------------------------------
-// One seed per wallet, a per-requester daily limit, a global daily cap, a kill switch. The API
-// only QUEUES; the isolated settle service signs + sends (server/seed-due.ts).
+// Hacking welcome. One seed per (wallet, challenge) — a returning wallet re-seeds per challenge
+// (stakes-seed-policy-2026-09-06). The only guards are a per-IP daily limit, a deliberately HIGH
+// global daily cap, and a kill switch. The API only QUEUES; the isolated settle service signs +
+// sends (server/seed-due.ts).
+//
+// Why the cap is high, not unlimited (math on the 2026-09-06 treasury, ~11,138 NIM): each seed is
+// SEED_LUNA = 0.1 NIM. The per-IP cap (20/day = 2 NIM/day per attacker) is the real throttle — a
+// lone abuser bleeds ~2 NIM/day, so ~5,500 days to drain. Maxing the global 2,000/day cap needs a
+// sustained ~100-IP botnet (200 NIM/day → ~56 days to drain), to steal a treasury worth ~€20–60,
+// in the open, with STAKES_SEED_OFF=1 as the stop. So: high enough to be "hack it if you want,"
+// bounded enough that seeds can never quietly starve settlement (payouts share this treasury).
+// Reverse to a tight cap when real money is genuinely on it.
 const SEED_LUNA = Number(process.env.STAKES_SEED_LUNA ?? 10_000) // 0.1 NIM ≈ a month of dust stamps
-const SEED_DAILY_CAP = Number(process.env.STAKES_SEED_DAILY_CAP ?? 500)
+const SEED_DAILY_CAP = Number(process.env.STAKES_SEED_DAILY_CAP ?? 2_000)
 const SEED_PER_IP_DAILY = Number(process.env.STAKES_SEED_PER_IP_DAILY ?? 20)
 const SEED_OFF = process.env.STAKES_SEED_OFF === '1'
 const DAY = 86400_000
