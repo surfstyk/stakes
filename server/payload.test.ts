@@ -3,7 +3,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { MAX_DATA_BYTES, buildPayload, isDepositTag, parsePayload } from '../src/vault/payload.ts'
+import { MAX_DATA_BYTES, buildPayload, commitmentLine, isDepositTag, parsePayload } from '../src/vault/payload.ts'
 
 test('builds the branded, anonymous standard', () => {
   assert.equal(buildPayload('day', 'a1b2c3d4', 1), 'stakes.day day:a1b2c3d4:1')
@@ -29,6 +29,14 @@ test('parses the standard and the legacy Cycle-I deposit tag', () => {
   assert.deepEqual(parsePayload('stakes:a1b2c3d4'), { verb: 'official', challengeId: 'a1b2c3d4' })
   assert.equal(parsePayload('hello'), null)
   assert.equal(parsePayload('stakes.day day:a1b2c3d4:0'), null, 'day 0 is not a human day')
+})
+
+test('the commitment mirror reads as "<X> NIM on the word" and keeps the trail id', () => {
+  assert.equal(commitmentLine('a1b2c3d4', 300), 'stakes.day 300 NIM on the word · a1b2c3d4')
+  assert.ok(new TextEncoder().encode(commitmentLine('a1b2c3d4', 1_000_000)).length <= MAX_DATA_BYTES)
+  assert.throws(() => commitmentLine('no sugar!', 300), /payload-safe/)
+  assert.throws(() => commitmentLine('a1b2c3d4', 0), /1\.\.1000000/)
+  assert.throws(() => commitmentLine('a1b2c3d4', 1.5), /1\.\.1000000/)
 })
 
 test('deposit attribution accepts both tags, for the right challenge only', () => {

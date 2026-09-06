@@ -13,6 +13,7 @@
 
 import { listEndedUnsettled } from './db.ts'
 import { seedDue } from './seed-due.ts'
+import { wordDue } from './word-due.ts'
 import { settleChallenge } from './settle-core.ts'
 import { loadTreasury, treasuryAddress } from './treasury.ts'
 
@@ -32,6 +33,10 @@ async function main() {
   // Seeds first: cheap, and a new wallet should hold its sliver before its first stamp.
   const s = await seedDue({ execute, kp, log: (m) => console.log(m) })
   if (s.planned) console.log(`[settle-due] seeds: ${s.planned} pending, ${s.sent} sent, ${s.failed} failed${s.skipped ? ` — ${s.skipped}` : ''}`)
+
+  // Commitment mirrors: the "made it official" moment onto the public feed ("<X> NIM on the word").
+  const w = await wordDue({ execute, kp, log: (m) => console.log(m) })
+  if (w.planned) console.log(`[settle-due] commitment stamps: ${w.planned} pending, ${w.sent} sent, ${w.failed} failed${w.skipped ? ` — ${w.skipped}` : ''}`)
 
   const tally: Record<string, number> = {}
   let paidOut = 0

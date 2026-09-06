@@ -565,3 +565,56 @@ export function markSeedSent(address: string, challengeId: string, txHash: strin
 export function markSeedFailed(address: string, challengeId: string, error: string) {
   db.prepare(`UPDATE seeds SET attempts = attempts + 1, error = ? WHERE address = ? AND challengeId = ?`).run(error, address, challengeId)
 }
+
+// ---- commitment mirror stamps — the "made it official" moment, echoed onto the public stamp feed
+// as "<X> NIM on the word" (Hendrik 2026-09-06). One per challenge; the API queues it at /official,
+// the isolated settle service signs the treasury → stamp-address dust tx (server/word-due.ts).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS word_stamps (
+    challengeId TEXT PRIMARY KEY,
+    nim         INTEGER NOT NULL,
+    requestedAt INTEGER NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    txHash      TEXT,
+    sentAt      INTEGER,
+    error       TEXT
+  );
+`)
+
+export interface WordStampRow {
+  challengeId: string
+  nim: number
+  requestedAt: number
+  status: 'pending' | 'sent'
+  attempts: number
+  txHash: string | null
+  sentAt: number | null
+  error: string | null
+}
+
+/** Queue the commitment mirror for a challenge. Idempotent: one stamp per challenge. */
+export function requestWordStamp(s: { challengeId: string; nim: number }): 'queued' | 'exists' {
+  const r = db
+    .prepare(`INSERT INTO word_stamps (challengeId, nim, requestedAt) VALUES (?, ?, ?) ON CONFLICT(challengeId) DO NOTHING`)
+    .run(s.challengeId, Math.round(s.nim), Date.now())
+  return Number(r.changes) > 0 ? 'queued' : 'exists'
+}
+
+export function getWordStamp(challengeId: string): WordStampRow | undefined {
+  return db.prepare(`SELECT * FROM word_stamps WHERE challengeId = ?`).get(challengeId) as WordStampRow | undefined
+}
+
+export function listPendingWordStamps(limit = 50, maxAttempts = 5): WordStampRow[] {
+  return db
+    .prepare(`SELECT * FROM word_stamps WHERE status = 'pending' AND attempts < ? ORDER BY requestedAt ASC LIMIT ?`)
+    .all(maxAttempts, limit) as WordStampRow[]
+}
+
+export function markWordStampSent(challengeId: string, txHash: string) {
+  db.prepare(`UPDATE word_stamps SET status='sent', txHash=?, sentAt=?, error=NULL WHERE challengeId=?`).run(txHash, Date.now(), challengeId)
+}
+
+export function markWordStampFailed(challengeId: string, error: string) {
+  db.prepare(`UPDATE word_stamps SET attempts = attempts + 1, error = ? WHERE challengeId = ?`).run(error, challengeId)
+}

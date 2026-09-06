@@ -38,6 +38,7 @@ import {
   joinChallenge,
   keptDaysFor,
   requestSeed,
+  requestWordStamp,
   reshapeCheckinsFor,
   setOfficial,
   statsStartedThisWeek,
@@ -388,6 +389,14 @@ export const server = createServer(async (req, res) => {
         // the solo player becomes the sole participant, with their tagged deposit (official:<id>)
         joinChallenge(id, { address: view.creatorAddress, name: view.creatorName, depositTxHash })
         if (realMoney()) confirmDeposit(id, view.creatorAddress, depositTxHash ?? null, true)
+        // Mirror the commitment onto the public feed as "<stake> NIM on the word" (treasury → stamp
+        // address, sent by the settle tick — server/word-due.ts). Best-effort: one row per challenge,
+        // never blocks the money moment.
+        try {
+          requestWordStamp({ challengeId: id, nim: stake })
+        } catch {
+          /* the mirror is on-chain noise, never a wall */
+        }
         return send(res, 200, reshapeChallenge(getActiveRowFor(view.creatorAddress)!))
       }
 

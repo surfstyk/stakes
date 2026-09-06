@@ -41,6 +41,21 @@ export function buildPayload(verb: StampVerb, challengeId: string, day?: number)
   return p
 }
 
+/**
+ * The human line for the "made it official" mirror stamp (treasury → stamp feed, dust). Unlike the
+ * machine tags above this is prose — it reads as "<X> NIM on the word" on any explorer — because
+ * nothing parses it: attribution lives on the deposit's `official:<id>` tag, this is just the public
+ * announcement. The challenge id trails so a stranger can still follow the challenge's on-chain
+ * trail (workplan §7 "stranger test"). ≤ 64 bytes like every payload.
+ */
+export function commitmentLine(challengeId: string, nim: number): string {
+  if (!ID_RE.test(challengeId)) throw new Error('challenge id is not payload-safe')
+  if (!Number.isInteger(nim) || nim < 1 || nim > 1_000_000) throw new Error('nim must be a whole number 1..1000000')
+  const p = `${STAMP_PREFIX} ${nim} NIM on the word · ${challengeId}`
+  if (utf8Length(p) > MAX_DATA_BYTES) throw new Error('commitment line exceeds the 64-byte data cap')
+  return p
+}
+
 /** Parse a tx data string. Accepts the standard AND the legacy `stakes:<id>` deposit tag. */
 export function parsePayload(data: string): StampPayload | null {
   const m = /^stakes\.day (day|seed|official|banked|bonus|burned):([A-Za-z0-9-]{1,36})(?::([1-9]\d{0,2}))?$/.exec(data)
