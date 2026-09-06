@@ -454,13 +454,18 @@ export function getSettlement(id: string) {
 }
 
 // ---- seeds — the silent sliver at "Start day one" (ONBOARDING.md §3 step 1, §7.5) ----------
-// The API queues a seed (one per wallet, rate-limited); the isolated settle service — the only
+// The API queues a seed (one per CHALLENGE, rate-limited); the isolated settle service — the only
 // process with the treasury key — signs + broadcasts it on its next tick (server/seed-due.ts).
 // Sized for ~a month of dust stamps; it is never a stake and never counts toward the metric.
+//
+// Keyed by (address, challengeId), NOT address: a returning wallet is seeded again on each new
+// challenge ("even if you're returning, you always get the seed" — Hendrik 2026-09-06). The
+// per-wallet-forever block is deliberately gone; abuse is bounded only by the per-IP + global
+// daily caps (a marketing call: on-chain noise now, tighten if real money is ever on it).
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS seeds (
-    address     TEXT PRIMARY KEY,
+    address     TEXT NOT NULL,
     challengeId TEXT NOT NULL,
     ipHash      TEXT,
     luna        INTEGER NOT NULL,
@@ -469,9 +474,44 @@ db.exec(`
     attempts    INTEGER NOT NULL DEFAULT 0,
     txHash      TEXT,
     sentAt      INTEGER,
-    error       TEXT
+    error       TEXT,
+    PRIMARY KEY (address, challengeId)
   );
 `)
+
+// Migration: the original table keyed on `address` alone (one seed per wallet, ever). Rebuild it
+// with the composite (address, challengeId) key so returning wallets seed per challenge. Idempotent
+// — runs only while the live PK is still the single `address` column; a fresh or migrated DB skips.
+{
+  const pk = (db.prepare(`PRAGMA table_info(seeds)`).all() as { name: string; pk: number }[])
+    .filter((c) => c.pk > 0)
+    .map((c) => c.name)
+    .sort()
+  const isComposite = pk.length === 2 && pk[0] === 'address' && pk[1] === 'challengeId'
+  if (!isComposite) {
+    db.exec(`
+      BEGIN;
+      CREATE TABLE seeds_v2 (
+        address     TEXT NOT NULL,
+        challengeId TEXT NOT NULL,
+        ipHash      TEXT,
+        luna        INTEGER NOT NULL,
+        requestedAt INTEGER NOT NULL,
+        status      TEXT NOT NULL DEFAULT 'pending',
+        attempts    INTEGER NOT NULL DEFAULT 0,
+        txHash      TEXT,
+        sentAt      INTEGER,
+        error       TEXT,
+        PRIMARY KEY (address, challengeId)
+      );
+      INSERT OR IGNORE INTO seeds_v2 (address, challengeId, ipHash, luna, requestedAt, status, attempts, txHash, sentAt, error)
+        SELECT address, challengeId, ipHash, luna, requestedAt, status, attempts, txHash, sentAt, error FROM seeds;
+      DROP TABLE seeds;
+      ALTER TABLE seeds_v2 RENAME TO seeds;
+      COMMIT;
+    `)
+  }
+}
 
 export interface SeedRow {
   address: string
@@ -486,20 +526,21 @@ export interface SeedRow {
   error: string | null
 }
 
-/** Queue a seed for a wallet. Idempotent per address: a second request is a no-op ('exists'). */
+/** Queue a seed for a wallet's challenge. Idempotent per (address, challengeId): a repeat request
+ *  for the same challenge is a no-op ('exists'), but a new challenge from the same wallet seeds. */
 export function requestSeed(s: { address: string; challengeId: string; ipHash?: string | null; luna: number }): 'queued' | 'exists' {
   const r = db
     .prepare(
       `INSERT INTO seeds (address, challengeId, ipHash, luna, requestedAt)
        VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(address) DO NOTHING`,
+       ON CONFLICT(address, challengeId) DO NOTHING`,
     )
     .run(s.address, s.challengeId, s.ipHash ?? null, s.luna, Date.now())
   return Number(r.changes) > 0 ? 'queued' : 'exists'
 }
 
-export function getSeed(address: string): SeedRow | undefined {
-  return db.prepare(`SELECT * FROM seeds WHERE address = ?`).get(address) as SeedRow | undefined
+export function getSeed(address: string, challengeId: string): SeedRow | undefined {
+  return db.prepare(`SELECT * FROM seeds WHERE address = ? AND challengeId = ?`).get(address, challengeId) as SeedRow | undefined
 }
 
 /** Seeds requested since `since` — overall, or by one requester (the abuse box). */
@@ -517,10 +558,10 @@ export function listPendingSeeds(limit = 50, maxAttempts = 5): SeedRow[] {
     .all(maxAttempts, limit) as SeedRow[]
 }
 
-export function markSeedSent(address: string, txHash: string) {
-  db.prepare(`UPDATE seeds SET status='sent', txHash=?, sentAt=?, error=NULL WHERE address=?`).run(txHash, Date.now(), address)
+export function markSeedSent(address: string, challengeId: string, txHash: string) {
+  db.prepare(`UPDATE seeds SET status='sent', txHash=?, sentAt=?, error=NULL WHERE address=? AND challengeId=?`).run(txHash, Date.now(), address, challengeId)
 }
 
-export function markSeedFailed(address: string, error: string) {
-  db.prepare(`UPDATE seeds SET attempts = attempts + 1, error = ? WHERE address = ?`).run(error, address)
+export function markSeedFailed(address: string, challengeId: string, error: string) {
+  db.prepare(`UPDATE seeds SET attempts = attempts + 1, error = ? WHERE address = ? AND challengeId = ?`).run(error, address, challengeId)
 }

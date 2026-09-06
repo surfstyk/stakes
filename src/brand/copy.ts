@@ -96,6 +96,7 @@ export const copy = {
     },
     day: {
       cta: en.rs.day.cta,
+      dayOnePrompt: en.rs.day.dayOnePrompt,
       sealing: en.rs.day.sealing,
       sealedKicker: (day: number) => fmt(en.rs.day.sealedKicker, { day }),
       onchain: en.rs.day.onchain,

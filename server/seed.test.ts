@@ -24,12 +24,23 @@ const challenge = () =>
     creatorAddress: 'NQ00', creatorName: 'x', lockAt: Date.now(), dayLengthMs: 86400_000,
   })
 
-test('one seed per wallet — the second request is a no-op', () => {
+test('one seed per (wallet, challenge) — a repeat on the same challenge is a no-op', () => {
   const a = nqAddr()
   const id = challenge()
   assert.equal(db.requestSeed({ address: a, challengeId: id, ipHash: 'ip1', luna: 10_000 }), 'queued')
   assert.equal(db.requestSeed({ address: a, challengeId: id, ipHash: 'ip1', luna: 10_000 }), 'exists')
-  assert.equal(db.getSeed(a)?.status, 'pending')
+  assert.equal(db.getSeed(a, id)?.status, 'pending')
+})
+
+test('a returning wallet is seeded again on a new challenge', () => {
+  const a = nqAddr()
+  const id1 = challenge()
+  const id2 = challenge()
+  assert.equal(db.requestSeed({ address: a, challengeId: id1, ipHash: 'ip1', luna: 10_000 }), 'queued')
+  // Same wallet, DIFFERENT challenge → a fresh seed, not 'exists' (the always-seed change).
+  assert.equal(db.requestSeed({ address: a, challengeId: id2, ipHash: 'ip1', luna: 10_000 }), 'queued')
+  assert.equal(db.getSeed(a, id1)?.status, 'pending')
+  assert.equal(db.getSeed(a, id2)?.status, 'pending')
 })
 
 test('the abuse box counts by requester and overall', () => {
@@ -57,15 +68,16 @@ test('a bad row is retried a bounded number of times, then dropped from the queu
   const id = challenge()
   const bad = 'NQ00 BAD'
   db.requestSeed({ address: bad, challengeId: id, luna: 1 })
-  for (let i = 0; i < 5; i++) db.markSeedFailed(bad, 'nope')
+  for (let i = 0; i < 5; i++) db.markSeedFailed(bad, id, 'nope')
   assert.ok(!db.listPendingSeeds().some((s) => s.address === bad), 'exhausted rows leave the queue')
-  assert.equal(db.getSeed(bad)?.attempts, 5)
+  assert.equal(db.getSeed(bad, id)?.attempts, 5)
 })
 
 test('markSeedSent closes the row', () => {
   const a = nqAddr()
-  db.requestSeed({ address: a, challengeId: challenge(), luna: 1 })
-  db.markSeedSent(a, 'abc')
-  assert.equal(db.getSeed(a)?.status, 'sent')
+  const id = challenge()
+  db.requestSeed({ address: a, challengeId: id, luna: 1 })
+  db.markSeedSent(a, id, 'abc')
+  assert.equal(db.getSeed(a, id)?.status, 'sent')
   assert.ok(!db.listPendingSeeds().some((s) => s.address === a))
 })

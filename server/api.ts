@@ -310,7 +310,7 @@ export const server = createServer(async (req, res) => {
       if (!NQ_RE.test(normNq(address))) return send(res, 400, { error: 'a Nimiq address is required' })
       if (!challengeId || !getChallenge(challengeId)) return send(res, 404, { error: 'challenge not found' })
       const addr = prettyNq(address)
-      const existing = getSeed(addr)
+      const existing = getSeed(addr, challengeId)
       if (existing) return send(res, 200, { status: 'exists', seeded: existing.status === 'sent' })
       if (SEED_OFF) return send(res, 503, { error: 'seeding is paused' })
       const since = Date.now() - DAY

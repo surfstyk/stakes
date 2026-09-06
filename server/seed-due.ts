@@ -57,12 +57,12 @@ export async function seedDue(opts: SeedDueOpts): Promise<SeedDueResult> {
         continue
       }
       const hash = await broadcast(signed)
-      markSeedSent(row.address, hash)
+      markSeedSent(row.address, row.challengeId, hash)
       sent++
       log(`[seed] sent ${row.luna} luna → ${row.address}  ${hash}`)
     } catch (e) {
       failed++
-      markSeedFailed(row.address, (e as Error).message)
+      markSeedFailed(row.address, row.challengeId, (e as Error).message)
       log(`[seed] ✗ ${row.address}: ${(e as Error).message}`)
     }
   }

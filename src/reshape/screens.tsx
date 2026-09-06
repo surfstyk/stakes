@@ -287,6 +287,11 @@ export function DayScreen({
           <div style={{ marginTop: 40 }}>
             <WeekFrame marks={wv.marks} label={wv.label} />
           </div>
+          {dayNum === 1 && challenge.stakedAt && (
+            <p className="sub" style={{ textAlign: 'center', marginTop: 18 }}>
+              {c.day.dayOnePrompt}
+            </p>
+          )}
         </>
       )}
       {error && (
