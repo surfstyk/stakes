@@ -424,10 +424,13 @@ export function devSeed(kind: SeedKind): void {
   const now = Date.now()
   const len = dayLen()
   const DAY = 86_400_000
-  const t = templateById('sugar')!
+  // dev-only: ?tpl=<id> seeds a specific template (e.g. run = "Move every day") for asset/trailer
+  // captures; defaults to sugar. Only ever reached under DEV_TOOLS (App.tsx), stripped from public.
+  const tplId = new URLSearchParams(location.search).get('tpl') || 'sugar'
+  const t = templateById(tplId) ?? templateById('sugar')!
   const base = (o: Partial<Challenge>): Challenge => ({
     id: safeRandomId().replace(/-/g, '').slice(0, 8),
-    templateId: 'sugar',
+    templateId: t.id,
     goal: t.goal,
     emoji: t.emoji,
     status: 'window',
