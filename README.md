@@ -1,6 +1,6 @@
 # Stakes
 
-![Stakes — Win your moment. Bank the day.](public/brand/stakes-banner-2x1.png)
+![Stakes — Win your moment. Bank the day.](public/brand/stakes-banner-hero-22x10.png)
 
 > **Win your moment. Bank the day.**
 
