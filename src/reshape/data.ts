@@ -24,18 +24,79 @@ import { templateById } from './templates.ts'
 const IS_MOCK = !TREASURY_NIM_ADDRESS
 
 // ---- identity (Nimiq wallet address, dev fallback) — standalone so reshape stays decoupled ----
+//
+// The identity is `listAccounts()[0]`, the STABLE wallet address (the *sending* sub-address
+// rotates per tx; this one does not — audit ARCH-02 / BACKLOG). We PERSIST it after the first
+// resolve, because `listAccounts()` opens the native Connect sheet on every fresh page load: the
+// SDK provider's grant cache is in-memory, so a reload / reopen resets it to empty and calling
+// it again re-prompts ("connect again every time you come back"). Reading our own cache instead
+// keeps every return, and every reload, dialog-free — the wallet is only ever asked once.
+const NIM_ADDR_KEY = 'stakes.nim.address'
+const CONNECT_TIMEOUT_MS = 60_000
 let cachedAddress: string | null = null
-export async function getMyAddress(): Promise<string> {
-  if (cachedAddress) return cachedAddress
+let addressInFlight: Promise<string> | null = null
+
+function readPersistedAddress(): string | null {
+  try {
+    return localStorage.getItem(NIM_ADDR_KEY)
+  } catch {
+    return null
+  }
+}
+
+/** Reject `p` if it hasn't settled within `ms` — bounds a native sheet that is never answered
+ *  (declined and swallowed by the host, or lost to a backgrounding) so a caller can't hang forever. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Wallet did not respond in time.')), ms)),
+  ])
+}
+
+/**
+ * True when we can load state WITHOUT triggering the native Connect sheet — a mock build always,
+ * or a real wallet address we already resolved on a prior run. Drives the instant-paint mount
+ * (App.tsx): an unknown identity lands on the cold-open and only connects on the first real action.
+ */
+export function hasKnownIdentity(): boolean {
+  return IS_MOCK || Boolean(cachedAddress) || Boolean(readPersistedAddress())
+}
+
+/**
+ * Resolve this device's identity address. Cache-first (memory → localStorage) so it is silent and
+ * synchronous for a returning wallet; only a first-ever resolve calls `listAccounts()` and opens
+ * the Connect sheet. Concurrent callers share the one in-flight prompt.
+ */
+export function getMyAddress(): Promise<string> {
+  if (cachedAddress) return Promise.resolve(cachedAddress)
+  const persisted = readPersistedAddress()
+  if (persisted) return Promise.resolve((cachedAddress = persisted))
+  return (addressInFlight ??= resolveAddress().finally(() => (addressInFlight = null)))
+}
+
+async function resolveAddress(): Promise<string> {
   if (typeof window !== 'undefined' && window.nimiqPay) {
     try {
       const nim = await getNimiq(4000)
-      const accounts = await nim.listAccounts()
-      if (Array.isArray(accounts) && accounts[0]) return (cachedAddress = accounts[0])
-    } catch {
-      /* declined / unreachable → dev identity */
+      const accounts = await withTimeout(nim.listAccounts(), CONNECT_TIMEOUT_MS)
+      if (Array.isArray(accounts) && accounts[0]) {
+        cachedAddress = accounts[0]
+        try {
+          localStorage.setItem(NIM_ADDR_KEY, accounts[0])
+        } catch {
+          /* private mode / quota — we still hold it in memory for this session */
+        }
+        return cachedAddress
+      }
+      throw new Error('The wallet returned no account.')
+    } catch (e) {
+      // A real-money build must NOT fabricate a throwaway identity: tagging a run (and a real
+      // deposit) to an address the wallet never controls is worse than a clean failure. Surface it
+      // so the caller's guard() shows a calm, retryable state.
+      if (!IS_MOCK) throw e instanceof Error ? e : new Error('Could not reach your wallet.')
     }
   }
+  // Mock / outside Nimiq Pay: a stable per-device dev identity keeps the design run clickable.
   try {
     const k = 'stakes.devAddress'
     const existing = localStorage.getItem(k)

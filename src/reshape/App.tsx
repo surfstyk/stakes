@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, HistoryItem } from './model.ts'
 import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver, keptDays } from './model.ts'
-import { data, devSeed, type SeedKind } from './data.ts'
+import { data, devSeed, hasKnownIdentity, type SeedKind } from './data.ts'
 import type { Template } from './templates.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { DayScreen, MainScreen, MakeOfficialScreen, SealShareScreen, TasteScreen } from './screens.tsx'
@@ -96,7 +96,25 @@ export function ReshapeApp() {
         return
       }
     }
+    // Instant paint, never a Connect sheet over a blank wordmark. An identity we can't resolve
+    // silently (a first-ever visit, before any wallet connect) lands straight on the cold-open —
+    // the first real action is where the native connect happens. A known identity (the dev id, or
+    // a returning wallet we cached) loads its state silently, but BOUNDED: if the load stalls we
+    // fall to the cold-open rather than hang on the wordmark (the freeze the screenshots showed).
+    if (!hasKnownIdentity()) {
+      setView('main')
+      return
+    }
+    let settled = false
+    const escape = setTimeout(() => {
+      if (!settled) setView('main')
+    }, 8000)
     void refresh()
+      .catch(() => setView('main'))
+      .finally(() => {
+        settled = true
+        clearTimeout(escape)
+      })
   }, [])
 
   const home = () => void refresh()
