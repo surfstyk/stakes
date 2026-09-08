@@ -210,7 +210,15 @@ export function DotSpeak({
             {source && <p className="db-src">— {source}</p>}
           </div>
         )}
-        <button className={'dot-fab' + (motion === 'lively' ? ' lively' : '')} onClick={onTap} aria-label={copy.a11y.openSphere}>
+        {/* key on `open` so the dot RESTARTS its bob the instant the bubble opens: both then share
+            one start, and the bubble trails by --lag every time (not a random phase from tap timing)
+            — the two move WITH each other, never against. */}
+        <button
+          key={open ? 'talk' : 'idle'}
+          className={'dot-fab' + (motion === 'lively' ? ' lively' : '')}
+          onClick={onTap}
+          aria-label={copy.a11y.openSphere}
+        >
           <span className="sh" />
           <span className="ball">
             <span className="spec" />
