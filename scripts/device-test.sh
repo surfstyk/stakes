@@ -8,9 +8,11 @@
 # deploy — this is a throwaway tunnel to a build running on your laptop.
 #
 # By default the build's relative /api calls are proxied to the LIVE production backend
-# (https://stakes.surfstyk.com) so you test against real challenge state + real mainnet
-# deposits. Point it elsewhere with STAKES_API_TARGET (e.g. http://localhost:8787 for a
-# local `npm run api` + throwaway SQLite).
+# (https://app.stakes.day — the app's home since go-live) so you test against real challenge
+# state + real mainnet deposits. Do NOT point this at the old stakes.surfstyk.com host: it now
+# 301-redirects cross-origin to app.stakes.day, which the browser silently re-follows on GETs
+# but breaks on the Start-Now POST (the redirected request loses its method/body). Point it
+# elsewhere with STAKES_API_TARGET (e.g. http://localhost:8787 for a local `npm run api` + throwaway SQLite).
 #
 # The build embeds VITE_TREASURY_NIM_ADDRESS from .env.local — keep that the real
 # mainnet treasury so deposits match what the prod API verifies.
@@ -19,7 +21,7 @@
 # Everything is torn down on Ctrl-C — nothing is left running.
 #
 # Env overrides:
-#   STAKES_API_TARGET   /api proxy target      (default: https://stakes.surfstyk.com)
+#   STAKES_API_TARGET   /api proxy target      (default: https://app.stakes.day)
 #   PREVIEW_PORT        local preview port     (default: 4173)
 #   TUNNEL_LOG          cloudflared log path   (default: a mktemp file)
 set -euo pipefail
@@ -27,7 +29,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-API_TARGET="${STAKES_API_TARGET:-https://stakes.surfstyk.com}"
+API_TARGET="${STAKES_API_TARGET:-https://app.stakes.day}"
 PORT="${PREVIEW_PORT:-4173}"
 LOG="${TUNNEL_LOG:-$(mktemp -t stakes-tunnel)}"
 
