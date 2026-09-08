@@ -69,20 +69,12 @@ export function TasteScreen({
 }) {
   const now = useNow(true, true)
   const fill = dayFill(challenge, now)
-  // First contact: no frost on arrival. The dot just bobs livelily to invite a tap; the hint
-  // pop-over opens only when the user reaches for it (handoff 2026-09-04).
-  const [open, setOpen] = useState(false)
+  // First contact: no frost on arrival. The dot bobs livelily to invite a tap; on tap it hands a
+  // curated line for the moment — this is the trier→committer beat, so it must speak, not show a
+  // static "I'm the dot" intro (bug found in demo 2026-09-08). SphereWithPick owns the open state.
   return (
     <Frame
-      sphere={
-        <DotSpeak
-          open={open}
-          onTap={() => setOpen(true)}
-          onClose={() => setOpen(false)}
-          motion="lively"
-          line={c.dot.intro}
-        />
-      }
+      sphere={<SphereWithPick challenge={challenge} />}
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
@@ -125,22 +117,13 @@ export function MakeOfficialScreen({
 }) {
   const [pdi, setPdi] = useState(1) // 100 NIM/day
   const [li, setLi] = useState(1) // 7 days
-  const [tip, setTip] = useState(false)
   const perDay = PER_DAY[pdi]
   const days = LENGTHS[li]
   const total = perDay * days
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   return (
     <Frame
-      sphere={
-        <DotSpeak
-          open={tip}
-          onTap={() => setTip(true)}
-          onClose={() => setTip(false)}
-          motion="lively"
-          line={c.dot.intro}
-        />
-      }
+      sphere={<SphereWithPick challenge={challenge} />}
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
