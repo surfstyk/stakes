@@ -159,13 +159,46 @@ export function Sphere({ onClick, raised, motion = 'calm' }: { onClick?: () => v
   )
 }
 
-// ---- an inline dot glyph (Journey 05): the same vermilion sphere, not the pinned FAB —
-// it rides inside the weak-moment sheet's header. Gentle rest bob, no shadow stage. ----
-export function DotGlyph({ size = 56 }: { size?: number }) {
+// ---- the dot's speech (Journey 04b): a dot-anchored speech bubble, tap-only. The dot rides
+// bottom-right; a tap opens the bubble ABOVE it with the tail pointing at the dot (the 18/18/6/18
+// corner), a tap anywhere else closes it, and on the day/missed screens a re-tap re-rolls the line.
+// No scrim, no dim — the day stays fully visible behind it (a pause, not a new place). ----
+export function DotSpeak({
+  open,
+  onTap,
+  onClose,
+  motion = 'lively',
+  meta,
+  line,
+  source,
+}: {
+  open: boolean
+  onTap: () => void
+  onClose: () => void
+  motion?: 'calm' | 'lively'
+  meta?: string
+  line?: ReactNode
+  source?: string | null
+}) {
   return (
-    <span className="dotglyph" style={{ width: size, height: size }} aria-hidden="true">
-      <span className="spec" />
-    </span>
+    <>
+      {open && <button className="dot-scrim" aria-label={copy.a11y.close} onClick={onClose} />}
+      <div className="dotdock">
+        {open && line != null && (
+          <div className="dotbubble" role="status">
+            {meta && <p className="db-meta">{meta}</p>}
+            <p className="db-line">{line}</p>
+            {source && <p className="db-src">— {source}</p>}
+          </div>
+        )}
+        <button className={'dot-fab' + (motion === 'lively' ? ' lively' : '')} onClick={onTap} aria-label={copy.a11y.openSphere}>
+          <span className="sh" />
+          <span className="ball">
+            <span className="spec" />
+          </span>
+        </button>
+      </div>
+    </>
   )
 }
 

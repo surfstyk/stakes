@@ -6,90 +6,43 @@ import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { journeyArt } from './illus.ts'
 import { TEMPLATES } from './templates.ts'
-import { Chain, ChallengeChip, Cta, DotGlyph, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, Sphere, TopBar, Wordmark } from './ui.tsx'
+import { Chain, ChallengeChip, Cta, DotSpeak, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, Sphere, TopBar, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
 const labelOf = (ch: Challenge) => TEMPLATES.find((t) => t.id === ch.templateId)?.label ?? ch.goal
 
-// ---- the sphere's tap → the dot's weak-moment sheet (Journey 05) -------------
-// The day dims + blurs behind a paper sheet: the dot, one curated line (the deterministic
-// engine, never AI), and one way back in. "Another" re-rolls; the primary closes and returns you.
-function SpherePickPop({
-  challenge,
-  tap,
-  moment,
-  onAnother,
-  onClose,
-}: {
-  challenge: Challenge
-  tap: number
-  moment?: 'win' | 'slip'
-  onAnother: () => void
-  onClose: () => void
-}) {
-  const dayIndex = Math.max(0, currentDay(challenge))
-  const pick = pickLine(challenge.templateId, dayIndex, tap, moment)
-  const goLabel = moment === 'win' ? 'Onward' : moment === 'slip' ? "I'm back on it" : "Alright, I'm going"
-  return (
-    <>
-      <button className="scrim dim" aria-label={copy.a11y.close} onClick={onClose} />
-      <div className="sheet">
-        <div className="sh-top">
-          <p className="dlabel">A word from the dot</p>
-          <DotGlyph size={56} />
-        </div>
-        <p className="sh-line">{pick.text}</p>
-        {pick.source && <p className="sh-sub">— {pick.source}</p>}
-        <div className="sh-acts">
-          <button className="sh-another" onClick={onAnother} aria-label="Another">
-            <svg className="ico" viewBox="0 0 24 24" style={{ width: 15, height: 15 }}>
-              <path d="M4 12a8 8 0 1 1 2.5 5.8" />
-              <path d="M4 19v-5h5" />
-            </svg>
-            Another
-          </button>
-          <button className="cta cta--green sh-go" onClick={onClose}>
-            {goLabel}
-            {Icon.arrow}
-          </button>
-        </div>
-      </div>
-    </>
-  )
-}
-
-/** The pinned sphere that opens (and re-rolls) the pick on tap. A plain tap hands a broad
- *  supportive line; `moment` pins it to a context moment the app read from state — `win` (a
- *  sealed day) or `slip` (a fresh miss). Each tap advances the seed; closing keeps it, so
- *  the next open re-rolls to a new line rather than repeating pick #1 (rehearsal bug). */
+/** The pinned dot that opens its speech bubble (Journey 04b) on tap. A plain tap hands a broad
+ *  supportive line; `moment` pins it to a context moment the app read from state — `win` (a sealed
+ *  day) or `slip` (a fresh miss). Each tap advances the seed so a re-open re-rolls the line rather
+ *  than repeating it. Tap-only — the dot never speaks first (Hendrik's call, 2026-09-08). */
 export function SphereWithPick({
   challenge,
   moment,
   autoOpen,
-  raised,
-  motion,
+  motion = 'lively',
 }: {
   challenge: Challenge
   moment?: 'win' | 'slip'
   autoOpen?: boolean
-  raised?: boolean
   motion?: 'calm' | 'lively'
 }) {
   const [open, setOpen] = useState(() => !!autoOpen || (DEV_TOOLS && new URLSearchParams(location.search).has('pick')))
   const [seed, setSeed] = useState(1)
-  const tapSphere = () => {
-    setSeed((s) => s + 1)
-    setOpen(true)
-  }
+  const dayIndex = Math.max(0, currentDay(challenge))
+  const pick = pickLine(challenge.templateId, dayIndex, seed, moment)
   return (
-    <>
-      {open ? (
-        <SpherePickPop challenge={challenge} tap={seed} moment={moment} onAnother={() => setSeed((s) => s + 1)} onClose={() => setOpen(false)} />
-      ) : (
-        <Sphere raised={raised} motion={motion} onClick={tapSphere} />
-      )}
-    </>
+    <DotSpeak
+      open={open}
+      onTap={() => {
+        setSeed((s) => s + 1) // each tap re-rolls, so a re-open never repeats the last line
+        setOpen(true)
+      }}
+      onClose={() => setOpen(false)}
+      motion={motion}
+      line={pick.text}
+      source={pick.source}
+    />
   )
 }
 

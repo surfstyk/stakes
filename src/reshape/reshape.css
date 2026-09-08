@@ -56,16 +56,20 @@
      600/700/900 and italic request falls back to the real 400 upright (§11.2), in one line. */
   font-synthesis: none;
 }
-/* faint paper grain — a multiply layer over the whole frame */
+/* the paper ground (Journey sweep — the StakesKit Ground texture): a low-frequency fractalNoise
+   field stretched over the whole frame, multiplied onto the paper → the soft, smoky vertical
+   streaks from the mock-ups. NOT the old fine film-grain (baseFrequency 0.9); this is 0.09/0.10,
+   4 octaves, alpha-slope 0.14, exactly the design's ground(). One field, stretched, not tiled. */
 .rs::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.4;
   mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='210'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.09 0.10' numOctaves='4' seed='7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.14'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
 /* ---- shell law: scrollable canvas · pinned foot · pinned sphere ------------- */
@@ -392,7 +396,17 @@ button.challengechip:active {
 .rs .sphereFab.raised {
   bottom: calc(150px + env(safe-area-inset-bottom)); /* clears a two-button foot */
 }
-.rs .sphereFab .ball {
+/* the docked dot (Journey 04b): the same sphere, but a flex child of the dot-dock so its speech
+   bubble can sit directly above it. The dock owns the bottom-right position; the fab is relative. */
+.rs .dot-fab {
+  position: relative;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.rs .sphereFab .ball,
+.rs .dot-fab .ball {
   display: block; /* it's a <span>; without this it stays inline and collapses to 0×0 (the sphere vanishes) */
   width: 50px;
   height: 50px;
@@ -402,7 +416,8 @@ button.challengechip:active {
   box-shadow: inset -5px -6px 12px rgba(120, 15, 4, 0.5), inset 3px 4px 8px rgba(255, 205, 180, 0.35);
   animation: rs-sidle var(--dur) ease-in-out infinite;
 }
-.rs .sphereFab .ball .spec {
+.rs .sphereFab .ball .spec,
+.rs .dot-fab .ball .spec {
   position: absolute;
   top: 14%;
   left: 20%;
@@ -413,7 +428,8 @@ button.challengechip:active {
   filter: blur(1px);
   transform: rotate(-18deg);
 }
-.rs .sphereFab .sh {
+.rs .sphereFab .sh,
+.rs .dot-fab .sh {
   position: absolute;
   left: 50%;
   bottom: -11px;
@@ -432,6 +448,82 @@ button.challengechip:active {
 @keyframes rs-ssh {
   0%, 100% { transform: scaleX(1); opacity: 0.24; }
   50% { transform: scaleX(0.84); opacity: 0.15; }
+}
+
+/* ---- the dot-dock + its speech bubble (Journey 04b) ------------------------- */
+/* the dot and its bubble are one unit at bottom-right: the bubble sits ABOVE the dot, its tail
+   (the 6px corner) pointing down at it. The dock is click-through except its children, so the
+   day behind stays interactive at rest; a transparent full-frame scrim catches the close-tap. */
+.rs .dotdock {
+  position: absolute;
+  z-index: 9;
+  right: 16px;
+  bottom: calc(100px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: none;
+}
+.rs .dotdock > * {
+  pointer-events: auto;
+}
+.rs .dot-fab.lively {
+  --amp: 12px;
+  --camp: 9px;
+  --dur: 2.6s;
+  --lag: 0.55s;
+}
+.rs .dot-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+.rs .dotbubble {
+  max-width: 280px;
+  margin-right: 30px; /* inset from the right so the tail sits over the dot below */
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 18px 18px 6px 18px;
+  padding: 13px 16px;
+  box-shadow: 0 14px 34px -18px rgba(28, 24, 19, 0.5);
+  transform-origin: bottom right;
+  animation: rs-bubble-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rs .db-meta {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.rs .db-line {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.rs .db-src {
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+@keyframes rs-bubble-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs .dotbubble { animation: none; }
 }
 
 /* ---- the frosted scrim + the pop-over --------------------------------------- */
@@ -1460,113 +1552,6 @@ button.challengechip:active {
   stroke-width: 2.2;
   stroke-linecap: round;
   flex: none;
-}
-
-/* the inline dot glyph — the sphere, no FAB positioning, a gentle rest bob */
-.rs .dotglyph {
-  display: inline-block;
-  position: relative;
-  border-radius: 50%;
-  flex: none;
-  background: radial-gradient(circle at 34% 28%, #ff8a4a, #ff7a3f 18%, #ef2d06 55%, #b81f04);
-  box-shadow: inset -5px -6px 12px rgba(120, 15, 4, 0.5), inset 3px 4px 8px rgba(255, 205, 180, 0.35);
-  animation: rs-sidle 2.6s ease-in-out infinite;
-}
-.rs .dotglyph .spec {
-  position: absolute;
-  top: 14%;
-  left: 20%;
-  width: 28%;
-  height: 20%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 244, 235, 0.9), rgba(255, 244, 235, 0) 70%);
-  filter: blur(1px);
-  transform: rotate(-18deg);
-}
-@media (prefers-reduced-motion: reduce) {
-  .rs .dotglyph {
-    animation: none;
-  }
-}
-
-/* ---- 05 the weak moment: the dot's sheet (the day dims + blurs behind) ------ */
-.rs .scrim.dim {
-  background: rgba(28, 24, 19, 0.4);
-}
-.rs .sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 8;
-  background: var(--paper-card);
-  border-top: 1.5px solid var(--line-strong);
-  border-radius: 26px 26px 0 0;
-  padding: 26px 22px calc(34px + env(safe-area-inset-bottom));
-  box-shadow: 0 -20px 50px -30px rgba(28, 24, 19, 0.7);
-  display: flex;
-  flex-direction: column;
-  gap: 17px;
-  animation: rs-sheet-up 0.34s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes rs-sheet-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-.rs .sheet .sh-top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 13px;
-}
-.rs .sheet .sh-top .dlabel {
-  flex: 1;
-}
-.rs .sheet .sh-line {
-  margin: 0;
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 28px;
-  line-height: 1.12;
-  letter-spacing: -0.012em;
-  color: var(--ink);
-  text-wrap: pretty;
-}
-.rs .sheet .sh-sub {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--ink-soft);
-}
-.rs .sheet .sh-acts {
-  display: flex;
-  gap: 10px;
-}
-.rs .sheet .sh-another {
-  font-family: var(--sans);
-  font-weight: 800;
-  font-size: 14.5px;
-  border: 1.5px solid var(--line-strong);
-  border-radius: 14px;
-  padding: 14px 16px;
-  color: var(--ink);
-  background: transparent;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-}
-.rs .sheet .sh-another:active {
-  transform: scale(0.98);
-}
-.rs .sheet .sh-go {
-  flex: 1;
-}
-@media (prefers-reduced-motion: reduce) {
-  .rs .sheet {
-    animation: none;
-  }
 }
 
 .rs :where(button, a, [role='button']):focus-visible {

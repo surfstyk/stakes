@@ -3,7 +3,7 @@ import { copy } from '../brand/index.ts'
 import type { Challenge, Social } from './model.ts'
 import { chainSoFar, currentDay, dayFill, isCheckedToday, keptDays } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { Carousel, Chain, ChallengeChip, ContractCard, Cta, Frame, HeroDot, Icon, PopOver, ShareCard, Sphere, StampedRow, Stepper, TopBar, Wordmark } from './ui.tsx'
+import { Carousel, Chain, ChallengeChip, ContractCard, Cta, DotSpeak, Frame, HeroDot, Icon, ShareCard, Sphere, StampedRow, Stepper, TopBar, Wordmark } from './ui.tsx'
 import { SphereWithPick } from './screens2.tsx'
 
 const c = copy.rs
@@ -72,18 +72,13 @@ export function TasteScreen({
   return (
     <Frame
       sphere={
-        <>
-          {open && (
-            <PopOver variant="hint" onClose={() => setOpen(false)}>
-              <p className="hintline">
-                {c.taste.hintPre}
-                <em>{c.taste.hintEm}</em>
-                {c.taste.hintPost}
-              </p>
-            </PopOver>
-          )}
-          <Sphere onClick={() => setOpen(true)} motion="lively" />
-        </>
+        <DotSpeak
+          open={open}
+          onTap={() => setOpen(true)}
+          onClose={() => setOpen(false)}
+          motion="lively"
+          line={`${c.taste.hintPre}${c.taste.hintEm}${c.taste.hintPost}`}
+        />
       }
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
@@ -137,18 +132,13 @@ export function MakeOfficialScreen({
   return (
     <Frame
       sphere={
-        <>
-          {tip && (
-            <PopOver variant="hint" onClose={() => setTip(false)}>
-              <p className="hintline">
-                {c.official.hintPre}
-                <em>{c.official.hintEm}</em>
-                {c.official.hintPost}
-              </p>
-            </PopOver>
-          )}
-          <Sphere onClick={() => setTip(true)} motion={tip ? 'lively' : 'calm'} />
-        </>
+        <DotSpeak
+          open={tip}
+          onTap={() => setTip(true)}
+          onClose={() => setTip(false)}
+          motion="lively"
+          line={`${c.official.hintPre}${c.official.hintEm}${c.official.hintPost}`}
+        />
       }
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
