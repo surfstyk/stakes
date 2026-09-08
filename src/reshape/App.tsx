@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, HistoryItem } from './model.ts'
-import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver, keptDays } from './model.ts'
+import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver } from './model.ts'
 import { data, devSeed, hasKnownIdentity, type SeedKind } from './data.ts'
 import type { Template } from './templates.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { DayScreen, MainScreen, MakeOfficialScreen, SealShareScreen, TasteScreen } from './screens.tsx'
-import { ArchiveScreen, BankedScreen, LapsedScreen, MissedScreen, PerfectWeekScreen, ReUpScreen } from './screens2.tsx'
+import { ArchiveScreen, BankedScreen, LapsedScreen, MissedScreen, ReUpScreen } from './screens2.tsx'
 import { Frame, Wordmark } from './ui.tsx'
 import { isUserCancel } from '../lib/nimiq.ts'
 import { markSensitiveOp } from '../lib/context.ts'
@@ -23,7 +23,6 @@ type View =
   | 'archive'
   | 'missed'
   | 'lapsed'
-  | 'perfectweek'
 
 // Best-effort native share; the link is the reliable payload inside the Nimiq Pay WebView.
 async function share(text: string, url = location.origin) {
@@ -83,9 +82,8 @@ export function ReshapeApp() {
         reup: 'reup',
         lapsed: 'lapsed',
         archive: 'archive',
-        perfectweek: 'banked-win',
       }
-      const forced: Record<string, View> = { 'view-official': 'official', 'view-seal': 'sealShare', reup: 'reup', perfectweek: 'perfectweek' }
+      const forced: Record<string, View> = { 'view-official': 'official', 'view-seal': 'sealShare', reup: 'reup' }
       if (q && seed[q]) {
         devSeed(seed[q])
         void data.getMe().then((me) => {
@@ -171,13 +169,10 @@ export function ReshapeApp() {
       if (!challenge) return
       const ch = await data.sealDay(challenge.id)
       setChallenge(ch)
-      const d = currentDay(ch)
-      const kept = keptDays(ch)
-      const cleanWeek = (d + 1) % 7 === 0 && d + 1 < ch.durationDays && Array.from({ length: d + 1 }, (_, i) => i).every((i) => kept.has(i))
       // Every seal lands on the 06 sealed ledger; "Show someone" from there raises the 07 postcard
-      // (design update 2026-09-08: the card is every kept day, not just day one).
+      // (design update 2026-09-08: the card is every kept day, not just day one). The Perfect-Week
+      // milestone was cut (catalogue deprecation), so a clean sub-week just stays on the day screen.
       if (isRunOver(ch)) setView('banked')
-      else if (cleanWeek) setView('perfectweek')
       else setView('day')
     })
 
@@ -263,8 +258,6 @@ export function ReshapeApp() {
           onWordmark={home}
         />
       )
-    case 'perfectweek':
-      return <PerfectWeekScreen onShare={() => void share(copy.share.perfectWeek(challenge.emoji, challenge.goal))} onWordmark={home} />
     default:
       return (
         <DayScreen

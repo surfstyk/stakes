@@ -6,7 +6,7 @@ import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { journeyArt } from './illus.ts'
 import { TEMPLATES } from './templates.ts'
-import { ChallengeChip, Cta, DayChain, DotSpeak, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, Sphere, TopBar, Wordmark } from './ui.tsx'
+import { ChallengeChip, Cta, DayChain, DotSpeak, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, Sphere, StampedRow, TopBar, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
@@ -85,6 +85,8 @@ export function BankedScreen({
 }) {
   const p = payoffOf(challenge)
   const label = labelOf(challenge)
+  const perDay = Math.round(p.slice)
+  const no = String(challenge.seq).padStart(3, '0')
   // a full-run week strip: kept green, the rest burned grey
   const marks: DayMark[] = Array.from({ length: p.total }, (_, i) => (keptDays(challenge).has(i) ? 'done' : 'missed'))
 
@@ -128,7 +130,6 @@ export function BankedScreen({
             rows={[
               { k: c.banked.rowStake, v: fmt(p.retained) },
               { k: c.banked.rowBonus, v: `+${fmt(p.bonus)}`, cls: 'plus' },
-              { k: c.banked.rowBanked, v: `${fmt(p.banked)} NIM`, cls: 'tot' },
             ]}
           />
         </div>
@@ -154,33 +155,22 @@ export function BankedScreen({
           <p className="kicker quiet" style={{ margin: '0 0 6px' }}>
             {c.banked.kickerUp}
           </p>
-          <h1 className="h">
-            {c.banked.hPartialLead}
-            <em className="go">{p.kept}</em>
-            {c.banked.hPartialTail}
-          </h1>
+          <h1 className="h">{c.banked.hPartial(p.kept)}</h1>
         </div>
         <div style={{ marginTop: 16 }}>
           <WeekDots marks={marks} size={18} />
         </div>
-        <div style={{ marginTop: 18 }}>
-          <Money variant="neutral" label={c.banked.moneyLbl} amount={Number(fmt(p.retained))} note={c.banked.partialNote(p.kept, p.total)} />
+        {/* forward framing (design 10 + catalogue rule): the money that came back, the credit for
+            the days kept, and the on-chain close — never a "days lost" line. */}
+        <div style={{ marginTop: 16 }}>
+          <Money variant="neutral" label={c.banked.moneyLbl} amount={Number(fmt(p.retained))} note={c.banked.partialMoneyNote(p.kept, perDay)} />
         </div>
-        <div style={{ marginTop: 12 }}>
-          <Ledger
-            tone="neutral"
-            rows={[
-              { k: c.banked.rowKept(p.kept), v: fmt(p.retained) },
-              { k: c.banked.rowBurned(p.total - p.kept), v: `−${fmt(p.forfeited)}`, cls: 'burn' },
-              { k: c.banked.rowBack, v: `${fmt(p.retained)} NIM`, cls: 'tot' },
-            ]}
-          />
-        </div>
-        <p className="sub" style={{ textAlign: 'center', margin: '13px auto 0', maxWidth: '33ch' }}>
-          {c.banked.partialFwdLead}
-          <b>{c.banked.partialFwdBold}</b>
-          {c.banked.partialFwdTail}
+        <p style={{ fontFamily: 'var(--serif)', fontWeight: 400, fontSize: 21, lineHeight: 1.18, letterSpacing: '-0.01em', margin: '16px 0 0', maxWidth: '26ch', color: 'var(--ink)' }}>
+          {c.banked.partialCredit(p.kept)}
         </p>
+        <div style={{ marginTop: 16 }}>
+          <StampedRow label={c.banked.closedOnChain(no)} />
+        </div>
       </Frame>
     )
   }
@@ -209,10 +199,11 @@ export function BankedScreen({
         <div style={{ marginTop: 30 }}>
           <WeekDots marks={marks} size={18} />
         </div>
-        <div style={{ marginTop: 26, width: '100%' }}>
-          <Money variant="quiet" label={c.banked.burnedLbl} amount={p.stake} note={c.banked.wipeoutNote} />
-        </div>
-        <p className="sub" style={{ marginTop: 20, maxWidth: '30ch' }}>
+        {/* no "Gone: 700" figure — never name what was lost (catalogue rule) */}
+        <p className="sub" style={{ marginTop: 26, maxWidth: '30ch' }}>
+          {c.banked.wipeoutNote}
+        </p>
+        <p className="sub" style={{ marginTop: 16, maxWidth: '30ch' }}>
           {c.banked.wipeoutFwdLead}
           <b>{c.banked.wipeoutFwdBold}</b>
           {c.banked.wipeoutFwdTail}
@@ -310,13 +301,13 @@ export function ArchiveScreen({
   onWordmark: () => void
 }) {
   return (
-    <Frame sphere={<Sphere onClick={() => {}} />} foot={<Cta label={c.archive.start} variant="green" icon={Icon.arrow} onClick={onStart} />}>
+    <Frame sphere={<Sphere onClick={() => {}} />} foot={<Cta label={c.record.cta} variant="green" icon={Icon.arrow} onClick={onStart} />}>
       <Wordmark onClick={onWordmark} />
       <h1 className="h" style={{ marginTop: 14 }}>
-        {c.archive.h}
+        {c.record.h}
       </h1>
       <p className="sub" style={{ margin: '3px 0 0' }}>
-        {c.archive.lead}
+        {c.record.sub}
       </p>
       <div className="list">
         {history.map((h) => {
@@ -369,24 +360,24 @@ export function MissedScreen({
     <Frame
       // No frost on arrival (mirrors taste, 2026-09-05): the screen stays readable and the dot bobs
       // livelily to invite a tap — the blame-free after-miss line opens only when reached for.
-      sphere={<SphereWithPick challenge={challenge} moment="slip" motion="lively" meta={`${close.hoursLeft}h left · closes ${close.hhmm}`} />}
+      sphere={<SphereWithPick challenge={challenge} moment="slip" motion="lively" meta={c.clock.moment(close.hoursLeft, close.hhmm)} />}
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '15ch' }}>
-        Yesterday got away.
+        {c.missed.h}
       </h1>
       <p className="sub" style={{ marginTop: 10, maxWidth: '31ch', fontSize: 15 }}>
-        One day, {perDay} NIM, gone. Everything you kept is still yours, and today is open for another {close.hoursLeft} {close.hoursLeft === 1 ? 'hour' : 'hours'}.
+        {c.missed.subOne(perDay, close.hoursLeft)}
       </p>
       <div className="dayhero">
         <HeroDot fill={fill} size={130} />
         <div className="daymoney">
-          <p className="dlabel">Riding on today</p>
+          <p className="dlabel">{c.day.ridingLbl}</p>
           <p className="daybig">
             {perDay} <small>NIM</small>
           </p>
-          <p className="sub">A miss doesn&apos;t end the run. It only costs the day it took.</p>
+          <p className="sub">{c.missed.ridingNote}</p>
         </div>
       </div>
       {keptCount > 0 && <DayChain marks={chain} keptCount={keptCount} safe={safe} todayFill={fill} />}
@@ -413,36 +404,6 @@ export function LapsedScreen({ onStartAgain, onWordmark }: { challenge: Challeng
           {c.lapsed.sub}
         </p>
       </div>
-    </Frame>
-  )
-}
-
-// ============================================================================
-// ⓺ Perfect week — the milestone celebration (no bonus pill, §12.7)
-// ============================================================================
-export function PerfectWeekScreen({ onShare, onWordmark }: { onShare: () => void; onWordmark: () => void }) {
-  return (
-    <Frame
-      sphere={<Sphere onClick={() => {}} />}
-      foot={<Cta label={c.perfectweek.cta} variant="green" icon={Icon.share} onClick={onShare} />}
-    >
-      <Wordmark onClick={onWordmark} />
-      <div style={{ textAlign: 'center', marginTop: 20 }}>
-        <p className="kicker go" style={{ margin: '0 0 8px' }}>
-          {c.perfectweek.kicker}
-        </p>
-        <h1 className="h">
-          {c.perfectweek.hLead}
-          <em>{c.perfectweek.hEm}</em>
-          <span className="fs">.</span>
-        </h1>
-      </div>
-      <div style={{ marginTop: 26 }}>
-        <PerfectRing />
-      </div>
-      <p className="sub" style={{ margin: '30px auto 0', maxWidth: '30ch', textAlign: 'center' }}>
-        {c.perfectweek.sub}
-      </p>
     </Frame>
   )
 }

@@ -41,6 +41,9 @@ export function MainScreen({ social, onStart, onWordmark }: { social: Social; on
         </h1>
       </div>
       <CarouselSelector social={social} onIndexChange={setSel} />
+      <p className="dlabel" style={{ textAlign: 'center', marginTop: 12 }}>
+        {c.main.pager(TEMPLATES.length)}
+      </p>
     </Frame>
   )
 }
@@ -77,16 +80,14 @@ export function TasteScreen({
           onTap={() => setOpen(true)}
           onClose={() => setOpen(false)}
           motion="lively"
-          line={`${c.taste.hintPre}${c.taste.hintEm}${c.taste.hintPost}`}
+          line={c.dot.intro}
         />
       }
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
       <h1 className="h" style={{ fontSize: 36, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
-        {c.taste.hTop} {c.taste.hLead}
-        {c.taste.hEm}
-        {c.taste.hTail}.
+        {c.taste.h}
       </h1>
       <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
         {c.taste.sub}
@@ -95,7 +96,7 @@ export function TasteScreen({
         <HeroDot fill={fill} size={240} />
       </div>
       <p className="dlabel" style={{ marginTop: 16, textAlign: 'center' }}>
-        Day one · free · nothing at stake yet
+        {c.taste.caption}
       </p>
     </Frame>
   )
@@ -137,7 +138,7 @@ export function MakeOfficialScreen({
           onTap={() => setTip(true)}
           onClose={() => setTip(false)}
           motion="lively"
-          line={`${c.official.hintPre}${c.official.hintEm}${c.official.hintPost}`}
+          line={c.dot.intro}
         />
       }
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
@@ -145,9 +146,7 @@ export function MakeOfficialScreen({
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
       <div style={{ marginTop: 16 }}>
         <h1 className="h" style={{ fontSize: 32, maxWidth: '18ch' }}>
-          {c.official.hLead}
-          <em>{c.official.hEm}</em>
-          <span className="fs">.</span>
+          {c.official.h}
         </h1>
         <p className="sub" style={{ marginTop: 8 }}>
           {c.official.sub}
@@ -229,12 +228,12 @@ export function DayScreen({
           <DotSpeak open={false} onTap={() => {}} onClose={() => {}} faded />
         ) : (
           // 04/04b: the dot carries the time context in its bubble meta ("9h left · closes 06:41").
-          <SphereWithPick challenge={challenge} meta={`${close.hoursLeft}h left · closes ${close.hhmm}`} />
+          <SphereWithPick challenge={challenge} meta={c.clock.moment(close.hoursLeft, close.hhmm)} />
         )
       }
       foot={
         checked ? (
-          <Cta label="Show someone" variant="blue" icon={Icon.share} onClick={onShowSomeone} />
+          <Cta label={c.day.showSomeone} variant="blue" icon={Icon.share} onClick={onShowSomeone} />
         ) : (
           <Cta label={busy ? c.day.sealing : c.day.cta} variant="green" icon={busy ? undefined : Icon.check} onClick={onSeal} disabled={busy} />
         )
@@ -245,53 +244,52 @@ export function DayScreen({
       {checked ? (
         <>
           <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26 }}>
-            Banked the day.
+            {c.day.sealedH}
           </h1>
           <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
-            {safe} NIM is now yours to lose only by stopping.
+            {c.day.sealedSub(safe)}
           </p>
           <div style={{ marginTop: 14, alignSelf: 'center', filter: 'drop-shadow(0 6px 14px rgba(12,95,53,.3))' }}>
             <HeroDot state="sealed" size={140} />
           </div>
           <div className="selledger" style={{ marginTop: 14 }}>
             <div className="selrow">
-              <span className="k">Today, kept</span>
+              <span className="k">{c.day.ledgerToday}</span>
               <span className="v go">+{perDay}</span>
             </div>
             <div className="selrow">
-              <span className="k">Safe so far</span>
+              <span className="k">{c.day.ledgerSafe}</span>
               <span className="v go">{safe}</span>
             </div>
             <div className="selrow">
-              <span className="k">Days kept</span>
+              <span className="k">{c.day.ledgerDays}</span>
               <span className="v">{keptCount}</span>
             </div>
           </div>
           <div className="selstreak">
             <Chain marks={chain.slice(-10)} size={28} />
-            <p className="selstreak-lbl">{streakCount === 1 ? 'One in a row' : `${streakCount} in a row`}</p>
+            <p className="selstreak-lbl">{c.chain.inARow(streakCount)}</p>
           </div>
           <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-            <StampedRow label={`Day ${dayNum} is stamped on Nimiq`} href={stampHref} />
+            <StampedRow label={c.day.stamped(dayNum)} href={stampHref} />
           </div>
         </>
       ) : (
         <>
           <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
-            Today is the whole game.
+            {c.day.h}
           </h1>
           <p className="sub" style={{ marginTop: 10, maxWidth: '32ch', fontSize: 15 }}>
-            Do it once today, any way you like. This day closes at {close.hhmm}
-            {close.tomorrow ? ' tomorrow' : ''} — {close.hoursLeft} {close.hoursLeft === 1 ? 'hour' : 'hours'} left.
+            {c.day.sub(close.hhmm, close.hoursLeft, close.tomorrow)}
           </p>
           <div className="dayhero">
             <HeroDot fill={dayFill(challenge, now)} size={130} />
             <div className="daymoney">
-              <p className="dlabel">Riding on today</p>
+              <p className="dlabel">{c.day.ridingLbl}</p>
               <p className="daybig">
                 {perDay} <small>NIM</small>
               </p>
-              <p className="sub">Win it and it&apos;s yours. That&apos;s the only number that matters right now.</p>
+              <p className="sub">{c.day.ridingNote}</p>
             </div>
           </div>
           {keptCount > 0 && <DayChain marks={chain} keptCount={keptCount} safe={safe} todayFill={dayFill(challenge, now)} />}
@@ -329,11 +327,11 @@ export function SealShareScreen({
     <Frame
       // 07: the postcard runs on every seal, not just day one; the dot stays faded here too.
       sphere={<DotSpeak open={false} onTap={() => {}} onClose={() => {}} faded />}
-      foot={<Cta label="Share it" variant="blue" icon={Icon.share} onClick={onShare} />}
+      foot={<Cta label={c.share.cta} variant="blue" icon={Icon.share} onClick={onShare} />}
     >
       <TopBar onWordmark={onWordmark} chip={<span className="rs-no">Nº {no} · Day {cur + 1}</span>} />
       <h1 className="h" style={{ fontSize: 32, marginTop: 18 }}>
-        Worth showing<span className="fs">.</span>
+        {c.share.h}
       </h1>
       <div style={{ marginTop: 14 }}>
         <ShareCard
@@ -341,15 +339,15 @@ export function SealShareScreen({
           seq={challenge.seq}
           headline={
             <>
-              {kept} {kept === 1 ? 'day' : 'days'} kept.
+              {c.share.cardTop(kept)}
               <br />
-              {safe} NIM banked.
+              {c.share.cardBottom(safe)}
             </>
           }
         />
       </div>
       <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-        <StampedRow label="See it on the chain" href={href} />
+        <StampedRow label={c.share.proof} href={href} />
       </div>
     </Frame>
   )

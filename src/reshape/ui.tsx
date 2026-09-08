@@ -387,9 +387,9 @@ export function DayChain({ marks, keptCount, safe, todayFill = 0.5 }: { marks: D
       <div className="daychain daychain--long">
         <Chain marks={visible} size={24} fill={todayFill} />
         <div className="cn-meta">
-          <span className="cn-earlier">+{collapsed} earlier</span>
-          <span className="cn-count">{keptCount} days banked</span>
-          <span className="cn-safe">{safe} NIM safe</span>
+          <span className="cn-earlier">{copy.rs.chain.earlier(collapsed)}</span>
+          <span className="cn-count">{copy.rs.chain.bankedDays(keptCount)}</span>
+          <span className="cn-safe">{copy.rs.chain.safe(safe)}</span>
         </div>
       </div>
     )
@@ -398,8 +398,8 @@ export function DayChain({ marks, keptCount, safe, todayFill = 0.5 }: { marks: D
     <div className="daychain">
       <Chain marks={visible} size={22} fill={todayFill} />
       <div className="cn-txt">
-        <p className="cn-lead">{keptCount === 1 ? 'One day banked' : `${keptCount} days banked`}</p>
-        <p className="cn-safe">{safe} NIM safe · yours whatever happens</p>
+        <p className="cn-lead">{copy.rs.chain.bankedDays(keptCount)}</p>
+        <p className="cn-safe">{copy.rs.chain.safeNote(safe)}</p>
       </div>
     </div>
   )
@@ -445,9 +445,7 @@ export function ContractCard({ goalLabel, total, perDay }: { goalLabel: string; 
         <div className="cg">{goalLabel}</div>
         <span className="stamp-official">{copy.rs.official.stamp}</span>
       </div>
-      <p className="csn">
-        {total} NIM held · {perDay} back each day you keep
-      </p>
+      <p className="csn">{copy.rs.official.ticketTerms(total, perDay)}</p>
       <p className="ct-note">
         {copy.rs.official.backdateLead}
         <b>{copy.rs.official.backdateBold}</b>
@@ -474,10 +472,8 @@ export function ShareCard({ templateId, seq, headline, stamp = copy.rs.shareCard
       </div>
       <div className="sc-h">{headline}</div>
       <span className="stamp-record">{stamp}</span>
-      {/* the traveling sign-off carries the claim: the name + the hook (story.md §7) */}
-      <div className="sc-cta">
-        {copy.claim.name} · {copy.claim.hook}
-      </div>
+      {/* the traveling sign-off — the name + the hook (rs.share.tagline) */}
+      <div className="sc-cta">{copy.rs.share.tagline}</div>
     </div>
   )
 }

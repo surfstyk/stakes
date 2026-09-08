@@ -1,4 +1,81 @@
 {
+  "_meta": {
+    "note": "Copy catalogue for the reshaped journey (Stakes Journey.dc.html, frames 01–12). Existing keys keep their repo values unless listed under changed. Every string the new screens render is here — nothing is left inline in JSX.",
+    "placeholders": {
+      "{closeTime}": "local time the rolling 24h day ends, e.g. 06:41",
+      "{hoursLeft}": "whole hours to close, e.g. 9",
+      "{n}": "count",
+      "{amount}": "NIM figure, digits, thousands separated",
+      "{perDay}": "daily stake in NIM",
+      "{day}": "1-based day index inside the run",
+      "{label}": "challenge title, e.g. Move every day"
+    },
+    "rules": [
+      "Money is always digits, never words: 300 NIM, not three hundred.",
+      "Never name what is still ahead — no days remaining, no NIM still to earn. Only today and what is behind.",
+      "Never say midnight. The day closes 24h after the free tap; name the real close time and the hours left.",
+      "Labels, eyebrows and numbers are mono uppercase; headlines and body are Young Serif / Hanken."
+    ],
+    "new": [
+      "rs.clock.*",
+      "rs.chain.*",
+      "rs.dot.*",
+      "rs.day.h",
+      "rs.day.sub",
+      "rs.day.ridingLbl",
+      "rs.day.ridingNote",
+      "rs.day.bankedN",
+      "rs.day.safeNote",
+      "rs.day.sealedH",
+      "rs.day.sealedSub",
+      "rs.day.ledgerToday",
+      "rs.day.ledgerSafe",
+      "rs.day.ledgerDays",
+      "rs.day.chainRun",
+      "rs.day.stamped",
+      "rs.day.showSomeone",
+      "rs.main.pager",
+      "rs.taste.caption",
+      "rs.official.ticketTerms",
+      "rs.share.*",
+      "rs.record.*",
+      "rs.banked.partialMoneyNote",
+      "rs.banked.partialCredit",
+      "rs.banked.closedOnChain",
+      "rs.missed.h",
+      "rs.missed.subOne",
+      "rs.missed.subMany"
+    ],
+    "changed": [
+      "rs.taste.hTop / hLead / hEm / hTail → single headline rs.taste.h",
+      "rs.taste.sub — now names the free day and the ask",
+      "rs.official.hLead / hEm → single headline rs.official.h",
+      "rs.official.lengthLabel — 'For how long' → 'Hold me to it for'",
+      "rs.banked.moneyLbl — unchanged text, now set in mono on both the win and partial cards",
+      "rs.banked.hPartialLead / hPartialTail → single headline rs.banked.hPartial",
+      "rs.missed.hLead / sub — rewritten, count-driven",
+      "rs.day.toGo — removed from the UI (names what is ahead)"
+    ],
+    "deprecated": [
+      "rs.day.toGo",
+      "rs.banked.partialNote",
+      "rs.banked.rowKept",
+      "rs.banked.rowBurned",
+      "rs.banked.rowBack",
+      "rs.banked.partialFwdLead",
+      "rs.banked.partialFwdBold",
+      "rs.banked.partialFwdTail",
+      "rs.taste.hintPre",
+      "rs.taste.hintEm",
+      "rs.taste.hintPost",
+      "rs.official.hintPre",
+      "rs.official.hintEm",
+      "rs.official.hintPost",
+      "rs.sphere.tasteHint",
+      "rs.perfectweek"
+    ]
+  },
+
   "gate": {
     "kicker": "One quick step",
     "h1": {
@@ -12,78 +89,147 @@
     "foot": "A commitment game built on trust, not surveillance.",
     "guarantee": "Free to move · held safe · back in your pocket"
   },
+
   "claim": {
     "hook": "Win your moment.",
     "payoff": "Bank the day.",
     "signature": "Makes every day count.",
     "name": "stakes.day"
   },
+
   "share": {
     "sealDay1": "Day one, on the record. {emoji} {goal}. I'm in.",
     "dayKept": "Another day kept. {emoji} {goal}. Still in.",
     "bankedWeek": "Banked the week. {emoji} {goal}. Run it back?",
     "perfectWeek": "Seven for seven. {emoji} {goal}. A clean week."
   },
+
   "rs": {
+    "clock": {
+      "closesAt": "closes {closeTime}",
+      "hoursLeft": "{hoursLeft}h left",
+      "moment": "{hoursLeft}h left · closes {closeTime}",
+      "openUntil": "This day closes at {closeTime} tomorrow — {hoursLeft} hours left."
+    },
+
+    "chain": {
+      "earlier": "+{n} earlier",
+      "bankedDays": "{n} days banked",
+      "bankedDaysOne": "1 day banked",
+      "safe": "{amount} NIM safe",
+      "safeNote": "{amount} NIM safe · yours whatever happens",
+      "inARow": "{n} in a row",
+      "weeksOnRecord": "{n} weeks on the record"
+    },
+
+    "dot": {
+      "intro": "I'm the dot. When the day gets tricky, tap me.",
+      "sheetKicker": "A word from the dot",
+      "another": "Another",
+      "go": "Alright, I'm going",
+      "voice": {
+        "steady": {
+          "day": "Not feeling it? Tap me and I'll talk you into it.",
+          "sheet": "You don't have to want it. You only have to start it, and starting takes ninety seconds.",
+          "sheetSub": "Put your shoes on and stand by the door. If you still don't want to go, come back and tell me."
+        },
+        "dry": {
+          "day": "Stuck? Tap me.",
+          "sheet": "Thirty minutes. You have done it twice this week, so you know it is survivable.",
+          "sheetSub": "Start the clock and stop negotiating. The negotiation is the hard part, not the moving."
+        },
+        "warm": {
+          "day": "Rough one? I'm right here.",
+          "sheet": "Nobody feels like it. The ones who keep going just stopped waiting to feel like it.",
+          "sheetSub": "Go gently, go badly, go for five minutes. It counts the same on the record."
+        }
+      },
+      "unprompted": {
+        "slipHour": "This is the hour you usually talk yourself out of it.",
+        "closing": "{hoursLeft}h left. Shoes, door, five minutes.",
+        "afterMiss": "The day after a miss is the one that decides it. Want a hand?"
+      },
+      "stake": "Backing your word is the easy part. I'm here for the rest.",
+      "banked": "Seven for seven. Say the word and we go again.",
+      "partial": "Same thing again? You know the two days that got you. So do I.",
+      "record": "Pick the thing you keep putting off. I'll be there for the hard days."
+    },
+
     "main": {
       "kicker": "Pick your one thing",
       "hLead": "What do you keep ",
       "hEm": "putting off",
       "startedThisWeek": "{n} started this week",
+      "pager": "{n} to choose from",
       "cta": "Start Now"
     },
+
     "taste": {
-      "hTop": "That took nerve.",
-      "hLead": "Now ",
-      "hEm": "live",
-      "hTail": " the day",
-      "sub": "Day one is running, free for today.",
-      "hintPre": "Here for the tricky moments. ",
-      "hintEm": "Tap me any time.",
-      "hintPost": " I keep no score.",
+      "h": "That took nerve. Now live the day.",
+      "sub": "Day one is on the clock and it's free. Do it once today and it's yours.",
+      "caption": "Day one · free · nothing at stake yet",
       "cta": "Put money on your word"
     },
+
     "official": {
-      "hLead": "Put a little money on your ",
-      "hEm": "word",
-      "sub": "Back your word with a little NIM. Keep every day and it all comes back, plus a completion bonus.",
-      "hintPre": "Nervous is fine. ",
-      "hintEm": "Money just backs your word.",
-      "hintPost": " You still check in each day.",
+      "h": "Put a little money on your word.",
+      "sub": "Keep the day, keep the money. Keep them all and you get a completion bonus on top.",
       "perDayLabel": "A little a day",
       "perDayUnit": "NIM / day",
-      "lengthLabel": "For how long",
+      "lengthLabel": "Hold me to it for",
       "daysUnit": "days",
-      "backdateLead": "Your first day's already on the clock. ",
-      "backdateBold": "Check in today to keep it.",
+      "ticketTerms": "{amount} NIM held · {perDay} back each day you keep",
+      "backdateLead": "Day one is already on the clock. ",
+      "backdateBold": "Check in today and it's the first one you keep.",
       "needNim": "You need about {need} NIM in your wallet to put it on your word.",
       "cta": "Put it on your word",
       "busy": "Making it official…",
       "err": "That didn’t go through. Tap to try again.",
       "errCancel": "You didn’t confirm, so nothing was taken. Put it on your word when you’re ready.",
       "stamp": "OFFICIAL",
-      "contractWeek": "A week on the line",
-      "contractDaysN": "{days} days on the line",
       "contractNo": "Nº {no}"
     },
-    "seal": {
-      "kicker": "Day one, sealed",
-      "hLead": "On the record",
-      "cardTop": "Day one.",
-      "cardBottom": "On the record.",
-      "cta": "Share day one"
-    },
+
     "day": {
+      "h": "Today is the whole game.",
+      "sub": "Do it once today, any way you like. This day closes at {closeTime} {when} — {hoursLeft} hours left.",
+      "ridingLbl": "Riding on today",
+      "ridingNote": "Win it and it's yours. That's the only number that matters right now.",
+      "bankedN": "{n} days banked",
+      "safeNote": "{amount} NIM safe · yours whatever happens",
       "cta": "I did it today",
       "dayOnePrompt": "You're in. Now check in to keep day one.",
       "sealing": "Sealing the day…",
-      "sealedKicker": "Day {day}, sealed",
-      "onchain": "On the record",
-      "toGo": "Come back tomorrow · {n} to go",
-      "lastSealed": "Every day kept. Banking now…",
+      "sealedH": "Banked the day.",
+      "sealedSub": "{amount} NIM is now yours to lose only by stopping.",
+      "ledgerToday": "Today, kept",
+      "ledgerSafe": "Safe so far",
+      "ledgerDays": "Days kept",
+      "chainRun": "{n} in a row",
+      "stamped": "Day {day} is stamped on Nimiq",
+      "showSomeone": "Show someone",
       "shareDay": "Share day {day}",
       "err": "Could not seal today. Try again."
     },
+
+    "share": {
+      "h": "Worth showing.",
+      "cardTop": "{n} days kept.",
+      "cardTopOne": "1 day kept.",
+      "cardBottom": "{amount} NIM banked.",
+      "tagline": "stakes.day · Win the moment.",
+      "proof": "See it on the chain",
+      "cta": "Share it"
+    },
+
+    "missed": {
+      "h": "Yesterday got away.",
+      "subOne": "One day, {amount} NIM, gone. Everything you kept is still yours, and today is open for another {hoursLeft} hours.",
+      "subMany": "{n} days, {amount} NIM, gone. Everything you kept is still yours, and today is open for another {hoursLeft} hours.",
+      "ridingNote": "A miss doesn't end the run. It only costs the day it took.",
+      "cta": "Win today"
+    },
+
     "banked": {
       "kicker": "Banked",
       "hLead": "You kept your word",
@@ -91,23 +237,16 @@
       "gain": "{n} more than you staked",
       "rowStake": "Your stake, returned",
       "rowBonus": "Completion bonus",
-      "rowBanked": "Banked",
       "goAgainWeek": "Go again",
       "shareWin": "Share",
       "kickerUp": "The run’s up",
-      "hPartialLead": "You kept ",
-      "hPartialTail": " days.",
-      "partialNote": "You kept {kept} of {total}. The other {other} slices are gone for good.",
-      "rowKept": "Kept · {n} days",
-      "rowBurned": "Gone · {n} days",
-      "rowBack": "Back",
-      "partialFwdLead": "Every day you kept ",
-      "partialFwdBold": "still stands",
-      "partialFwdTail": " on your record. Go again, clean this time.",
+      "hPartial": "You kept {n} days.",
+      "partialMoneyNote": "{n} days kept, at {perDay} each.",
+      "partialCredit": "{n} days you'd otherwise have talked yourself out of.",
+      "closedOnChain": "Nº {no} closed on the chain",
       "seeRecord": "See your record",
       "goAgainGoal": "Go again, {label}",
       "hWipeout": "This one got away.",
-      "burnedLbl": "Gone",
       "wipeoutNote": "No days kept, so nothing came back this time.",
       "wipeoutFwdLead": "It happens. ",
       "wipeoutFwdBold": "The next one’s yours",
@@ -115,6 +254,17 @@
       "backHome": "Back to home",
       "tryAgain": "Try again"
     },
+
+    "record": {
+      "h": "Your record.",
+      "sub": "Every day you've kept, and what each run paid back.",
+      "keptTotal": "{n} days kept",
+      "rowMeta": "{kept} kept · {amount} NIM back",
+      "tagBanked": "Banked",
+      "tagClosed": "Closed",
+      "cta": "Start a challenge"
+    },
+
     "reup": {
       "kicker": "The habit is forming",
       "hLead": "Don’t stop ",
@@ -124,6 +274,7 @@
       "pickNew": "Pick a new goal",
       "anotherWeek": "Another week, {label}"
     },
+
     "archive": {
       "h": "Your challenges",
       "lead": "Everything you’ve run. Tap one to run it again.",
@@ -137,50 +288,35 @@
       "thisWeek": "this week",
       "lastWeek": "last week"
     },
-    "missed": {
-      "hLead": "Missed one. It happens",
-      "sub": "Yesterday’s slice is gone, {slice} NIM. {tail}",
-      "cta": "Win today",
-      "subKeptYes": "Every day you kept still stands.",
-      "subKeptNo": "What you do next is what counts."
-    },
+
     "lapsed": {
       "hLead": "That one slipped by",
       "sub": "Day one’s window closed before it became a real challenge. No harm done. Start a fresh one whenever you’re ready.",
       "cta": "Start day one, again"
     },
-    "perfectweek": {
-      "kicker": "Perfect week",
-      "hLead": "Seven for ",
-      "hEm": "seven",
-      "sub": "A clean week, the thing most people never string together. This is how a habit is born.",
-      "cta": "Share the week"
-    },
-    "sphere": {
-      "tasteHint": {
-        "pre": "Here for the tricky moments. ",
-        "em": "Tap me any time.",
-        "post": " I keep no score."
-      },
-      "pickCtx": "For your {label} week · day {day}",
-      "pickShare": "Share this"
-    },
+
     "shareCard": {
       "stampRecord": "ON THE RECORD",
       "no": "Nº {no}"
     },
+
     "proof": {
       "pre": "See it on the",
       "brand": "Nimiq",
       "post": "blockchain"
     },
+
     "chip": {
-      "dayOfN": "Day {n} of {total}"
+      "dayOfN": "Day {n} of {total}",
+      "goal": "{label}"
     }
   },
+
   "a11y": {
     "home": "Stakes, home",
-    "openSphere": "Open the sphere",
+    "openSphere": "Open the dot",
+    "closeSphere": "Close the dot",
+    "dotResting": "The dot, resting. Tap for a word.",
     "changeChallenge": "Change challenge",
     "close": "Close"
   }

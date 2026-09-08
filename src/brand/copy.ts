@@ -1,10 +1,10 @@
 // Voice — every user-facing string in one place.
 //
-// The TEXT lives in ./copy.en.json (the single flat file you read + edit). This module is
-// a thin typed loader over it: plain strings pass through; runtime values are filled by a
-// tiny {placeholder} formatter (see ./format.ts); accent headlines stay {lead, em, tail}.
-// Components import `copy` and its shape is unchanged — editing a word is a JSON-only change,
-// and a locale (messages/de.json …) is a later drop-in reading window.nimiqPay.language.
+// The TEXT lives in ./copy.en.json (the single flat file you read + edit — catalogued from the
+// design session for the reshaped journey, frames 01–12; see its _meta block for the rules).
+// This module is a thin typed loader over it: plain strings pass through; runtime values are
+// filled by a tiny {placeholder} formatter (see ./format.ts). Money is always digits, thousands
+// separated (nim()); the day never says "midnight"; the chain never names what's still ahead.
 
 import { fmt } from './format.ts'
 import en from './copy.en.json'
@@ -14,6 +14,9 @@ export interface Headline {
   em: string
   tail?: string
 }
+
+// money is always digits, thousands separated (catalogue rule)
+const nim = (n: number) => n.toLocaleString('en-US')
 
 export const copy = {
   gate: {
@@ -43,38 +46,49 @@ export const copy = {
     perfectWeek: (emoji: string, goal: string) => fmt(en.share.perfectWeek, { emoji, goal }),
   },
 
-  // ── The reshape (Cycle II) — the solo-first journey. Accent headlines keep
-  // {lead, em, tail} as separate words so a locale can place the emphasis (§1.5).
+  // ── The reshape (Cycle II) — the solo-first journey.
   rs: {
+    // the rolling-24h day clock (never "midnight")
+    clock: {
+      closesAt: (closeTime: string) => fmt(en.rs.clock.closesAt, { closeTime }),
+      hoursLeft: (hoursLeft: number) => fmt(en.rs.clock.hoursLeft, { hoursLeft }),
+      moment: (hoursLeft: number, closeTime: string) => fmt(en.rs.clock.moment, { hoursLeft, closeTime }),
+    },
+    // the growing chain + its meta (behind + today, capped)
+    chain: {
+      earlier: (n: number) => fmt(en.rs.chain.earlier, { n }),
+      bankedDays: (n: number) => (n === 1 ? en.rs.chain.bankedDaysOne : fmt(en.rs.chain.bankedDays, { n })),
+      safe: (amount: number) => fmt(en.rs.chain.safe, { amount: nim(amount) }),
+      safeNote: (amount: number) => fmt(en.rs.chain.safeNote, { amount: nim(amount) }),
+      inARow: (n: number) => fmt(en.rs.chain.inARow, { n }),
+    },
+    // the dot's one intro line (the tap-open bubble on taste/official); day/missed taps draw from
+    // the deterministic pick engine (sphere-content.json), not the catalogue.
+    dot: {
+      intro: en.rs.dot.intro,
+    },
     main: {
       kicker: en.rs.main.kicker,
       hLead: en.rs.main.hLead,
       hEm: en.rs.main.hEm,
       startedThisWeek: (n: number) => fmt(en.rs.main.startedThisWeek, { n: n.toLocaleString() }),
+      pager: (n: number) => fmt(en.rs.main.pager, { n }),
       cta: en.rs.main.cta,
     },
     taste: {
-      hTop: en.rs.taste.hTop,
-      hLead: en.rs.taste.hLead,
-      hEm: en.rs.taste.hEm,
-      hTail: en.rs.taste.hTail,
+      h: en.rs.taste.h,
       sub: en.rs.taste.sub,
-      hintPre: en.rs.taste.hintPre,
-      hintEm: en.rs.taste.hintEm,
-      hintPost: en.rs.taste.hintPost,
+      caption: en.rs.taste.caption,
       cta: en.rs.taste.cta,
     },
     official: {
-      hLead: en.rs.official.hLead,
-      hEm: en.rs.official.hEm,
+      h: en.rs.official.h,
       sub: en.rs.official.sub,
-      hintPre: en.rs.official.hintPre,
-      hintEm: en.rs.official.hintEm,
-      hintPost: en.rs.official.hintPost,
       perDayLabel: en.rs.official.perDayLabel,
       perDayUnit: en.rs.official.perDayUnit,
       lengthLabel: en.rs.official.lengthLabel,
       daysUnit: en.rs.official.daysUnit,
+      ticketTerms: (amount: number, perDay: number) => fmt(en.rs.official.ticketTerms, { amount: nim(amount), perDay: nim(perDay) }),
       backdateLead: en.rs.official.backdateLead,
       backdateBold: en.rs.official.backdateBold,
       needNim: (need: number) => fmt(en.rs.official.needNim, { need }),
@@ -83,52 +97,58 @@ export const copy = {
       err: en.rs.official.err,
       errCancel: en.rs.official.errCancel,
       stamp: en.rs.official.stamp,
-      contractWeek: en.rs.official.contractWeek,
-      contractDaysN: (days: number) => fmt(en.rs.official.contractDaysN, { days }),
       contractNo: (no: string) => fmt(en.rs.official.contractNo, { no }),
     },
-    seal: {
-      kicker: en.rs.seal.kicker,
-      hLead: en.rs.seal.hLead,
-      cardTop: en.rs.seal.cardTop,
-      cardBottom: en.rs.seal.cardBottom,
-      cta: en.rs.seal.cta,
-    },
     day: {
+      h: en.rs.day.h,
+      sub: (closeTime: string, hoursLeft: number, tomorrow: boolean) =>
+        fmt(en.rs.day.sub, { closeTime, hoursLeft, when: tomorrow ? 'tomorrow' : 'today' }),
+      ridingLbl: en.rs.day.ridingLbl,
+      ridingNote: en.rs.day.ridingNote,
       cta: en.rs.day.cta,
-      dayOnePrompt: en.rs.day.dayOnePrompt,
       sealing: en.rs.day.sealing,
-      sealedKicker: (day: number) => fmt(en.rs.day.sealedKicker, { day }),
-      onchain: en.rs.day.onchain,
-      toGo: (n: number) => fmt(en.rs.day.toGo, { n }),
-      lastSealed: en.rs.day.lastSealed,
-      shareDay: (day: number) => fmt(en.rs.day.shareDay, { day }),
+      sealedH: en.rs.day.sealedH,
+      sealedSub: (amount: number) => fmt(en.rs.day.sealedSub, { amount: nim(amount) }),
+      ledgerToday: en.rs.day.ledgerToday,
+      ledgerSafe: en.rs.day.ledgerSafe,
+      ledgerDays: en.rs.day.ledgerDays,
+      stamped: (day: number) => fmt(en.rs.day.stamped, { day }),
+      showSomeone: en.rs.day.showSomeone,
       err: en.rs.day.err,
+    },
+    // the shareable postcard (07)
+    share: {
+      h: en.rs.share.h,
+      cardTop: (n: number) => (n === 1 ? en.rs.share.cardTopOne : fmt(en.rs.share.cardTop, { n })),
+      cardBottom: (amount: number) => fmt(en.rs.share.cardBottom, { amount: nim(amount) }),
+      tagline: en.rs.share.tagline,
+      proof: en.rs.share.proof,
+      cta: en.rs.share.cta,
+    },
+    missed: {
+      h: en.rs.missed.h,
+      subOne: (amount: number, hoursLeft: number) => fmt(en.rs.missed.subOne, { amount: nim(amount), hoursLeft }),
+      subMany: (n: number, amount: number, hoursLeft: number) => fmt(en.rs.missed.subMany, { n, amount: nim(amount), hoursLeft }),
+      ridingNote: en.rs.missed.ridingNote,
+      cta: en.rs.missed.cta,
     },
     banked: {
       kicker: en.rs.banked.kicker,
       hLead: en.rs.banked.hLead,
       moneyLbl: en.rs.banked.moneyLbl,
-      gain: (n: number) => fmt(en.rs.banked.gain, { n }),
+      gain: (n: number) => fmt(en.rs.banked.gain, { n: nim(n) }),
       rowStake: en.rs.banked.rowStake,
       rowBonus: en.rs.banked.rowBonus,
-      rowBanked: en.rs.banked.rowBanked,
       goAgainWeek: en.rs.banked.goAgainWeek,
       shareWin: en.rs.banked.shareWin,
       kickerUp: en.rs.banked.kickerUp,
-      hPartialLead: en.rs.banked.hPartialLead,
-      hPartialTail: en.rs.banked.hPartialTail,
-      partialNote: (kept: number, total: number) => fmt(en.rs.banked.partialNote, { kept, total, other: total - kept }),
-      rowKept: (n: number) => fmt(en.rs.banked.rowKept, { n }),
-      rowBurned: (n: number) => fmt(en.rs.banked.rowBurned, { n }),
-      rowBack: en.rs.banked.rowBack,
-      partialFwdLead: en.rs.banked.partialFwdLead,
-      partialFwdBold: en.rs.banked.partialFwdBold,
-      partialFwdTail: en.rs.banked.partialFwdTail,
+      hPartial: (n: number) => fmt(en.rs.banked.hPartial, { n }),
+      partialMoneyNote: (n: number, perDay: number) => fmt(en.rs.banked.partialMoneyNote, { n, perDay: nim(perDay) }),
+      partialCredit: (n: number) => fmt(en.rs.banked.partialCredit, { n }),
+      closedOnChain: (no: string) => fmt(en.rs.banked.closedOnChain, { no }),
       seeRecord: en.rs.banked.seeRecord,
       goAgainGoal: (label: string) => fmt(en.rs.banked.goAgainGoal, { label }),
       hWipeout: en.rs.banked.hWipeout,
-      burnedLbl: en.rs.banked.burnedLbl,
       wipeoutNote: en.rs.banked.wipeoutNote,
       wipeoutFwdLead: en.rs.banked.wipeoutFwdLead,
       wipeoutFwdBold: en.rs.banked.wipeoutFwdBold,
@@ -145,40 +165,27 @@ export const copy = {
       pickNew: en.rs.reup.pickNew,
       anotherWeek: (label: string) => fmt(en.rs.reup.anotherWeek, { label }),
     },
+    // the no-run home — "Your record." (design 11)
+    record: {
+      h: en.rs.record.h,
+      sub: en.rs.record.sub,
+      keptTotal: (n: number) => fmt(en.rs.record.keptTotal, { n }),
+      cta: en.rs.record.cta,
+    },
     archive: {
-      h: en.rs.archive.h,
-      lead: en.rs.archive.lead,
       meta: (kept: number, total: number, stake: number, when: string) => fmt(en.rs.archive.meta, { kept, total, stake, when }),
       metaLapsed: en.rs.archive.metaLapsed,
       tagBanked: en.rs.archive.tagBanked,
       tagPartial: en.rs.archive.tagPartial,
       tagLapsed: en.rs.archive.tagLapsed,
       tagGone: en.rs.archive.tagGone,
-      start: en.rs.archive.start,
       thisWeek: en.rs.archive.thisWeek,
       lastWeek: en.rs.archive.lastWeek,
-    },
-    missed: {
-      hLead: en.rs.missed.hLead,
-      sub: (slice: number, kept: number) => fmt(en.rs.missed.sub, { slice, tail: kept > 0 ? en.rs.missed.subKeptYes : en.rs.missed.subKeptNo }),
-      cta: en.rs.missed.cta,
     },
     lapsed: {
       hLead: en.rs.lapsed.hLead,
       sub: en.rs.lapsed.sub,
       cta: en.rs.lapsed.cta,
-    },
-    perfectweek: {
-      kicker: en.rs.perfectweek.kicker,
-      hLead: en.rs.perfectweek.hLead,
-      hEm: en.rs.perfectweek.hEm,
-      sub: en.rs.perfectweek.sub,
-      cta: en.rs.perfectweek.cta,
-    },
-    sphere: {
-      tasteHint: { pre: en.rs.sphere.tasteHint.pre, em: en.rs.sphere.tasteHint.em, post: en.rs.sphere.tasteHint.post },
-      pickCtx: (label: string, day: number) => fmt(en.rs.sphere.pickCtx, { label, day }),
-      pickShare: en.rs.sphere.pickShare,
     },
     shareCard: {
       stampRecord: en.rs.shareCard.stampRecord,
