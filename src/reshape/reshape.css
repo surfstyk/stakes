@@ -465,6 +465,12 @@ button.challengechip:active {
   align-items: flex-end;
   gap: 14px;
   pointer-events: none;
+  /* one shared clock for the dot AND its bubble: same period, the bubble delayed by --lag, so the
+     sphere leads and the bubble trails — the invisible-rubber-band feel (dot guide §10 / §15). */
+  --amp: 12px;
+  --camp: 9px;
+  --dur: 2.6s;
+  --lag: 0.55s;
 }
 .rs .dotdock > * {
   pointer-events: auto;
@@ -499,8 +505,9 @@ button.challengechip:active {
   border-radius: 18px 18px 6px 18px;
   padding: 13px 16px;
   box-shadow: 0 14px 34px -18px rgba(28, 24, 19, 0.5);
-  transform-origin: bottom right;
-  animation: rs-bubble-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  /* fade in (opacity only, so it can't fight the bob), then trail the dot: same period as the
+     sphere's rs-sidle, delayed by --lag → the rubber-band. amp is --camp (< the dot's --amp). */
+  animation: rs-bubble-in 0.28s ease-out, rs-card var(--dur) ease-in-out var(--lag) infinite;
 }
 .rs .db-meta {
   margin: 0 0 6px;
@@ -528,8 +535,8 @@ button.challengechip:active {
   color: var(--ink-soft);
 }
 @keyframes rs-bubble-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rs .dotbubble { animation: none; }
