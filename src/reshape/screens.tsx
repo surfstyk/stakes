@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, Social } from './model.ts'
-import { currentDay, dayFill, isCheckedToday, keptDays, weekView } from './model.ts'
+import { chainSoFar, currentDay, dayFill, isCheckedToday, keptDays } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { Carousel, ChallengeChip, ContractCard, Cta, DayBanner, Frame, HeroDot, Icon, NimiqLink, PopOver, ShareCard, Sphere, Stepper, TopBar, WeekFrame, Wordmark } from './ui.tsx'
+import { Carousel, Chain, ChallengeChip, ContractCard, Cta, Frame, HeroDot, Icon, PopOver, ShareCard, Sphere, StampedRow, Stepper, TopBar, Wordmark } from './ui.tsx'
 import { SphereWithPick } from './screens2.tsx'
-import { illusOn } from './illus.ts'
 
 const c = copy.rs
 
@@ -67,7 +66,6 @@ export function TasteScreen({
 }) {
   const now = useNow(true, true)
   const fill = dayFill(challenge, now)
-  const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   // First contact: no frost on arrival. The dot just bobs livelily to invite a tap; the hint
   // pop-over opens only when the user reaches for it (handoff 2026-09-04).
   const [open, setOpen] = useState(false)
@@ -90,24 +88,20 @@ export function TasteScreen({
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
-      <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26 }}>
-        <div className="goal" style={{ textAlign: 'center' }}>
-          {label}
-        </div>
-        <HeroDot fill={fill} size={136} />
-        <div style={{ textAlign: 'center' }}>
-          <h1 className="h" style={{ textAlign: 'center' }}>
-            <span className="hh-top">{c.taste.hTop}</span>
-            {c.taste.hLead}
-            <em>{c.taste.hEm}</em>
-            {c.taste.hTail}
-            <span className="fs">.</span>
-          </h1>
-          <p className="sub" style={{ margin: '10px auto 0', maxWidth: '28ch' }}>
-            {c.taste.sub}
-          </p>
-        </div>
+      <h1 className="h" style={{ fontSize: 36, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
+        {c.taste.hTop} {c.taste.hLead}
+        {c.taste.hEm}
+        {c.taste.hTail}.
+      </h1>
+      <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
+        {c.taste.sub}
+      </p>
+      <div style={{ marginTop: 26, display: 'flex', justifyContent: 'center' }}>
+        <HeroDot fill={fill} size={240} />
       </div>
+      <p className="dlabel" style={{ marginTop: 16, textAlign: 'center' }}>
+        Day one · free · nothing at stake yet
+      </p>
     </Frame>
   )
 }
@@ -159,13 +153,13 @@ export function MakeOfficialScreen({
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
-      <div style={{ marginTop: 10 }}>
-        <h1 className="h" style={{ fontSize: 30 }}>
+      <div style={{ marginTop: 16 }}>
+        <h1 className="h" style={{ fontSize: 32, maxWidth: '18ch' }}>
           {c.official.hLead}
           <em>{c.official.hEm}</em>
           <span className="fs">.</span>
         </h1>
-        <p className="sub" style={{ marginTop: 6 }}>
+        <p className="sub" style={{ marginTop: 8 }}>
           {c.official.sub}
         </p>
       </div>
@@ -193,18 +187,8 @@ export function MakeOfficialScreen({
         />
       </div>
 
-      <div className="softcard" style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap' }}>
-          {total} <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', fontWeight: 700 }}>NIM</span>
-        </div>
-        <div style={{ flex: '1 1 auto', minWidth: 0, fontSize: 11.5, color: 'var(--ink-soft)', lineHeight: 1.35 }}>
-          {c.official.backdateLead}
-          <b style={{ color: 'var(--ink)' }}>{c.official.backdateBold}</b>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 10 }}>
-        <ContractCard goalLabel={label} seq={challenge.seq} days={days} />
+      <div style={{ marginTop: 12 }}>
+        <ContractCard goalLabel={label} total={total} perDay={perDay} />
       </div>
       {error && (
         <p className="sub" style={{ color: error.kind === 'cancel' ? 'var(--ink-soft)' : 'var(--stake)', marginTop: 10 }}>
@@ -234,70 +218,92 @@ export function DayScreen({
   onWordmark: () => void
 }) {
   const now = useNow(true, true)
-  const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   const checked = isCheckedToday(challenge, now)
-  const wv = weekView(challenge, now)
-  const dayNum = currentDay(challenge, now) + 1
-  const remaining = challenge.durationDays - keptDays(challenge).size
+  const cur = currentDay(challenge, now)
+  const kept = keptDays(challenge)
+  const keptCount = kept.size
+  const perDay = challenge.durationDays ? Math.round(challenge.stake / challenge.durationDays) : 0
+  const safe = keptCount * perDay
+  const chain = chainSoFar(challenge, now)
+  const dayNum = cur + 1
+  const stampTx = challenge.checkins.find((k) => k.day === cur)?.stampTxHash
+  const stampHref = stampTx && !stampTx.startsWith('mock') ? `https://nimiqscan.com/transaction/${stampTx}` : undefined
 
   return (
     <Frame
       sphere={<SphereWithPick challenge={challenge} moment={checked ? 'win' : undefined} />}
       foot={
         checked ? (
-          <Cta label={c.day.shareDay(dayNum)} variant="green" icon={Icon.share} onClick={onShare} />
+          <Cta label="Show someone" variant="blue" icon={Icon.share} onClick={onShare} />
         ) : (
           <Cta label={busy ? c.day.sealing : c.day.cta} variant="green" icon={busy ? undefined : Icon.check} onClick={onSeal} disabled={busy} />
         )
       }
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
-      {illusOn ? (
-        <DayBanner challenge={challenge} />
-      ) : (
-        <div className="goalrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 22 }}>
-          <div className="goal">
-            {challenge.emoji} {label}
-          </div>
-        </div>
-      )}
 
       {checked ? (
-        <div style={{ textAlign: 'center', marginTop: 34 }}>
-          <p className="kicker go" style={{ margin: '0 0 20px' }}>
-            {c.day.sealedKicker(dayNum)}
+        <>
+          <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26 }}>
+            Banked the day.
+          </h1>
+          <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
+            {safe} NIM is now yours to lose only by stopping.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ marginTop: 18, alignSelf: 'center', filter: 'drop-shadow(0 6px 14px rgba(12,95,53,.3))' }}>
             <HeroDot state="sealed" size={150} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
-            <span className="chip-onchain">
-              {Icon.check} {c.day.onchain}
-            </span>
+          <div className="selledger" style={{ marginTop: 16 }}>
+            <div className="selrow">
+              <span className="k">Today, kept</span>
+              <span className="v go">+{perDay}</span>
+            </div>
+            <div className="selrow">
+              <span className="k">Safe so far</span>
+              <span className="v go">{safe}</span>
+            </div>
+            <div className="selrow">
+              <span className="k">Days kept</span>
+              <span className="v">{keptCount}</span>
+            </div>
           </div>
-          <div style={{ marginTop: 26 }}>
-            <WeekFrame marks={wv.marks} label={remaining > 0 ? c.day.toGo(remaining) : c.day.lastSealed} />
+          <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+            <StampedRow label={`Day ${dayNum} is stamped on Nimiq`} href={stampHref} />
           </div>
-        </div>
+        </>
       ) : (
         <>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 46 }}>
-            <HeroDot fill={dayFill(challenge, now)} size={150} />
+          <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
+            Today is the whole game.
+          </h1>
+          <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
+            Do it once today, any way you like. The window is open until midnight.
+          </p>
+          <div className="dayhero">
+            <HeroDot fill={dayFill(challenge, now)} size={130} />
+            <div className="daymoney">
+              <p className="dlabel">Riding on today</p>
+              <p className="daybig">
+                {perDay} <small>NIM</small>
+              </p>
+              <p className="sub">Win it and it&apos;s yours. That&apos;s the only number that matters right now.</p>
+            </div>
           </div>
-          <div style={{ marginTop: 40 }}>
-            <WeekFrame marks={wv.marks} label={wv.label} />
-          </div>
-          {dayNum === 1 && challenge.stakedAt && (
-            <p className="sub" style={{ textAlign: 'center', marginTop: 18 }}>
-              {c.day.dayOnePrompt}
+          {keptCount > 0 && (
+            <div className="daychain">
+              <Chain marks={chain} size={22} fill={dayFill(challenge, now)} />
+              <div className="cn-txt">
+                <p className="cn-lead">{keptCount === 1 ? 'One day banked' : `${keptCount} days banked`}</p>
+                <p className="cn-safe">{safe} NIM safe · yours whatever happens</p>
+              </div>
+            </div>
+          )}
+          {error && (
+            <p className="sub" style={{ color: 'var(--stake)', marginTop: 16 }}>
+              {c.day.err}
             </p>
           )}
         </>
-      )}
-      {error && (
-        <p className="sub" style={{ color: 'var(--stake)', textAlign: 'center', marginTop: 16 }}>
-          {c.day.err}
-        </p>
       )}
     </Frame>
   )
@@ -317,22 +323,18 @@ export function SealShareScreen({
 }) {
   const stampTx = challenge.checkins.find((k) => k.day === 0)?.stampTxHash
   const href = stampTx && !stampTx.startsWith('mock') ? `https://nimiqscan.com/transaction/${stampTx}` : undefined
+  const dayNum = currentDay(challenge) + 1
+  const no = String(challenge.seq).padStart(3, '0')
   return (
     <Frame
       sphere={<Sphere onClick={() => {}} />}
-      foot={<Cta label={c.seal.cta} variant="green" icon={Icon.share} onClick={onShare} />}
+      foot={<Cta label="Share it" variant="blue" icon={Icon.share} onClick={onShare} />}
     >
-      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
-      <div style={{ marginTop: 8 }}>
-        <p className="kicker go" style={{ margin: '0 0 5px' }}>
-          {c.seal.kicker}
-        </p>
-        <h1 className="h">
-          {c.seal.hLead}
-          <span className="fs">.</span>
-        </h1>
-      </div>
-      <div style={{ marginTop: 12 }}>
+      <TopBar onWordmark={onWordmark} chip={<span className="rs-no">Nº {no} · Day {dayNum}</span>} />
+      <h1 className="h" style={{ fontSize: 32, marginTop: 18 }}>
+        Worth showing<span className="fs">.</span>
+      </h1>
+      <div style={{ marginTop: 14 }}>
         <ShareCard
           templateId={challenge.templateId}
           seq={challenge.seq}
@@ -345,8 +347,8 @@ export function SealShareScreen({
           }
         />
       </div>
-      <div style={{ textAlign: 'center', marginTop: 14 }}>
-        <NimiqLink href={href} />
+      <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+        <StampedRow label="See it on the chain" href={href} />
       </div>
     </Frame>
   )

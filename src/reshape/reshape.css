@@ -15,8 +15,10 @@
 
 .rs {
   /* token aliases so the ported artboard CSS reads verbatim */
-  --serif: var(--font-display, 'Fraunces', Georgia, 'Times New Roman', serif);
+  --serif: var(--font-display, 'Young Serif', Georgia, 'Times New Roman', serif);
   --sans: var(--font-ui, 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif);
+  /* the data role (Journey sweep 2026-09-08): eyebrows, labels + numbers are IBM Plex Mono */
+  --mono: var(--font-data, 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
   /* fallbacks for the tokens apply.ts injects (no-flash parity) */
   --go-deep: #004721;
   --proceed: #27354d;
@@ -162,13 +164,13 @@ button.challengechip:active {
 
 /* ---- type ------------------------------------------------------------------- */
 .rs .kicker {
-  /* Eyebrows read as sentence case, not tracked all-caps (brand §9) — the small meta
-     labels (WEEK n / A CLEAN WEEK) keep their caps; this is only the headline eyebrow. */
-  font-family: var(--sans);
-  font-weight: 700;
-  font-size: 12.5px;
-  letter-spacing: 0.005em;
-  /* the eyebrow is green, never vermilion (§1d) — red is the companion's alone */
+  /* Journey sweep 2026-09-08: the eyebrow is now the "data" voice — IBM Plex Mono, uppercase,
+     tracked. Green for the live/kept eyebrow, never vermilion (red is the companion's alone). */
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--go-deep);
   margin: 0;
 }
@@ -176,7 +178,21 @@ button.challengechip:active {
   color: var(--go-deep);
 }
 .rs .kicker.quiet {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
+}
+/* the small data label — mono, uppercase, tracked; the neutral sibling of .kicker
+   ("RIDING ON TODAY", "SAFE SO FAR", "BACK IN YOUR WALLET", the Nº in the header) */
+.rs .dlabel {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.rs .dlabel.tight {
+  letter-spacing: 0.05em;
 }
 .rs .h {
   font-family: var(--serif);
@@ -214,12 +230,13 @@ button.challengechip:active {
   font-weight: 700;
 }
 .rs .flbl {
-  font-family: var(--sans);
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--ink);
-  margin: 0 0 5px;
-  letter-spacing: 0.01em;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .rs .goal {
   font-family: var(--serif);
@@ -330,12 +347,12 @@ button.challengechip:active {
   gap: 9px;
 }
 .rs .weeklabel {
-  font-family: var(--sans);
-  font-weight: 700;
+  font-family: var(--mono);
+  font-weight: 500;
   font-size: 10.5px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 .rs .weekrow {
   display: flex;
@@ -772,11 +789,27 @@ button.challengechip:active {
   letter-spacing: -0.01em;
 }
 .rs .contract .csn {
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: 11.5px;
   color: var(--ink-soft);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  margin-top: 3px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  margin-top: 7px;
+}
+.rs .contract .ct-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rs .contract .ct-note {
+  margin: 9px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.rs .contract .ct-note b {
+  font-weight: 700;
 }
 .rs .contract .cw {
   display: flex;
@@ -864,7 +897,12 @@ button.challengechip:active {
 }
 .rs .money--neutral .lbl,
 .rs .money--quiet .lbl {
-  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 .rs .money .big {
   font-family: var(--serif);
@@ -1021,12 +1059,12 @@ button.challengechip:active {
   color: var(--ink);
 }
 .rs .sharecard .sc-no {
-  font-family: var(--sans);
-  font-weight: 700;
+  font-family: var(--mono);
+  font-weight: 500;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 .rs .sharecard .sc-art {
   width: 100%;
@@ -1171,10 +1209,12 @@ button.challengechip:active {
   line-height: 1.15;
 }
 .rs .list .meta {
-  font-size: 12px;
-  color: var(--ink-faint);
-  font-weight: 600;
-  margin-top: 1px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-top: 2px;
 }
 .rs .list .right {
   display: flex;
@@ -1260,6 +1300,271 @@ button.challengechip:active {
 }
 @media (prefers-reduced-motion: reduce) {
   .rs-screen {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   Journey sweep (2026-09-08) — the money-forward day, the sealed ledger, the
+   Nº header, and the weak-moment sheet. Design source: "Stakes Journey.dc.html".
+   Principle "nothing ahead": the chain shows days behind + today, never future.
+   ============================================================================ */
+
+/* the ledger/ticket number, right of the wordmark (03 Stake · 07 Share · 09/10/11) */
+.rs .rs-no {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* the growing chain — a left-aligned row of small day-hexes (behind + today, no future) */
+.rs .chainrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+}
+
+/* ---- 04 Day: the money-forward loop (the number at risk is the hero) -------- */
+.rs .dayhero {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.rs .dayhero .heroHex {
+  flex: none;
+}
+.rs .daymoney {
+  flex: 1;
+  min-width: 0;
+}
+.rs .daybig {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 3px 0 0;
+}
+.rs .daybig small {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.rs .daymoney .sub {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.rs .daychain {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rs .cn-txt {
+  flex: 1;
+  min-width: 0;
+}
+.rs .cn-lead {
+  margin: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.rs .cn-safe {
+  margin: 1px 0 0;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--go);
+}
+
+/* ---- 06 Day, banked: the sealed ledger + the on-chain receipt row ----------- */
+.rs .selledger {
+  width: 100%;
+}
+.rs .selrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rs .selrow:last-child {
+  border-bottom: 0;
+}
+.rs .selrow .k {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.rs .selrow .v {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--ink);
+}
+.rs .selrow .v.go {
+  color: var(--go);
+}
+/* the "Day n is stamped on Nimiq" receipt — a full-width tappable card row */
+.rs .stampedrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 13px 15px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.rs .stampedrow .sr-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.rs .stampedrow .sr-hex {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.rs .stampedrow .sr-ext {
+  width: 15px;
+  height: 15px;
+  stroke: var(--nimiq-blue);
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  flex: none;
+}
+
+/* the inline dot glyph — the sphere, no FAB positioning, a gentle rest bob */
+.rs .dotglyph {
+  display: inline-block;
+  position: relative;
+  border-radius: 50%;
+  flex: none;
+  background: radial-gradient(circle at 34% 28%, #ff8a4a, #ff7a3f 18%, #ef2d06 55%, #b81f04);
+  box-shadow: inset -5px -6px 12px rgba(120, 15, 4, 0.5), inset 3px 4px 8px rgba(255, 205, 180, 0.35);
+  animation: rs-sidle 2.6s ease-in-out infinite;
+}
+.rs .dotglyph .spec {
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  width: 28%;
+  height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 244, 235, 0.9), rgba(255, 244, 235, 0) 70%);
+  filter: blur(1px);
+  transform: rotate(-18deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs .dotglyph {
+    animation: none;
+  }
+}
+
+/* ---- 05 the weak moment: the dot's sheet (the day dims + blurs behind) ------ */
+.rs .scrim.dim {
+  background: rgba(28, 24, 19, 0.4);
+}
+.rs .sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  background: var(--paper-card);
+  border-top: 1.5px solid var(--line-strong);
+  border-radius: 26px 26px 0 0;
+  padding: 26px 22px calc(34px + env(safe-area-inset-bottom));
+  box-shadow: 0 -20px 50px -30px rgba(28, 24, 19, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  animation: rs-sheet-up 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes rs-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.rs .sheet .sh-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 13px;
+}
+.rs .sheet .sh-top .dlabel {
+  flex: 1;
+}
+.rs .sheet .sh-line {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.12;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.rs .sheet .sh-sub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.rs .sheet .sh-acts {
+  display: flex;
+  gap: 10px;
+}
+.rs .sheet .sh-another {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 14.5px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--ink);
+  background: transparent;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.rs .sheet .sh-another:active {
+  transform: scale(0.98);
+}
+.rs .sheet .sh-go {
+  flex: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs .sheet {
     animation: none;
   }
 }

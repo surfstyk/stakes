@@ -173,6 +173,24 @@ export function weekView(ch: Challenge, now: number = Date.now()): WeekView {
   return { marks, weekIndex, label: `Week ${weekIndex + 1}` }
 }
 
+/** The chain "behind you + today" — the Journey "nothing ahead" principle: a kept/missed mark for
+ *  each elapsed day, then 'today' for the open day; no future sockets. Used by the day/missed/banked
+ *  screens where the full week-frame (with empty 'todo' dots) would show days that haven't happened. */
+export function chainSoFar(ch: Challenge, now: number = Date.now()): DayMark[] {
+  const kept = keptDays(ch)
+  const cur = currentDay(ch, now)
+  const over = effectiveStatus(ch, now) === 'ended' || cur >= ch.durationDays
+  const last = over ? ch.durationDays - 1 : Math.min(cur, ch.durationDays - 1)
+  if (last < 0) return []
+  const marks: DayMark[] = []
+  for (let d = 0; d <= last; d++) {
+    if (kept.has(d)) marks.push('done')
+    else if (!over && d === cur && ch.status === 'official') marks.push('today')
+    else marks.push('missed')
+  }
+  return marks
+}
+
 /** The current clean-run length — the DayOpen/DaySealed pill. Today counts while it is still
  *  winnable (kept, or the open day not yet missed), so a day-3-open reads "3-day streak" (the
  *  artboard). A miss on a past day breaks it; the pill then shows the run since the miss. */

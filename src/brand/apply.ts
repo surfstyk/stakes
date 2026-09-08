@@ -39,6 +39,7 @@ export function applyBrand() {
 
   set('--font-display', theme.font.display)
   set('--font-ui', theme.font.ui)
+  set('--font-data', theme.font.data)
   set('--r-card', theme.radius.card)
   set('--r-btn', theme.radius.btn)
   set('--shadow-card', theme.shadow.card)

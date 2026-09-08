@@ -37,6 +37,7 @@ export interface Theme {
   font: {
     display: string // full CSS stack
     ui: string
+    data: string // IBM Plex Mono — the "data" role: eyebrows, labels, numbers on the record
     displayFamily: string // bare family name — canvas ctx.font needs this, not the stack
     uiFamily: string
   }
@@ -74,6 +75,7 @@ export const theme: Theme = {
   font: {
     display: "'Young Serif', Georgia, 'Times New Roman', serif",
     ui: "'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif",
+    data: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     displayFamily: 'Young Serif',
     uiFamily: 'Hanken Grotesk',
   },

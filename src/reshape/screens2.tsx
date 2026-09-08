@@ -1,70 +1,61 @@
 import { useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, DayMark, HistoryItem } from './model.ts'
-import { currentDay, keptDays, payoffOf, weekView } from './model.ts'
+import { chainSoFar, currentDay, dayFill, keptDays, payoffOf } from './model.ts'
 import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { journeyArt } from './illus.ts'
 import { TEMPLATES } from './templates.ts'
-import { ChallengeChip, Cta, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, PopOver, Sphere, TopBar, WeekFrame, Wordmark } from './ui.tsx'
+import { Chain, ChallengeChip, Cta, DotGlyph, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, Sphere, TopBar, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
 const labelOf = (ch: Challenge) => TEMPLATES.find((t) => t.id === ch.templateId)?.label ?? ch.goal
 
-// ---- the sphere's tap → curated pick (a line for a weak moment) -------------
-function shareText(text: string) {
-  try {
-    if (navigator.share) {
-      void navigator.share({ text, url: location.origin })
-      return
-    }
-  } catch {
-    /* cancelled / unsupported */
-  }
-  try {
-    void navigator.clipboard?.writeText(`${text} ${location.origin}`)
-  } catch {
-    /* ignore */
-  }
-}
-
+// ---- the sphere's tap → the dot's weak-moment sheet (Journey 05) -------------
+// The day dims + blurs behind a paper sheet: the dot, one curated line (the deterministic
+// engine, never AI), and one way back in. "Another" re-rolls; the primary closes and returns you.
 function SpherePickPop({
   challenge,
   tap,
   moment,
+  onAnother,
   onClose,
 }: {
   challenge: Challenge
   tap: number
   moment?: 'win' | 'slip'
+  onAnother: () => void
   onClose: () => void
 }) {
   const dayIndex = Math.max(0, currentDay(challenge))
   const pick = pickLine(challenge.templateId, dayIndex, tap, moment)
+  const goLabel = moment === 'win' ? 'Onward' : moment === 'slip' ? "I'm back on it" : "Alright, I'm going"
   return (
-    <PopOver variant="pick" onClose={onClose}>
-      <span className="ctx">
-        <span className="d" />
-        {c.sphere.pickCtx(labelOf(challenge), dayIndex + 1)}
-      </span>
-      <p className="quote">{pick.text}</p>
-      {pick.source && (
-        <p className="sub" style={{ margin: '8px 0 0', fontStyle: 'italic' }}>
-          — {pick.source}
-        </p>
-      )}
-      {/* a context moment (a win / a fresh miss) is not a share prompt; a plain tap can share its line */}
-      {!moment && (
-        <>
-          <div className="hr" />
-          <button className="share" onClick={() => shareText(pick.text)}>
-            {Icon.share}
-            {c.sphere.pickShare}
+    <>
+      <button className="scrim dim" aria-label={copy.a11y.close} onClick={onClose} />
+      <div className="sheet">
+        <div className="sh-top">
+          <p className="dlabel">A word from the dot</p>
+          <DotGlyph size={56} />
+        </div>
+        <p className="sh-line">{pick.text}</p>
+        {pick.source && <p className="sh-sub">— {pick.source}</p>}
+        <div className="sh-acts">
+          <button className="sh-another" onClick={onAnother} aria-label="Another">
+            <svg className="ico" viewBox="0 0 24 24" style={{ width: 15, height: 15 }}>
+              <path d="M4 12a8 8 0 1 1 2.5 5.8" />
+              <path d="M4 19v-5h5" />
+            </svg>
+            Another
           </button>
-        </>
-      )}
-    </PopOver>
+          <button className="cta cta--green sh-go" onClick={onClose}>
+            {goLabel}
+            {Icon.arrow}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -93,8 +84,11 @@ export function SphereWithPick({
   }
   return (
     <>
-      {open && <SpherePickPop challenge={challenge} tap={seed} moment={moment} onClose={() => setOpen(false)} />}
-      <Sphere raised={raised} motion={motion} onClick={tapSphere} />
+      {open ? (
+        <SpherePickPop challenge={challenge} tap={seed} moment={moment} onAnother={() => setSeed((s) => s + 1)} onClose={() => setOpen(false)} />
+      ) : (
+        <Sphere raised={raised} motion={motion} onClick={tapSphere} />
+      )}
     </>
   )
 }
@@ -401,10 +395,12 @@ export function MissedScreen({
   onWinToday: () => void
   onWordmark: () => void
 }) {
-  const label = labelOf(challenge)
-  const wv = weekView(challenge)
-  const slice = challenge.stake / challenge.durationDays
-  const kept = keptDays(challenge).size
+  const kept = keptDays(challenge)
+  const keptCount = kept.size
+  const perDay = challenge.durationDays ? Math.round(challenge.stake / challenge.durationDays) : 0
+  const safe = keptCount * perDay
+  const chain = chainSoFar(challenge)
+  const fill = dayFill(challenge)
   return (
     <Frame
       // No frost on arrival (mirrors taste, 2026-09-05): the screen stays readable and the dot bobs
@@ -413,24 +409,30 @@ export function MissedScreen({
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
-      <div className="goal" style={{ marginTop: 22 }}>
-        {label}
+      <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '15ch' }}>
+        Yesterday got away.
+      </h1>
+      <p className="sub" style={{ marginTop: 10, maxWidth: '31ch', fontSize: 15 }}>
+        One slice went with it, {perDay} NIM. Everything you kept is still yours, and today is open.
+      </p>
+      <div className="dayhero">
+        <HeroDot fill={fill} size={130} />
+        <div className="daymoney">
+          <p className="dlabel">Riding on today</p>
+          <p className="daybig">
+            {perDay} <small>NIM</small>
+          </p>
+          <p className="sub">A miss doesn&apos;t end the run. It only costs the day it took.</p>
+        </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
-        <HeroDot state="missed" size={132} />
-      </div>
-      <div style={{ textAlign: 'center', marginTop: 26 }}>
-        <h1 className="h" style={{ textAlign: 'center' }}>
-          {c.missed.hLead}
-          <span className="fs">.</span>
-        </h1>
-        <p className="sub" style={{ margin: '10px auto 0', maxWidth: '32ch', textAlign: 'center' }}>
-          {c.missed.sub(Number(fmt(slice)), kept)}
-        </p>
-      </div>
-      <div style={{ marginTop: 26 }}>
-        <WeekFrame marks={wv.marks} />
-      </div>
+      {keptCount > 0 && (
+        <div className="daychain">
+          <Chain marks={chain} size={22} fill={fill} />
+          <div className="cn-txt">
+            <p className="cn-safe">{safe} NIM safe</p>
+          </div>
+        </div>
+      )}
     </Frame>
   )
 }

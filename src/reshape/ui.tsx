@@ -159,6 +159,16 @@ export function Sphere({ onClick, raised, motion = 'calm' }: { onClick?: () => v
   )
 }
 
+// ---- an inline dot glyph (Journey 05): the same vermilion sphere, not the pinned FAB —
+// it rides inside the weak-moment sheet's header. Gentle rest bob, no shadow stage. ----
+export function DotGlyph({ size = 56 }: { size?: number }) {
+  return (
+    <span className="dotglyph" style={{ width: size, height: size }} aria-hidden="true">
+      <span className="spec" />
+    </span>
+  )
+}
+
 // ---- the frosted pop-over (hint = lively · pick = calm) ---------------------
 export function PopOver({
   variant,
@@ -295,6 +305,18 @@ export function WeekFrame({ marks, label }: { marks: DayMark[]; label?: string }
   )
 }
 
+// ---- the growing chain (Journey sweep): a left-aligned row of day-hexes, behind + today,
+// never a future socket. Same 18px hex as the week frame, but no frame/label and left-set. ----
+export function Chain({ marks, size = 18, fill = 0.5 }: { marks: DayMark[]; size?: number; fill?: number }) {
+  return (
+    <div className="chainrow">
+      {marks.map((m, i) => (
+        <Hex key={i} size={size} state={WHEX[m]} fill={m === 'today' ? fill : 0} />
+      ))}
+    </div>
+  )
+}
+
 // ---- the stake steppers -----------------------------------------------------
 export function Stepper({
   value,
@@ -326,24 +348,22 @@ export function Stepper({
   )
 }
 
-// ---- the contract card (backdates: day one already kept + OFFICIAL) ---------
-// Identity is the name only (no emoji, §1f); the day-row is day-hexes — day one kept (a check),
-// the rest outline — never circles (§3).
-export function ContractCard({ goalLabel, seq, days }: { goalLabel: string; seq: number; days: number }) {
-  const no = String(seq).padStart(3, '0')
+// ---- the official ticket (Journey 03): the goal + the OFFICIAL stamp, the amount held stated
+// once as consent (mono), and the backdate note. Identity is the name only (no emoji, §1f). ----
+export function ContractCard({ goalLabel, total, perDay }: { goalLabel: string; total: number; perDay: number }) {
   return (
     <div className="contract">
-      <div className="cg">{goalLabel}</div>
-      <div className="csn">{days === 7 ? copy.rs.official.contractWeek : copy.rs.official.contractDaysN(days)} · {copy.rs.official.contractNo(no)}</div>
-      <div className="cw">
-        <Hex size={18} state="kept" />
-        {Array.from({ length: Math.max(0, days - 1) }, (_, i) => (
-          <Hex key={i} size={18} state="future" />
-        ))}
-        <span className="stamp-official" style={{ marginLeft: 'auto' }}>
-          {copy.rs.official.stamp}
-        </span>
+      <div className="ct-top">
+        <div className="cg">{goalLabel}</div>
+        <span className="stamp-official">{copy.rs.official.stamp}</span>
       </div>
+      <p className="csn">
+        {total} NIM held · {perDay} back each day you keep
+      </p>
+      <p className="ct-note">
+        {copy.rs.official.backdateLead}
+        <b>{copy.rs.official.backdateBold}</b>
+      </p>
     </div>
   )
 }
@@ -397,6 +417,42 @@ export function NimiqLink({ href }: { href?: string }) {
         {P('M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4')}
       </svg>
     </a>
+  )
+}
+
+// ---- the on-chain receipt row (Journey 06/07): the Nimiq gold hex + a line + the open-out
+// arrow. A tappable card row to the explorer when there's a real tx; a plain note in mock. ----
+export function StampedRow({ label, href }: { label: string; href?: string }) {
+  const uid = useId().replace(/:/g, '')
+  const inner = (
+    <>
+      <span className="sr-lbl">
+        <svg className="sr-hex" viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <radialGradient id={'sg' + uid} cx="100%" cy="100%" r="141%">
+              <stop offset="0" stopColor="var(--nimiq-gold-a)" />
+              <stop offset="1" stopColor="var(--nimiq-gold-b)" />
+            </radialGradient>
+          </defs>
+          <path d="M23 12L17.5 21.5H6.5L1 12L6.5 2.5H17.5L23 12Z" fill={`url(#sg${uid})`} />
+        </svg>
+        {label}
+      </span>
+      <svg className="sr-ext" viewBox="0 0 24 24" aria-hidden="true">
+        {P('M14 4h6v6')}
+        {P('M20 4l-9 9')}
+        {P('M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4')}
+      </svg>
+    </>
+  )
+  return href ? (
+    <a className="stampedrow" href={href} target="_blank" rel="noreferrer">
+      {inner}
+    </a>
+  ) : (
+    <div className="stampedrow" role="note">
+      {inner}
+    </div>
   )
 }
 
