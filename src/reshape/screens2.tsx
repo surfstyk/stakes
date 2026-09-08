@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, DayMark, HistoryItem } from './model.ts'
-import { chainSoFar, currentDay, dayFill, keptDays, payoffOf } from './model.ts'
+import { chainSoFar, currentDay, dayCloseInfo, dayFill, keptDays, payoffOf } from './model.ts'
 import { pickLine } from './sphere.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { journeyArt } from './illus.ts'
 import { TEMPLATES } from './templates.ts'
-import { Chain, ChallengeChip, Cta, DotSpeak, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, Sphere, TopBar, Wordmark } from './ui.tsx'
+import { ChallengeChip, Cta, DayChain, DotSpeak, Frame, Hex, type HexState, HeroDot, Icon, Ledger, Money, PerfectRing, Sphere, TopBar, Wordmark } from './ui.tsx'
 
 const c = copy.rs
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100))
@@ -19,12 +19,16 @@ const labelOf = (ch: Challenge) => TEMPLATES.find((t) => t.id === ch.templateId)
 export function SphereWithPick({
   challenge,
   moment,
+  meta,
   autoOpen,
+  raised,
   motion = 'lively',
 }: {
   challenge: Challenge
   moment?: 'win' | 'slip'
+  meta?: string
   autoOpen?: boolean
+  raised?: boolean
   motion?: 'calm' | 'lively'
 }) {
   const [open, setOpen] = useState(() => !!autoOpen || (DEV_TOOLS && new URLSearchParams(location.search).has('pick')))
@@ -40,6 +44,8 @@ export function SphereWithPick({
       }}
       onClose={() => setOpen(false)}
       motion={motion}
+      meta={meta}
+      raised={raised}
       line={pick.text}
       source={pick.source}
     />
@@ -85,6 +91,7 @@ export function BankedScreen({
   if (p.outcome === 'banked') {
     return (
       <Frame
+        sphere={<SphereWithPick challenge={challenge} moment="win" />}
         // One primary in the fixed slot, so the button never moves; sharing is a quiet action
         // on the win card itself (handoff 2026-09-04).
         foot={<Cta label={c.banked.goAgainWeek} variant="green" icon={Icon.arrow} onClick={onGoAgain} />}
@@ -132,6 +139,7 @@ export function BankedScreen({
   if (p.outcome === 'partial') {
     return (
       <Frame
+        sphere={<SphereWithPick challenge={challenge} raised />}
         foot={
           <div className="rs-foot-stack">
             <button className="ghost" onClick={onSeeRecord}>
@@ -180,6 +188,7 @@ export function BankedScreen({
   // wipeout
   return (
     <Frame
+      sphere={<SphereWithPick challenge={challenge} raised />}
       foot={
         <div className="rs-foot-stack">
           <button className="ghost" onClick={onHome}>
@@ -233,6 +242,7 @@ export function ReUpScreen({
   const dots = Math.min(record, 28)
   return (
     <Frame
+      sphere={<SphereWithPick challenge={challenge} raised />}
       foot={
         <div className="rs-foot-stack">
           <button className="ghost" onClick={onPickNew}>
@@ -300,7 +310,7 @@ export function ArchiveScreen({
   onWordmark: () => void
 }) {
   return (
-    <Frame foot={<Cta label={c.archive.start} variant="green" icon={Icon.arrow} onClick={onStart} />}>
+    <Frame sphere={<Sphere onClick={() => {}} />} foot={<Cta label={c.archive.start} variant="green" icon={Icon.arrow} onClick={onStart} />}>
       <Wordmark onClick={onWordmark} />
       <h1 className="h" style={{ marginTop: 14 }}>
         {c.archive.h}
@@ -354,11 +364,12 @@ export function MissedScreen({
   const safe = keptCount * perDay
   const chain = chainSoFar(challenge)
   const fill = dayFill(challenge)
+  const close = dayCloseInfo(challenge)
   return (
     <Frame
       // No frost on arrival (mirrors taste, 2026-09-05): the screen stays readable and the dot bobs
       // livelily to invite a tap — the blame-free after-miss line opens only when reached for.
-      sphere={<SphereWithPick challenge={challenge} moment="slip" motion="lively" />}
+      sphere={<SphereWithPick challenge={challenge} moment="slip" motion="lively" meta={`${close.hoursLeft}h left · closes ${close.hhmm}`} />}
       foot={<Cta label={c.missed.cta} variant="green" icon={Icon.arrow} onClick={onWinToday} />}
     >
       <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
@@ -366,7 +377,7 @@ export function MissedScreen({
         Yesterday got away.
       </h1>
       <p className="sub" style={{ marginTop: 10, maxWidth: '31ch', fontSize: 15 }}>
-        One slice went with it, {perDay} NIM. Everything you kept is still yours, and today is open.
+        One day, {perDay} NIM, gone. Everything you kept is still yours, and today is open for another {close.hoursLeft} {close.hoursLeft === 1 ? 'hour' : 'hours'}.
       </p>
       <div className="dayhero">
         <HeroDot fill={fill} size={130} />
@@ -378,14 +389,7 @@ export function MissedScreen({
           <p className="sub">A miss doesn&apos;t end the run. It only costs the day it took.</p>
         </div>
       </div>
-      {keptCount > 0 && (
-        <div className="daychain">
-          <Chain marks={chain} size={22} fill={fill} />
-          <div className="cn-txt">
-            <p className="cn-safe">{safe} NIM safe</p>
-          </div>
-        </div>
-      )}
+      {keptCount > 0 && <DayChain marks={chain} keptCount={keptCount} safe={safe} todayFill={fill} />}
     </Frame>
   )
 }

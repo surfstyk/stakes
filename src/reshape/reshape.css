@@ -363,6 +363,7 @@ button.challengechip:active {
   gap: 9px;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap; /* a 14/30-day banked run wraps to rows rather than overflowing the frame */
 }
 
 .rs .chip-onchain {
@@ -468,11 +469,19 @@ button.challengechip:active {
 .rs .dotdock > * {
   pointer-events: auto;
 }
+.rs .dotdock.raised {
+  bottom: calc(150px + env(safe-area-inset-bottom)); /* clears a two-button foot (partial / wipeout) */
+}
 .rs .dot-fab.lively {
   --amp: 12px;
   --camp: 9px;
   --dur: 2.6s;
   --lag: 0.55s;
+}
+/* faded + inert on the sealed day (06) and the share card (07): present, but nothing to add */
+.rs .dot-fab.faded {
+  opacity: 0.25;
+  pointer-events: none;
 }
 .rs .dot-scrim {
   position: absolute;
@@ -647,7 +656,9 @@ button.challengechip:active {
 @media (prefers-reduced-motion: reduce) {
   .rs .pop,
   .rs .sphereFab .ball,
-  .rs .sphereFab .sh {
+  .rs .sphereFab .sh,
+  .rs .dot-fab .ball,
+  .rs .dot-fab .sh {
     animation: none;
   }
 }
@@ -985,7 +996,12 @@ button.challengechip:active {
   letter-spacing: 0.005em;
 }
 .rs .money--win .lbl {
-  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
 }
 .rs .money--neutral .lbl,
 .rs .money--quiet .lbl {
@@ -1483,6 +1499,36 @@ button.challengechip:active {
   letter-spacing: 0.04em;
   color: var(--go);
 }
+/* the capped (long-run) variant: strip stacked over its meta, with the "+N earlier" chip */
+.rs .daychain--long {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.rs .cn-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rs .cn-earlier {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: var(--ink);
+}
+.rs .cn-count {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.rs .cn-meta .cn-safe {
+  margin: 0;
+}
 
 /* ---- 06 Day, banked: the sealed ledger + the on-chain receipt row ----------- */
 .rs .selledger {
@@ -1516,6 +1562,23 @@ button.challengechip:active {
 .rs .selrow .v.go {
   color: var(--go);
 }
+/* 06 also carries the streak strip + "N in a row" below the ledger (design update 2026-09-08) */
+.rs .selstreak {
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rs .selstreak-lbl {
+  margin: 0;
+  max-width: 120px;
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.3;
+  color: var(--ink);
+}
 /* the "Day n is stamped on Nimiq" receipt — a full-width tappable card row */
 .rs .stampedrow {
   display: flex;
@@ -1526,7 +1589,8 @@ button.challengechip:active {
   background: var(--paper-card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 13px 15px;
+  /* 80px right lane so the faded corner dot (06/07) overlaps paper, never the receipt content */
+  padding: 13px 80px 13px 15px;
   text-decoration: none;
   cursor: pointer;
 }

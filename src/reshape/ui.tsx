@@ -171,6 +171,8 @@ export function DotSpeak({
   meta,
   line,
   source,
+  faded,
+  raised,
 }: {
   open: boolean
   onTap: () => void
@@ -179,11 +181,28 @@ export function DotSpeak({
   meta?: string
   line?: ReactNode
   source?: string | null
+  faded?: boolean
+  raised?: boolean // sit higher, to clear a two-button foot
 }) {
+  const dock = 'dotdock' + (raised ? ' raised' : '')
+  // On the sealed day (06) and the share card (07) the dot has nothing to add — it fades to 25%
+  // and goes inert rather than vacating its corner (design "Rules the build needs", 2026-09-08).
+  if (faded) {
+    return (
+      <div className={dock}>
+        <span className="dot-fab faded" aria-hidden="true">
+          <span className="sh" />
+          <span className="ball">
+            <span className="spec" />
+          </span>
+        </span>
+      </div>
+    )
+  }
   return (
     <>
       {open && <button className="dot-scrim" aria-label={copy.a11y.close} onClick={onClose} />}
-      <div className="dotdock">
+      <div className={dock}>
         {open && line != null && (
           <div className="dotbubble" role="status">
             {meta && <p className="db-meta">{meta}</p>}
@@ -351,6 +370,37 @@ export function Chain({ marks, size = 18, fill = 0.5 }: { marks: DayMark[]; size
       {marks.map((m, i) => (
         <Hex key={i} size={size} state={WHEX[m]} fill={m === 'today' ? fill : 0} />
       ))}
+    </div>
+  )
+}
+
+// ---- the day's chain + its meta (Journey 04/08/12): behind + today, CAPPED AT 10 beads so a
+// 14- or 30-day run occupies the same strip as a 7-day one (design "Rules the build needs"). Older
+// kept days collapse into a "+N earlier" chip; the banked count keeps its own line, never pushed
+// off-frame. Short runs read side-by-side; a capped run stacks the strip over its meta. ----
+const CHAIN_CAP = 10
+export function DayChain({ marks, keptCount, safe, todayFill = 0.5 }: { marks: DayMark[]; keptCount: number; safe: number; todayFill?: number }) {
+  const collapsed = Math.max(0, marks.length - CHAIN_CAP)
+  const visible = collapsed > 0 ? marks.slice(-CHAIN_CAP) : marks
+  if (collapsed > 0) {
+    return (
+      <div className="daychain daychain--long">
+        <Chain marks={visible} size={24} fill={todayFill} />
+        <div className="cn-meta">
+          <span className="cn-earlier">+{collapsed} earlier</span>
+          <span className="cn-count">{keptCount} days banked</span>
+          <span className="cn-safe">{safe} NIM safe</span>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="daychain">
+      <Chain marks={visible} size={22} fill={todayFill} />
+      <div className="cn-txt">
+        <p className="cn-lead">{keptCount === 1 ? 'One day banked' : `${keptCount} days banked`}</p>
+        <p className="cn-safe">{safe} NIM safe · yours whatever happens</p>
+      </div>
     </div>
   )
 }

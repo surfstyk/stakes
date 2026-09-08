@@ -138,6 +138,26 @@ export function isCheckedToday(ch: Challenge, now: number = Date.now()): boolean
   return keptDays(ch).has(currentDay(ch, now))
 }
 
+export interface DayClose {
+  closeAt: number
+  hoursLeft: number
+  hhmm: string // "06:41"
+  tomorrow: boolean
+}
+
+/** When the current day-window closes and how long is left. The day is a rolling 24h from the free
+ *  tap (`lockAt`), NOT calendar midnight — so every screen that mentions time names the real close
+ *  (design "Rules the build needs", 2026-09-08). Never say "midnight". */
+export function dayCloseInfo(ch: Challenge, now: number = Date.now()): DayClose {
+  const cur = Math.max(0, currentDay(ch, now))
+  const closeAt = ch.lockAt + (cur + 1) * ch.dayLengthMs
+  const hoursLeft = Math.max(0, Math.ceil((closeAt - now) / 3_600_000))
+  const d = new Date(closeAt)
+  const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  const tomorrow = new Date(now).toDateString() !== d.toDateString()
+  return { closeAt, hoursLeft, hhmm, tomorrow }
+}
+
 /** Whether today's seal is still open — a member can check in for the open day (with grace). */
 export function canCheckInToday(ch: Challenge, now: number = Date.now()): boolean {
   if (ch.status !== 'official') return false

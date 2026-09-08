@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, Social } from './model.ts'
-import { chainSoFar, currentDay, dayFill, isCheckedToday, keptDays } from './model.ts'
+import { chainSoFar, currentDay, dayCloseInfo, dayFill, isCheckedToday, keptDays, streak } from './model.ts'
 import { TEMPLATES, type Template } from './templates.ts'
-import { Carousel, Chain, ChallengeChip, ContractCard, Cta, DotSpeak, Frame, HeroDot, Icon, ShareCard, Sphere, StampedRow, Stepper, TopBar, Wordmark } from './ui.tsx'
+import { Carousel, Chain, ChallengeChip, ContractCard, Cta, DayChain, DotSpeak, Frame, HeroDot, Icon, ShareCard, StampedRow, Stepper, TopBar, Wordmark } from './ui.tsx'
 import { SphereWithPick } from './screens2.tsx'
 
 const c = copy.rs
@@ -197,14 +197,14 @@ export function DayScreen({
   busy,
   error,
   onSeal,
-  onShare,
+  onShowSomeone,
   onWordmark,
 }: {
   challenge: Challenge
   busy: boolean
   error: { kind: 'cancel' | 'error' } | null
   onSeal: () => void
-  onShare: () => void
+  onShowSomeone: () => void
   onWordmark: () => void
 }) {
   const now = useNow(true, true)
@@ -215,16 +215,26 @@ export function DayScreen({
   const perDay = challenge.durationDays ? Math.round(challenge.stake / challenge.durationDays) : 0
   const safe = keptCount * perDay
   const chain = chainSoFar(challenge, now)
+  const close = dayCloseInfo(challenge, now)
+  const streakCount = streak(challenge, now)
   const dayNum = cur + 1
   const stampTx = challenge.checkins.find((k) => k.day === cur)?.stampTxHash
   const stampHref = stampTx && !stampTx.startsWith('mock') ? `https://nimiqscan.com/transaction/${stampTx}` : undefined
 
   return (
     <Frame
-      sphere={<SphereWithPick challenge={challenge} moment={checked ? 'win' : undefined} />}
+      sphere={
+        checked ? (
+          // 06: the day is won, the dot has nothing to add → faded 25%, inert (design rule).
+          <DotSpeak open={false} onTap={() => {}} onClose={() => {}} faded />
+        ) : (
+          // 04/04b: the dot carries the time context in its bubble meta ("9h left · closes 06:41").
+          <SphereWithPick challenge={challenge} meta={`${close.hoursLeft}h left · closes ${close.hhmm}`} />
+        )
+      }
       foot={
         checked ? (
-          <Cta label="Show someone" variant="blue" icon={Icon.share} onClick={onShare} />
+          <Cta label="Show someone" variant="blue" icon={Icon.share} onClick={onShowSomeone} />
         ) : (
           <Cta label={busy ? c.day.sealing : c.day.cta} variant="green" icon={busy ? undefined : Icon.check} onClick={onSeal} disabled={busy} />
         )
@@ -240,10 +250,10 @@ export function DayScreen({
           <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
             {safe} NIM is now yours to lose only by stopping.
           </p>
-          <div style={{ marginTop: 18, alignSelf: 'center', filter: 'drop-shadow(0 6px 14px rgba(12,95,53,.3))' }}>
-            <HeroDot state="sealed" size={150} />
+          <div style={{ marginTop: 14, alignSelf: 'center', filter: 'drop-shadow(0 6px 14px rgba(12,95,53,.3))' }}>
+            <HeroDot state="sealed" size={140} />
           </div>
-          <div className="selledger" style={{ marginTop: 16 }}>
+          <div className="selledger" style={{ marginTop: 14 }}>
             <div className="selrow">
               <span className="k">Today, kept</span>
               <span className="v go">+{perDay}</span>
@@ -257,7 +267,11 @@ export function DayScreen({
               <span className="v">{keptCount}</span>
             </div>
           </div>
-          <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+          <div className="selstreak">
+            <Chain marks={chain.slice(-10)} size={28} />
+            <p className="selstreak-lbl">{streakCount === 1 ? 'One in a row' : `${streakCount} in a row`}</p>
+          </div>
+          <div style={{ marginTop: 'auto', paddingTop: 14 }}>
             <StampedRow label={`Day ${dayNum} is stamped on Nimiq`} href={stampHref} />
           </div>
         </>
@@ -266,8 +280,9 @@ export function DayScreen({
           <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
             Today is the whole game.
           </h1>
-          <p className="sub" style={{ marginTop: 10, maxWidth: '30ch', fontSize: 15 }}>
-            Do it once today, any way you like. The window is open until midnight.
+          <p className="sub" style={{ marginTop: 10, maxWidth: '32ch', fontSize: 15 }}>
+            Do it once today, any way you like. This day closes at {close.hhmm}
+            {close.tomorrow ? ' tomorrow' : ''} — {close.hoursLeft} {close.hoursLeft === 1 ? 'hour' : 'hours'} left.
           </p>
           <div className="dayhero">
             <HeroDot fill={dayFill(challenge, now)} size={130} />
@@ -279,15 +294,7 @@ export function DayScreen({
               <p className="sub">Win it and it&apos;s yours. That&apos;s the only number that matters right now.</p>
             </div>
           </div>
-          {keptCount > 0 && (
-            <div className="daychain">
-              <Chain marks={chain} size={22} fill={dayFill(challenge, now)} />
-              <div className="cn-txt">
-                <p className="cn-lead">{keptCount === 1 ? 'One day banked' : `${keptCount} days banked`}</p>
-                <p className="cn-safe">{safe} NIM safe · yours whatever happens</p>
-              </div>
-            </div>
-          )}
+          {keptCount > 0 && <DayChain marks={chain} keptCount={keptCount} safe={safe} todayFill={dayFill(challenge, now)} />}
           {error && (
             <p className="sub" style={{ color: 'var(--stake)', marginTop: 16 }}>
               {c.day.err}
@@ -311,16 +318,20 @@ export function SealShareScreen({
   onShare: () => void
   onWordmark: () => void
 }) {
-  const stampTx = challenge.checkins.find((k) => k.day === 0)?.stampTxHash
+  const cur = currentDay(challenge)
+  const kept = keptDays(challenge).size
+  const perDay = challenge.durationDays ? Math.round(challenge.stake / challenge.durationDays) : 0
+  const safe = kept * perDay
+  const stampTx = challenge.checkins.find((k) => k.day === cur)?.stampTxHash
   const href = stampTx && !stampTx.startsWith('mock') ? `https://nimiqscan.com/transaction/${stampTx}` : undefined
-  const dayNum = currentDay(challenge) + 1
   const no = String(challenge.seq).padStart(3, '0')
   return (
     <Frame
-      sphere={<Sphere onClick={() => {}} />}
+      // 07: the postcard runs on every seal, not just day one; the dot stays faded here too.
+      sphere={<DotSpeak open={false} onTap={() => {}} onClose={() => {}} faded />}
       foot={<Cta label="Share it" variant="blue" icon={Icon.share} onClick={onShare} />}
     >
-      <TopBar onWordmark={onWordmark} chip={<span className="rs-no">Nº {no} · Day {dayNum}</span>} />
+      <TopBar onWordmark={onWordmark} chip={<span className="rs-no">Nº {no} · Day {cur + 1}</span>} />
       <h1 className="h" style={{ fontSize: 32, marginTop: 18 }}>
         Worth showing<span className="fs">.</span>
       </h1>
@@ -330,9 +341,9 @@ export function SealShareScreen({
           seq={challenge.seq}
           headline={
             <>
-              {c.seal.cardTop}
+              {kept} {kept === 1 ? 'day' : 'days'} kept.
               <br />
-              {c.seal.cardBottom}
+              {safe} NIM banked.
             </>
           }
         />

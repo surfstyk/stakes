@@ -73,6 +73,7 @@ export function ReshapeApp() {
         'seed-taste': 'taste',
         'view-official': 'taste',
         'seed-day': 'day',
+        'seed-longrun': 'long',
         'seed-sealed': 'sealed',
         'view-seal': 'sealone',
         missed: 'missed',
@@ -168,15 +169,15 @@ export function ReshapeApp() {
   const onSeal = () =>
     guard(async () => {
       if (!challenge) return
-      const wasDayOne = currentDay(challenge) === 0
       const ch = await data.sealDay(challenge.id)
       setChallenge(ch)
       const d = currentDay(ch)
       const kept = keptDays(ch)
       const cleanWeek = (d + 1) % 7 === 0 && d + 1 < ch.durationDays && Array.from({ length: d + 1 }, (_, i) => i).every((i) => kept.has(i))
+      // Every seal lands on the 06 sealed ledger; "Show someone" from there raises the 07 postcard
+      // (design update 2026-09-08: the card is every kept day, not just day one).
       if (isRunOver(ch)) setView('banked')
       else if (cleanWeek) setView('perfectweek')
-      else if (wasDayOne) setView('sealShare')
       else setView('day')
     })
 
@@ -227,7 +228,15 @@ export function ReshapeApp() {
     case 'official':
       return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onPicker={toPicker} onWordmark={home} />
     case 'sealShare':
-      return <SealShareScreen challenge={challenge} onShare={() => void share(copy.share.sealDay1(challenge.emoji, challenge.goal))} onWordmark={home} />
+      return (
+        <SealShareScreen
+          challenge={challenge}
+          onShare={() =>
+            void share(currentDay(challenge) === 0 ? copy.share.sealDay1(challenge.emoji, challenge.goal) : copy.share.dayKept(challenge.emoji, challenge.goal))
+          }
+          onWordmark={home}
+        />
+      )
     case 'missed':
       return <MissedScreen challenge={challenge} onWinToday={() => setView('day')} onWordmark={home} />
     case 'lapsed':
@@ -263,7 +272,7 @@ export function ReshapeApp() {
           busy={busy}
           error={error}
           onSeal={onSeal}
-          onShare={() => void share(copy.share.dayKept(challenge.emoji, challenge.goal))}
+          onShowSomeone={() => setView('sealShare')}
           onWordmark={home}
         />
       )
