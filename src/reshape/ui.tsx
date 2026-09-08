@@ -305,6 +305,11 @@ export function Hex({
 
 // ---- the hero — the same day-hex at ~150px (§1b): today halftone · sealed green + cream check ·
 // missed / faded flat grey. No emoji, no placeholder two-tone; the check comes from Hex itself. ----
+// A just-started day/taste reads as EMPTY at fill ≈ 0, which looks unfinished — so a filling hero
+// never drops below a small visible sliver (Hendrik, 2026-09-08). 0.08 is the floor because the
+// hero's dot-halftone cell is ~18px: below ~7.5% the fill shows less than one row of dots and reads
+// as accidental; 0.08 paints one clean row. Real elapsed time takes over the moment it passes this.
+const HERO_MIN_FILL = 0.08
 export function HeroDot({
   fill = 0,
   state = 'filling',
@@ -318,7 +323,7 @@ export function HeroDot({
   const hexState: HexState = state === 'filling' ? 'today' : state
   return (
     <span className={'heroHex' + (state === 'sealed' ? ' sealed' : state === 'faded' ? ' faded' : '')}>
-      <Hex size={w} state={hexState} fill={state === 'filling' ? fill : 0} />
+      <Hex size={w} state={hexState} fill={state === 'filling' ? Math.max(HERO_MIN_FILL, fill) : 0} />
     </span>
   )
 }
