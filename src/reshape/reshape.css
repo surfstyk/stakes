@@ -314,18 +314,36 @@ button.challengechip:active {
 /* ---- the one loading treatment (App gate-check + the app's own first load) ------------------
    The live companion dot bobbing calmly over the wordmark. No spinner. Because the live dot is on
    the surface, the wordmark's stop is ink (the dot is the one bead). Calm PICK motion at 2.6s. */
-/* a dedicated full-frame flex-centre so loading sits dead-centre regardless of the scroll canvas */
+/* a dedicated flex-centre that fills the ACTUAL viewport (position:fixed → viewport-relative, so it
+   breaks out of the .rs 430px phone column) — so the paper + grain field spans the whole window on
+   desktop too, never a trimmed mobile-width strip. Content sits dead-centre regardless of size. */
 .rs .rs-load-frame {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 22px;
   box-sizing: border-box;
+  background: var(--paper);
+}
+/* the grain field, stretched over the whole fixed frame + multiplied onto the paper — the same
+   field as .rs::before, but viewport-wide here rather than clipped to the 430px column */
+.rs .rs-load-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='210'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.09 0.10' numOctaves='4' seed='7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.14'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 .rs .rs-load {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
