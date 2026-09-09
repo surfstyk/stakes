@@ -80,10 +80,12 @@ export function App() {
     )
   }
   if (gate === 'gate') {
+    // The gate is built on the reshape (.rs) design system, so it lives in the same frame as the
+    // app it opens into — a browser visitor meets the product before stepping across.
     return (
       <>
         {probe}
-        <div className="stakes">
+        <div className="rs">
           <OpenInNimiqPay />
         </div>
       </>

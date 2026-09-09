@@ -250,6 +250,42 @@ button.challengechip:active {
   color: var(--ink);
 }
 
+/* ---- the Open-in-Nimiq-Pay gate (browser cross-over; product/OpenInNimiqPay) --------------
+   Wears the app's own type + CTA. The message block centres between the top wordmark and the
+   pinned foot so it never reads barren on a tall desktop window (the one surface seen off-device). */
+.rs .gate-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 13%;
+}
+.rs .gate-trust {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 22px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.rs .gate-trust svg {
+  flex: none;
+}
+.rs .gate-foot {
+  margin: 13px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.rs .gate-note {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
 /* ---- buttons ---------------------------------------------------------------- */
 .rs .cta {
   font-family: var(--sans);
@@ -290,6 +326,7 @@ button.challengechip:active {
   font-family: var(--sans);
   font-weight: 800;
   font-size: 14.5px;
+  text-decoration: none;
   border: 1.5px solid var(--line-strong);
   border-radius: 14px;
   padding: 13px;

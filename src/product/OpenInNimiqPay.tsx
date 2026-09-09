@@ -1,61 +1,53 @@
-import { motion } from 'motion/react'
-import { brand, copy } from '../brand/index.ts'
-import { Headline } from './Headline.tsx'
+import { copy } from '../brand/index.ts'
+import { Cta, Frame, Icon, Wordmark } from '../reshape/ui.tsx'
 import { NIMIQ_PAY_INSTALL_URL, openInNimiqPay } from '../lib/context.ts'
 
 // The "Open in Nimiq Pay" gate.
 //
 // Shown by App when a real-money build is opened OUTSIDE Nimiq Pay (the invite-link trap:
-// a shared https link tapped in a normal mobile browser). It NEVER lets a visitor silently
-// mock-stake real money — instead it routes them into Nimiq Pay, where their real wallet
-// and the real stake live, via the documented `nimiqpay://miniapp?url=…` deeplink that
-// preserves the current URL, so they land right back where they were. The solo journey has
-// no join/invite preview, so the gate is a single clean cross-over, not a social pitch.
-
+// a shared https link tapped in a normal browser). It NEVER lets a visitor silently mock-stake
+// real money — instead it routes them into Nimiq Pay, where their real wallet and the real stake
+// live, via the App Link (see lib/context.ts nimiqPayDeeplink) which preserves the current URL,
+// so they land right back where they were. The solo journey has no join/invite preview, so the
+// gate is a single clean cross-over, not a social pitch.
+//
+// Built on the reshape (.rs) design system — same wordmark, eyebrow, serif headline and CTA as
+// the app behind it — and mounted inside the .rs frame by App, so a browser visitor meets the
+// same product they are about to step into.
 export function OpenInNimiqPay() {
   const g = copy.gate
   return (
-    <motion.div
-      className="s-center"
-      style={{ paddingTop: 30 }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+    <Frame
+      foot={
+        <div className="rs-foot-stack">
+          <Cta label={g.open} variant="blue" icon={Icon.arrow} onClick={() => openInNimiqPay()} />
+          <a className="ghost" href={NIMIQ_PAY_INSTALL_URL} target="_blank" rel="noopener noreferrer">
+            {g.get}
+          </a>
+          {/* gently pre-empt Nimiq Pay's first-access confirm + unlock so it doesn't feel broken */}
+          <p className="gate-note">{g.reassure}</p>
+        </div>
+      }
     >
-      <span className="s-wordmark" style={{ justifyContent: 'center' }}>
-        {brand.hasDot && <span className="dot" />} {brand.name}
-      </span>
-
-      <p className="s-kicker" style={{ marginTop: 20 }}>
-        {g.kicker}
-      </p>
-      <Headline h={g.h1} className="s-h1" />
-      <p className="s-sub" style={{ margin: '0 auto 6px' }}>
-        {g.sub}
-      </p>
-
-      {/* reassurance — defuse the fear before the cross-over (no jargon) */}
-      <div className="gate-trust">
-        <ShieldCheck />
-        {g.guarantee}
+      <Wordmark />
+      <div className="gate-body">
+        <p className="kicker">{g.kicker}</p>
+        <h1 className="h" style={{ marginTop: 8 }}>
+          {g.h1.lead}
+          <em>{g.h1.em}</em>
+          <span className="fs">.</span>
+        </h1>
+        <p className="sub" style={{ marginTop: 12, maxWidth: '30ch' }}>
+          {g.sub}
+        </p>
+        {/* reassurance — defuse the money fear before the cross-over (no jargon) */}
+        <p className="gate-trust">
+          <ShieldCheck />
+          {g.guarantee}
+        </p>
+        <p className="gate-foot">{g.foot}</p>
       </div>
-      <button className="s-cta s-cta--share" data-variant="go" onClick={() => openInNimiqPay()}>
-        {g.open}
-      </button>
-      {/* gently pre-empt Nimiq Pay's first-access confirm + unlock so it doesn't feel broken */}
-      <p className="gate-reassure">{g.reassure}</p>
-      <a
-        className="s-ghost"
-        href={NIMIQ_PAY_INSTALL_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 12 }}
-      >
-        {g.get}
-      </a>
-      <p className="s-foothint" style={{ marginTop: 14 }}>
-        {g.foot}
-      </p>
-    </motion.div>
+    </Frame>
   )
 }
 
