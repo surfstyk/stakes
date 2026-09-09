@@ -150,24 +150,34 @@ export function sensitiveOpInFlight(): boolean {
 export const NIMIQ_PAY_INSTALL_URL = 'https://www.nimiq.com/nimiq-pay/'
 
 /**
- * Build the deeplink that opens `targetUrl` INSIDE Nimiq Pay.
+ * Build the link that opens `targetUrl` INSIDE Nimiq Pay.
  *
- * Format — the only one Nimiq Pay documents (nimiq.dev/mini-apps):
- *   nimiqpay://miniapp?url=<app url>
+ * Format — the App Link (HTTPS) form documented at nimiq.dev/mini-apps ("Sharing your
+ * Mini App"):
+ *   https://nimpay.app/miniapps/open/<host><path><query>
  *
- * The inner URL is passed UNENCODED on purpose. On-device testing proved Nimiq Pay
- * forwards the full query string through to the WebView verbatim: opening
- * `nimiqpay://miniapp?url=https://stakes.surfstyk.com/?test` activated test mode, so an
- * inner `?c=<id>` survives the round-trip. Our ids/params are URL-safe (hex + `=`), so
- * there is nothing to escape. If a future Nimiq Pay build is ever shown to percent-decode
- * this value, switch to `encodeURIComponent(targetUrl)` here — this is the single place
- * to change, and the on-device test in PHASE-5-CHECKLIST.md is the decider.
+ * Why NOT the custom scheme (`nimiqpay://miniapp?url=…`): it works on a cold start but is
+ * silently DISCARDED when Nimiq Pay is already running (foreground or background) — the tap
+ * only brings the app forward and drops the URL, with no unknown-link confirmation. For our
+ * audience (Nimiq Pay users, usually with the app already backgrounded) that is the common
+ * case, so the custom scheme dead-ends the share/entry loop. The App Link is a plain HTTPS
+ * URL the OS routes to Nimiq Pay whether it is cold or warm, and it is the fix a Nimiq team
+ * member pointed at for this exact bug (same territory as nimiq/developer-center#209).
+ *
+ * Transform: strip the scheme from the target and hang host + path (+ query) off
+ * `/miniapps/open/`. e.g. `https://app.stakes.day/?c=abc` →
+ * `https://nimpay.app/miniapps/open/app.stakes.day/?c=abc`. The inner value is passed
+ * UNENCODED (the docs' own examples are unencoded; our ids/params are URL-safe). Whether the
+ * App Link forwards the inner QUERY string to the WebView the way the custom scheme did is
+ * the open on-device question — the docs' example is path-based, so the durable carrier for a
+ * share tag is a path segment (`/r/<tag>`), not `?t=`. This is the single place to change.
  */
 export function nimiqPayDeeplink(targetUrl: string = location.href): string {
-  return `nimiqpay://miniapp?url=${targetUrl}`
+  const bare = targetUrl.replace(/^https?:\/\//, '')
+  return `https://nimpay.app/miniapps/open/${bare}`
 }
 
-/** Hand off to Nimiq Pay (same tab → the OS intercepts the custom scheme). */
+/** Hand off to Nimiq Pay (same tab → the OS intercepts the HTTPS App Link). */
 export function openInNimiqPay(targetUrl: string = location.href): void {
   location.href = nimiqPayDeeplink(targetUrl)
 }

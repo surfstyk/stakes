@@ -87,16 +87,22 @@ done
 [ -z "$URL" ] && { echo "✖ Tunnel URL not found in time. cloudflared log:" >&2; cat "$LOG" >&2; exit 1; }
 
 APP_URL="$URL$APP_QUERY"
+# App Link (HTTPS) form — what the app now emits (src/lib/context.ts): strip the scheme and hang
+# host+path+query off /miniapps/open/. Routes to Nimiq Pay cold AND warm.
+APPLINK="https://nimpay.app/miniapps/open/${APP_URL#https://}"
+# Legacy custom scheme — kept only for an on-device A/B: it is DISCARDED when Nimiq Pay is already
+# running (the warm-start bug we are fixing). Tap it warm to reproduce; tap the App Link warm to confirm the fix.
 DEEPLINK="nimiqpay://miniapp?url=$APP_URL"
-qrencode -o "$QR" -s 14 -m 4 "$DEEPLINK"
+qrencode -o "$QR" -s 14 -m 4 "$APPLINK"
 
 echo
 echo "══════════════════════════════════════════════════════════════════"
 echo "  MOCK build — no wallet, no money."
-echo "  In Nimiq Pay:  $DEEPLINK"
-echo "  In a browser:  $APP_URL"
+echo "  Nimiq Pay (App Link):   $APPLINK"
+echo "  Legacy scheme (A/B):    $DEEPLINK"
+echo "  In a browser:           $APP_URL"
 echo "══════════════════════════════════════════════════════════════════"
-qrencode -t ANSIUTF8 "$DEEPLINK"    # scannable straight from the terminal too
+qrencode -t ANSIUTF8 "$APPLINK"    # scannable straight from the terminal too
 echo
 if [ "${NO_OPEN:-0}" != "1" ] && command -v open >/dev/null 2>&1; then
   open "$QR" && echo "▸ QR opened in Preview — scan it with your phone camera."

@@ -71,17 +71,22 @@ for _ in $(seq 1 40); do
 done
 [ -z "$URL" ] && { echo "✖ Tunnel URL not found in time. cloudflared log:" >&2; cat "$LOG" >&2; exit 1; }
 
+# App Link (HTTPS) form — what the app now emits (src/lib/context.ts): strip the scheme and hang
+# host+path off /miniapps/open/. Routes to Nimiq Pay cold AND warm.
+APPLINK="https://nimpay.app/miniapps/open/${URL#https://}"
+# Legacy custom scheme — kept only for an on-device A/B: DISCARDED when Nimiq Pay is already running.
 DEEPLINK="nimiqpay://miniapp?url=$URL"
 echo
 echo "══════════════════════════════════════════════════════════════════"
 echo "  Test URL:   $URL"
-echo "  Deeplink:   $DEEPLINK"
+echo "  App Link:   $APPLINK"
+echo "  Legacy A/B: $DEEPLINK"
 echo "  Backend:    $API_TARGET"
 echo "  Dev tools:  append ?test (5-min fast clock) or ?recon"
 echo "══════════════════════════════════════════════════════════════════"
-# Scannable QR of the deeplink if qrencode is around (brew install qrencode).
+# Scannable QR of the App Link if qrencode is around (brew install qrencode).
 if command -v qrencode >/dev/null 2>&1; then
-  echo; qrencode -t ANSIUTF8 "$DEEPLINK"
+  echo; qrencode -t ANSIUTF8 "$APPLINK"
 fi
 echo
 echo "Open the deeplink on a phone with Nimiq Pay. Ctrl-C here tears it all down."
