@@ -7,7 +7,7 @@ import type { Template } from './templates.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
 import { DayScreen, MainScreen, MakeOfficialScreen, SealShareScreen, TasteScreen } from './screens.tsx'
 import { ArchiveScreen, BankedScreen, LapsedScreen, MissedScreen, ReUpScreen } from './screens2.tsx'
-import { Frame, Wordmark } from './ui.tsx'
+import { LoadingScreen } from './ui.tsx'
 import { isUserCancel } from '../lib/nimiq.ts'
 import { markSensitiveOp } from '../lib/context.ts'
 
@@ -199,11 +199,7 @@ export function ReshapeApp() {
 
   // ---- render ----
   if (view === 'loading') {
-    return (
-      <Frame center>
-        <Wordmark onClick={home} />
-      </Frame>
-    )
+    return <LoadingScreen />
   }
   if (view === 'main' || (!challenge && view !== 'archive')) {
     return <MainScreenLoader onStart={onStart} onWordmark={home} />

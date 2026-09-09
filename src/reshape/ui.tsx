@@ -61,11 +61,35 @@ export function Frame({
   )
 }
 
-export function Wordmark({ onClick }: { onClick?: () => void }) {
+// `stake` paints the full stop vermilion — used only on the entry gate, where the live dot isn't
+// on the surface yet so the wordmark carries the one bead. In-app it stays ink (the live dot owns it).
+export function Wordmark({ onClick, stake }: { onClick?: () => void; stake?: boolean }) {
   return (
-    <button className="wm" onClick={onClick} aria-label={copy.a11y.home}>
+    <button className={'wm' + (stake ? ' wm--stake' : '')} onClick={onClick} aria-label={copy.a11y.home}>
       Stakes<span className="fs">.</span>
     </button>
+  )
+}
+
+// The one loading treatment, shared by both entry paths (the gate-check in App and the app's own
+// first load): the live companion dot bobbing calmly over the wordmark — no spinner, no bare
+// wordmark. Because the live dot is present, the wordmark's stop is ink (the dot is the one bead).
+export function LoadingScreen() {
+  return (
+    <div className="rs-load-frame">
+      <div className="rs-load">
+        <span className="rs-load-dot" aria-hidden="true">
+          <span className="sh" />
+          <span className="ball">
+            <span className="spec" />
+          </span>
+        </span>
+        <span className="rs-load-wm">
+          Stakes<span className="fs">.</span>
+        </span>
+        <span className="rs-load-sig">{copy.claim.signature}</span>
+      </div>
+    </div>
   )
 }
 

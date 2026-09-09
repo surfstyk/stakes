@@ -1,0 +1,67 @@
+<svg viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg" style="isolation:isolate" ><rect width="260" height="200" fill="#f5f2eb"/><defs><filter id="pg9"><feTurbulence type="fractalNoise" baseFrequency="0.09 0.10" numOctaves="4" seed="65"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.14"/></feComponentTransfer></filter></defs><rect width="260" height="200" filter="url(#pg9)" style="mix-blend-mode:multiply"/><defs><pattern id="ht11" width="5.2" height="5.2" patternUnits="userSpaceOnUse" patternTransform="rotate(12)"><circle cx="2.6" cy="2.6" r="2.184" fill="#0c5f35"/></pattern></defs><clipPath id="t10"><path d="M127.38 92.00A16.00 16.00 0 0 1 127.38 108.00L116.62 126.64A16.00 16.00 0 0 1 102.76 134.64L81.24 134.64A16.00 16.00 0 0 1 67.38 126.64L56.62 108.00A16.00 16.00 0 0 1 56.62 92.00L67.38 73.36A16.00 16.00 0 0 1 81.24 65.36L102.76 65.36A16.00 16.00 0 0 1 116.62 73.36Z"/></clipPath><g clip-path="url(#t10)"><rect x="52" y="103.46" width="80" height="31.18" fill="url(#ht11)" style="mix-blend-mode:multiply"/></g><defs><filter id="rs12" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0150" numOctaves="2" seed="65" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="3.00" xChannelSelector="R" yChannelSelector="G" result="shp"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.075 0.08" numOctaves="2" seed="70" result="c"/>
+      <feColorMatrix in="c" type="saturate" values="0" result="cg"/>
+      <feComponentTransfer in="cg" result="cd"><feFuncA type="linear" slope="0.38"/></feComponentTransfer>
+      <feComposite in="cd" in2="shp" operator="in" result="cc"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="2" seed="74" result="f"/>
+      <feColorMatrix in="f" type="saturate" values="0" result="fg"/>
+      <feComponentTransfer in="fg" result="fd"><feFuncA type="linear" slope="0.32"/></feComponentTransfer>
+      <feComposite in="fd" in2="shp" operator="in" result="fc"/>
+      <feComponentTransfer in="cg" result="holes"><feFuncA type="table" tableValues="0 0 0.11 0"/></feComponentTransfer>
+      <feComposite in="holes" in2="shp" operator="in" result="holesc"/>
+      <feMerge result="inked"><feMergeNode in="shp"/><feMergeNode in="cc"/><feMergeNode in="fc"/></feMerge>
+      <feComposite in="inked" in2="holesc" operator="out"/></filter></defs><path d="M127.38 92.00A16.00 16.00 0 0 1 127.38 108.00L116.62 126.64A16.00 16.00 0 0 1 102.76 134.64L81.24 134.64A16.00 16.00 0 0 1 67.38 126.64L56.62 108.00A16.00 16.00 0 0 1 56.62 92.00L67.38 73.36A16.00 16.00 0 0 1 81.24 65.36L102.76 65.36A16.00 16.00 0 0 1 116.62 73.36Z" fill="none" stroke="#0c5f35" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" filter="url(#rs12)" style="mix-blend-mode:multiply"/><defs><filter id="l13" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06 0.065" numOctaves="2" seed="71" result="c"/>
+      <feColorMatrix in="c" type="saturate" values="0" result="cg"/>
+      <feComponentTransfer in="cg" result="cd"><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feComposite in="cd" in2="SourceAlpha" operator="in" result="cc"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="2" seed="75" result="f"/>
+      <feColorMatrix in="f" type="saturate" values="0" result="fg"/>
+      <feComponentTransfer in="fg" result="fd"><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feComposite in="fd" in2="SourceAlpha" operator="in" result="fc"/>
+      <feComponentTransfer in="cg" result="holes"><feFuncA type="table" tableValues="0 0 0.05 0"/></feComponentTransfer>
+      <feComposite in="holes" in2="SourceAlpha" operator="in" result="holesc"/>
+      <feMerge result="inked"><feMergeNode in="SourceGraphic"/><feMergeNode in="cc"/><feMergeNode in="fc"/></feMerge>
+      <feComposite in="inked" in2="holesc" operator="out"/></filter></defs><path d="M132.0 100.0 C138.7 94.3 159.7 73.0 172.0 66.0 C184.3 59.0 200.3 59.3 206.0 58.0" fill="none" stroke="#0c5f35" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#l13)" style="mix-blend-mode:multiply"/><defs><filter id="l14" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06 0.065" numOctaves="2" seed="72" result="c"/>
+      <feColorMatrix in="c" type="saturate" values="0" result="cg"/>
+      <feComponentTransfer in="cg" result="cd"><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feComposite in="cd" in2="SourceAlpha" operator="in" result="cc"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="2" seed="76" result="f"/>
+      <feColorMatrix in="f" type="saturate" values="0" result="fg"/>
+      <feComponentTransfer in="fg" result="fd"><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feComposite in="fd" in2="SourceAlpha" operator="in" result="fc"/>
+      <feComponentTransfer in="cg" result="holes"><feFuncA type="table" tableValues="0 0 0.05 0"/></feComponentTransfer>
+      <feComposite in="holes" in2="SourceAlpha" operator="in" result="holesc"/>
+      <feMerge result="inked"><feMergeNode in="SourceGraphic"/><feMergeNode in="cc"/><feMergeNode in="fc"/></feMerge>
+      <feComposite in="inked" in2="holesc" operator="out"/></filter></defs><path d="M132.0 104.0 C138.7 110.0 159.7 132.3 172.0 140.0 C184.3 147.7 200.3 148.3 206.0 150.0" fill="none" stroke="#c8c0b0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#l14)" style="mix-blend-mode:multiply"/><defs><filter id="rs15" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0375" numOctaves="2" seed="68" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="1.20" xChannelSelector="R" yChannelSelector="G" result="shp"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.075 0.08" numOctaves="2" seed="73" result="c"/>
+      <feColorMatrix in="c" type="saturate" values="0" result="cg"/>
+      <feComponentTransfer in="cg" result="cd"><feFuncA type="linear" slope="0.38"/></feComponentTransfer>
+      <feComposite in="cd" in2="shp" operator="in" result="cc"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="2" seed="77" result="f"/>
+      <feColorMatrix in="f" type="saturate" values="0" result="fg"/>
+      <feComponentTransfer in="fg" result="fd"><feFuncA type="linear" slope="0.32"/></feComponentTransfer>
+      <feComposite in="fd" in2="shp" operator="in" result="fc"/>
+      <feComponentTransfer in="cg" result="holes"><feFuncA type="table" tableValues="0 0 0.11 0"/></feComponentTransfer>
+      <feComposite in="holes" in2="shp" operator="in" result="holesc"/>
+      <feMerge result="inked"><feMergeNode in="shp"/><feMergeNode in="cc"/><feMergeNode in="fc"/></feMerge>
+      <feComposite in="inked" in2="holesc" operator="out"/></filter></defs><path d="M238.15 48.80A6.40 6.40 0 0 1 238.15 55.20L233.85 62.66A6.40 6.40 0 0 1 228.30 65.86L219.70 65.86A6.40 6.40 0 0 1 214.15 62.66L209.85 55.20A6.40 6.40 0 0 1 209.85 48.80L214.15 41.34A6.40 6.40 0 0 1 219.70 38.14L228.30 38.14A6.40 6.40 0 0 1 233.85 41.34Z" fill="none" stroke="#0c5f35" stroke-width="0.96" stroke-linejoin="round" stroke-linecap="round" filter="url(#rs15)" style="mix-blend-mode:multiply"/><defs><filter id="r16" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0375" numOctaves="2" seed="69" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="1.20" xChannelSelector="R" yChannelSelector="G" result="shp"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.075 0.08" numOctaves="2" seed="74" result="c"/>
+      <feColorMatrix in="c" type="saturate" values="0" result="cg"/>
+      <feComponentTransfer in="cg" result="cd"><feFuncA type="linear" slope="0.38"/></feComponentTransfer>
+      <feComposite in="cd" in2="shp" operator="in" result="cc"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="2" seed="78" result="f"/>
+      <feColorMatrix in="f" type="saturate" values="0" result="fg"/>
+      <feComponentTransfer in="fg" result="fd"><feFuncA type="linear" slope="0.32"/></feComponentTransfer>
+      <feComposite in="fd" in2="shp" operator="in" result="fc"/>
+      <feComponentTransfer in="cg" result="holes"><feFuncA type="table" tableValues="0 0 0.11 0"/></feComponentTransfer>
+      <feComposite in="holes" in2="shp" operator="in" result="holesc"/>
+      <feMerge result="inked"><feMergeNode in="shp"/><feMergeNode in="cc"/><feMergeNode in="fc"/></feMerge>
+      <feComposite in="inked" in2="holesc" operator="out"/></filter></defs><path d="M238.15 146.80A6.40 6.40 0 0 1 238.15 153.20L233.85 160.66A6.40 6.40 0 0 1 228.30 163.86L219.70 163.86A6.40 6.40 0 0 1 214.15 160.66L209.85 153.20A6.40 6.40 0 0 1 209.85 146.80L214.15 139.34A6.40 6.40 0 0 1 219.70 136.14L228.30 136.14A6.40 6.40 0 0 1 233.85 139.34Z" fill="#c8c0b0" filter="url(#r16)" style="mix-blend-mode:multiply"/></svg>

@@ -86,10 +86,21 @@
     "open": "Open in Nimiq Pay",
     "reassure": "First time? Nimiq Pay may ask you to confirm. That’s normal.",
     "get": "Don’t have it? Get Nimiq Pay",
-    "foot": "A commitment game built on trust, not surveillance.",
     "guarantee": "Held safe, and back in your pocket.",
-    "scanSub": "Stakes lives on your phone. Scan the code to open it in Nimiq Pay.",
-    "scanCap": "Point your phone camera at the code."
+    "miniapp": "a Nimiq Pay mini app",
+    "scanKicker": "Stakes runs on your phone",
+    "scanDoorKicker": "Scan to continue",
+    "scanSub": "Put a little money on one thing you keep putting off, then keep it a day at a time. Keep the day, keep the money.",
+    "scanPanelH": "Open it on your phone.",
+    "scanCap": "Point your phone camera at the code.",
+    "noApp": "Don’t have Nimiq Pay?",
+    "getPlain": "Get the app",
+    "steps": [
+      { "title": "Pick your one thing", "line": "Day one starts the moment you tap, and it’s free." },
+      { "title": "Back your word", "line": "A little NIM on it, for a few days up to a month." },
+      { "title": "Make the day", "line": "Check in once a day. Miss it and that day’s slice is gone." },
+      { "title": "Bank it", "line": "Finish and it all comes back, with a bonus on top." }
+    ]
   },
 
   "claim": {

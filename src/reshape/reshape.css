@@ -258,7 +258,7 @@ button.challengechip:active {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-bottom: 13%;
+  padding-bottom: 6%;
 }
 .rs .gate-trust {
   display: flex;
@@ -273,11 +273,6 @@ button.challengechip:active {
 .rs .gate-trust svg {
   flex: none;
 }
-.rs .gate-foot {
-  margin: 13px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-faint);
-}
 .rs .gate-note {
   margin: 2px 0 0;
   text-align: center;
@@ -285,44 +280,396 @@ button.challengechip:active {
   line-height: 1.4;
   color: var(--ink-faint);
 }
-/* the desktop scan-to-phone panel: a QR of the App Link, in a paper card, left with the column */
-.rs .gate-qr {
-  width: 204px;
-  height: 204px;
-  margin: 22px 0 0;
-  padding: 14px;
+
+/* the wordmark's full stop turns vermilion on the entry gate — the one bead, because the live dot
+   isn't on this surface yet (design 2026-09-09). In-app the .wm .fs stays ink (§1c). */
+.rs .wm--stake .fs {
+  color: var(--stake);
+}
+
+/* the phone-gate illustration (StakesKit ArcBeat "the fork"): the scene enlarged and cropped into a
+   band that fades into the paper on the right + bottom, so it melts into the frame rather than
+   reading as a boxed picture. Fixed ratio + percentage offsets so the crop scales with the fluid
+   frame (the source is a 260×200 riso SVG shipped in public/illus). */
+.rs .gate-art {
+  position: relative;
+  width: 100%;
+  max-width: 306px;
+  aspect-ratio: 306 / 210;
+  margin: 0 0 20px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 84%, transparent), linear-gradient(to bottom, #000 86%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, #000 84%, transparent), linear-gradient(to bottom, #000 86%, transparent);
+  mask-composite: intersect;
+}
+.rs .gate-art img {
+  position: absolute;
+  left: -29.4%;
+  top: -29.5%;
+  width: 140.5%;
+  display: block;
+}
+
+/* ---- the one loading treatment (App gate-check + the app's own first load) ------------------
+   The live companion dot bobbing calmly over the wordmark. No spinner. Because the live dot is on
+   the surface, the wordmark's stop is ink (the dot is the one bead). Calm PICK motion at 2.6s. */
+/* a dedicated full-frame flex-centre so loading sits dead-centre regardless of the scroll canvas */
+.rs .rs-load-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  box-sizing: border-box;
+}
+.rs .rs-load {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.rs .rs-load-dot {
+  --dur: 2.6s;
+  --amp: 6px;
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+}
+.rs .rs-load-dot .ball {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ff8a4a, #ff7a3f 18%, #ef2d06 55%, #b81f04);
+  box-shadow: inset -6px -7px 15px rgba(120, 15, 4, 0.5), inset 4px 5px 10px rgba(255, 205, 180, 0.35);
+  animation: rs-sidle var(--dur) ease-in-out infinite;
+}
+.rs .rs-load-dot .spec {
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  width: 28%;
+  height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 244, 235, 0.9), rgba(255, 244, 235, 0) 70%);
+  filter: blur(1px);
+  transform: rotate(-18deg);
+}
+.rs .rs-load-dot .sh {
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  width: 54px;
+  height: 11px;
+  margin-left: -27px;
+  border-radius: 50%;
+  background: rgba(120, 15, 4, 0.24);
+  filter: blur(3px);
+  animation: rs-ssh var(--dur) ease-in-out infinite;
+}
+.rs .rs-load-wm {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 34px;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--ink);
+}
+.rs .rs-load-wm .fs {
+  color: var(--ink);
+}
+.rs .rs-load-sig {
+  margin-top: 12px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ---- the desktop scan gate (product/OpenInNimiqPay · DesktopGate) ---------------------------
+   A full-window two-panel sheet. It breaks out of the .rs 430px phone column (position:fixed →
+   viewport-relative) so the desktop visitor — often the jury's first click, from a laptop — meets a
+   real composition, not a phone strip in a grey void. Left = the pitch, right = the door; the QR
+   card is the only object that carries a shadow. */
+.rs .rs-gd {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: auto;
+}
+.rs .rs-gd-pitch {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(40px, 5vw, 64px) clamp(40px, 5vw, 72px) 44px;
+  box-sizing: border-box;
+}
+.rs .rs-gd-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.rs .rs-gd-wm {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--ink);
+}
+.rs .rs-gd-wm .fs {
+  color: var(--stake);
+}
+.rs .rs-gd-miniapp {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.rs .rs-gd-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 780px;
+  padding: 28px 0;
+}
+.rs .rs-gd-kicker {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--go-deep);
+}
+.rs .rs-gd-claim {
+  margin: 18px 0 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 5.2vw, 68px);
+  line-height: 1;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.rs .rs-gd-sub {
+  margin: 20px 0 0;
+  font-family: var(--sans);
+  font-weight: 450;
+  font-size: 18px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+.rs .rs-gd-art {
+  position: relative;
+  width: min(750px, 100%);
+  aspect-ratio: 750 / 162;
+  margin: 30px 0 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 78%, transparent), linear-gradient(to bottom, #000 84%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, #000 78%, transparent), linear-gradient(to bottom, #000 84%, transparent);
+  mask-composite: intersect;
+}
+.rs .rs-gd-art img {
+  position: absolute;
+  left: -10.3%;
+  top: -178.4%;
+  width: 120.4%;
+  display: block;
+}
+.rs .rs-gd-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 26px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  max-width: 820px;
+}
+.rs .rs-gd-step {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.rs .rs-gd-step-n {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--go-deep);
+}
+.rs .rs-gd-step-t {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 14.5px;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.rs .rs-gd-step-l {
+  font-family: var(--sans);
+  font-weight: 450;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.rs .rs-gd-door {
+  position: relative;
+  flex: none;
+  width: 500px;
+  background: var(--paper-sunk);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 56px;
+  box-sizing: border-box;
+}
+.rs .rs-gd-doorkicker {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--go-deep);
+}
+.rs .rs-gd-doorh {
+  margin: 14px 0 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-align: center;
+  max-width: 20ch;
+}
+.rs .rs-qr-card {
+  margin: 30px 0 0;
+  padding: 16px;
   background: var(--paper-card);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 20px;
   box-shadow: var(--elev-card);
   display: flex;
 }
-.rs .gate-qr-img,
-.rs .gate-qr-img svg {
+.rs .rs-qr {
+  display: block;
+  width: 240px;
+  height: 240px;
+}
+.rs .rs-qr-img,
+.rs .rs-qr-img svg {
   display: block;
   width: 100%;
   height: 100%;
 }
-.rs .gate-qr-img svg {
-  /* recolour the modules from the encoder's black to the brand's warm ink + shape crisply */
+.rs .rs-qr-img svg {
+  /* recolour the encoder's black modules to the brand's warm ink + shape crisply */
   fill: var(--ink);
   shape-rendering: crispEdges;
 }
-.rs .gate-qr-load {
+.rs .rs-qr-load {
+  display: block;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--paper-sunk);
 }
-.rs .gate-scan-cap {
-  margin: 13px 0 0;
-  font-size: 12.5px;
+.rs .rs-gd-cap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  font-family: var(--sans);
   font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.rs .rs-gd-cap svg {
+  flex: none;
+}
+.rs .rs-gd-divider {
+  width: 100%;
+  max-width: 300px;
+  height: 1px;
+  background: var(--line);
+  margin: 30px 0;
+}
+.rs .rs-gd-noapp {
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 450;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.rs .rs-gd-get {
+  margin: 12px 0 0;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 14.5px;
+  line-height: 1;
+  text-decoration: none;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 13px 24px;
+  color: var(--ink);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.rs .rs-gd-get svg {
+  flex: none;
+}
+.rs .rs-gd-shield {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 34px 0 0;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
-.rs .gate-get {
-  margin-top: 16px;
-  align-self: flex-start;
+.rs .rs-gd-shield svg {
+  flex: none;
+}
+/* narrow desktop windows (a fine pointer, but not wide enough for two panels): stack the door under
+   the pitch so the QR never crushes; the sheet scrolls. */
+@media (max-width: 900px) {
+  .rs .rs-gd {
+    flex-direction: column;
+  }
+  .rs .rs-gd-door {
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .rs .rs-gd-mid {
+    padding: 20px 0;
+  }
 }
 
 /* ---- buttons ---------------------------------------------------------------- */
@@ -743,7 +1090,9 @@ button.challengechip:active {
   .rs .sphereFab .ball,
   .rs .sphereFab .sh,
   .rs .dot-fab .ball,
-  .rs .dot-fab .sh {
+  .rs .dot-fab .sh,
+  .rs .rs-load-dot .ball,
+  .rs .rs-load-dot .sh {
     animation: none;
   }
 }

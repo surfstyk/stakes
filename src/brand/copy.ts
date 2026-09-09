@@ -26,10 +26,17 @@ export const copy = {
     open: en.gate.open,
     reassure: en.gate.reassure,
     get: en.gate.get,
-    foot: en.gate.foot,
     guarantee: en.gate.guarantee,
+    miniapp: en.gate.miniapp,
+    // the desktop scan panel + the how-it-works pitch (design 2026-09-09)
+    scanKicker: en.gate.scanKicker,
+    scanDoorKicker: en.gate.scanDoorKicker,
     scanSub: en.gate.scanSub,
+    scanPanelH: en.gate.scanPanelH,
     scanCap: en.gate.scanCap,
+    noApp: en.gate.noApp,
+    getPlain: en.gate.getPlain,
+    steps: en.gate.steps as ReadonlyArray<{ title: string; line: string }>,
   },
 
   // The claim system (story.md §7) — canonical, so every surface draws the one wording.

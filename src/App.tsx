@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { OpenInNimiqPay } from './product/OpenInNimiqPay.tsx'
-import { Loading } from './product/Loading.tsx'
+import { LoadingScreen } from './reshape/ui.tsx'
 import { ReshapeApp } from './reshape/App.tsx'
 import { setTestMode } from './reshape/data.ts'
 import { DEV_TOOLS } from './lib/flags.ts'
@@ -70,11 +70,13 @@ export function App() {
   // wallet identity + real deposits). Opened outside it, route the user IN instead of letting
   // them silently transact against the mock vault under a throwaway identity.
   if (gate === 'checking') {
+    // The one loading treatment (the .rs companion, not the old .stakes spinner) — the same screen
+    // the app shows on its own first load, so the gate-check never flashes a different design.
     return (
       <>
         {probe}
-        <div className="stakes">
-          <Loading />
+        <div className="rs">
+          <LoadingScreen />
         </div>
       </>
     )
