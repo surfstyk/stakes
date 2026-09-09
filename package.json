@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Stakes — a social commitment game as a Nimiq Pay Mini App (dual-chain recon scaffold)",
+  "license": "MIT",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
