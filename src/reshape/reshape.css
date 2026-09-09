@@ -285,6 +285,45 @@ button.challengechip:active {
   line-height: 1.4;
   color: var(--ink-faint);
 }
+/* the desktop scan-to-phone panel: a QR of the App Link, in a paper card, left with the column */
+.rs .gate-qr {
+  width: 204px;
+  height: 204px;
+  margin: 22px 0 0;
+  padding: 14px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--elev-card);
+  display: flex;
+}
+.rs .gate-qr-img,
+.rs .gate-qr-img svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rs .gate-qr-img svg {
+  /* recolour the modules from the encoder's black to the brand's warm ink + shape crisply */
+  fill: var(--ink);
+  shape-rendering: crispEdges;
+}
+.rs .gate-qr-load {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: var(--paper-sunk);
+}
+.rs .gate-scan-cap {
+  margin: 13px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.rs .gate-get {
+  margin-top: 16px;
+  align-self: flex-start;
+}
 
 /* ---- buttons ---------------------------------------------------------------- */
 .rs .cta {

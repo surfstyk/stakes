@@ -28,6 +28,8 @@ export const copy = {
     get: en.gate.get,
     foot: en.gate.foot,
     guarantee: en.gate.guarantee,
+    scanSub: en.gate.scanSub,
+    scanCap: en.gate.scanCap,
   },
 
   // The claim system (story.md §7) — canonical, so every surface draws the one wording.

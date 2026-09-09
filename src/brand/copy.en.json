@@ -87,7 +87,9 @@
     "reassure": "First time? Nimiq Pay may ask you to confirm. That’s normal.",
     "get": "Don’t have it? Get Nimiq Pay",
     "foot": "A commitment game built on trust, not surveillance.",
-    "guarantee": "Held safe, and back in your pocket."
+    "guarantee": "Held safe, and back in your pocket.",
+    "scanSub": "Stakes lives on your phone. Scan the code to open it in Nimiq Pay.",
+    "scanCap": "Point your phone camera at the code."
   },
 
   "claim": {
