@@ -48,7 +48,10 @@ export function ReshapeApp() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ kind: 'cancel' | 'error' } | null>(null)
 
-  // The landing rule: active run → its screen · else history → Archive · else Create.
+  // The landing rule: active run → its screen · else the cold open. The front door is always the
+  // invitation to commit, never the backward-looking record — a returning wallet with past runs but
+  // nothing live lands on Create, same as a newcomer (the record stays reachable, it just isn't the
+  // landing). Fixes "opening the app drops me on Your Record" (a returning/tester wallet, 2026-09-09).
   async function refresh() {
     const me = await data.getMe()
     setChallenge(me.active)
@@ -61,7 +64,7 @@ export function ReshapeApp() {
       // official & running
       return setView(hasFreshMiss(me.active) ? 'missed' : 'day')
     }
-    setView(me.history.length ? 'archive' : 'main')
+    setView('main')
   }
 
   useEffect(() => {
