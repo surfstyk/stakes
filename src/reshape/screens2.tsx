@@ -301,7 +301,7 @@ export function ArchiveScreen({
   onWordmark: () => void
 }) {
   return (
-    <Frame sphere={<Sphere onClick={() => {}} />} foot={<Cta label={c.record.cta} variant="green" icon={Icon.arrow} onClick={onStart} />}>
+    <Frame sphere={<Sphere faded />} foot={<Cta label={c.record.cta} variant="green" icon={Icon.arrow} onClick={onStart} />}>
       <Wordmark onClick={onWordmark} />
       <h1 className="h" style={{ marginTop: 14 }}>
         {c.record.h}

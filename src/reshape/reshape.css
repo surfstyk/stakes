@@ -484,8 +484,10 @@ button.challengechip:active {
   --dur: 2.6s;
   --lag: 0.55s;
 }
-/* faded + inert on the sealed day (06) and the share card (07): present, but nothing to add */
-.rs .dot-fab.faded {
+/* faded + inert: present, but nothing to add — the sealed day (06), the share card (07), and the
+   Archive dot (no run, no line, nothing to tap). Same 25% treatment across all three. */
+.rs .dot-fab.faded,
+.rs .sphereFab.faded {
   opacity: 0.25;
   pointer-events: none;
 }

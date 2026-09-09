@@ -144,7 +144,20 @@ export function Cta({
 }
 
 // ---- the sphere -------------------------------------------------------------
-export function Sphere({ onClick, raised, motion = 'calm' }: { onClick?: () => void; raised?: boolean; motion?: 'calm' | 'lively' }) {
+export function Sphere({ onClick, raised, motion = 'calm', faded }: { onClick?: () => void; raised?: boolean; motion?: 'calm' | 'lively'; faded?: boolean }) {
+  // faded = present but inert: nothing to say, nothing to tap (the Archive dot). The same 25%
+  // treatment the dot wears on the sealed day (06) and share card (07) — a span, not a button,
+  // so it can't be focused or clicked (design "Rules the build needs", 2026-09-08).
+  if (faded) {
+    return (
+      <span className={'sphereFab faded' + (raised ? ' raised' : '')} aria-hidden="true">
+        <span className="sh" />
+        <span className="ball">
+          <span className="spec" />
+        </span>
+      </span>
+    )
+  }
   return (
     <button
       className={'sphereFab' + (raised ? ' raised' : '') + (motion === 'lively' ? ' lively' : '')}
