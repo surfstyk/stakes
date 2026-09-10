@@ -93,6 +93,7 @@ migrate(`ALTER TABLE challenges ADD COLUMN endedAt INTEGER`)
 migrate(`ALTER TABLE challenges ADD COLUMN seq INTEGER NOT NULL DEFAULT 0`)
 migrate(`ALTER TABLE checkins ADD COLUMN stampTxHash TEXT`)
 migrate(`ALTER TABLE checkins ADD COLUMN stampStatus TEXT`)
+migrate(`ALTER TABLE challenges ADD COLUMN creatorFp TEXT`) // hashed requester network at creation (never a raw IP)
 
 const shortId = () => randomUUID().replace(/-/g, '').slice(0, 8)
 
@@ -111,6 +112,7 @@ export interface NewChallenge {
   templateId?: string // the goal identity (reshape) — null for legacy/CLI rows
   status?: string // defaults to 'window' (the reshape taste); the settler ignores status
   stakedAt?: number | null
+  creatorFp?: string | null // hashed requester network (server/client-ip.ts): the creation box + the tripwire
 }
 
 export function createChallenge(input: NewChallenge): string {
@@ -118,8 +120,8 @@ export function createChallenge(input: NewChallenge): string {
   const seq = (db.prepare(`SELECT COALESCE(MAX(seq), 47) AS m FROM challenges`).get() as { m: number }).m + 1
   db.prepare(
     `INSERT INTO challenges
-       (id, goal, emoji, durationDays, stake, asset, creatorAddress, creatorName, createdAt, lockAt, dayLengthMs, status, templateId, stakedAt, seq)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, goal, emoji, durationDays, stake, asset, creatorAddress, creatorName, createdAt, lockAt, dayLengthMs, status, templateId, stakedAt, seq, creatorFp)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.goal,
@@ -136,6 +138,7 @@ export function createChallenge(input: NewChallenge): string {
     input.templateId ?? null,
     input.stakedAt ?? null,
     seq,
+    input.creatorFp ?? null,
   )
   return id
 }
@@ -386,6 +389,7 @@ export interface ChallengeRow {
   stakedAt: number | null
   endedAt: number | null
   seq: number
+  creatorFp: string | null
 }
 interface ParticipantRow {
   address: string
@@ -617,4 +621,65 @@ export function markWordStampSent(challengeId: string, txHash: string) {
 
 export function markWordStampFailed(challengeId: string, error: string) {
   db.prepare(`UPDATE word_stamps SET attempts = attempts + 1, error = ? WHERE challengeId = ?`).run(error, challengeId)
+}
+
+// ---- client-trust boxes (AUDIT-CYCLE-II.md §9) ---------------------------------------------------
+
+/** The raw row (server-side only: carries creatorFp, which public views must strip). */
+export function getChallengeRow(id: string): ChallengeRow | undefined {
+  return db.prepare(`SELECT * FROM challenges WHERE id = ?`).get(id) as ChallengeRow | undefined
+}
+
+/** Challenges created since `since` — overall, or by one requester network (the creation box). */
+export function countChallengesSince(since: number, creatorFp?: string): number {
+  const r = creatorFp
+    ? (db.prepare(`SELECT COUNT(*) AS n FROM challenges WHERE createdAt >= ? AND creatorFp = ?`).get(since, creatorFp) as { n: number })
+    : (db.prepare(`SELECT COUNT(*) AS n FROM challenges WHERE createdAt >= ?`).get(since) as { n: number })
+  return r.n
+}
+
+// The tripwire log: writes that LOOK like identity griefing (a taste replaced or deleted from a
+// different network than the one that created it). Detect, never block — one honest user switching
+// wifi → mobile trips it too; the alarm (server/alert-due.ts) needs a cluster. Fingerprints only.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS security_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind        TEXT NOT NULL,
+    fp          TEXT,
+    address     TEXT,
+    challengeId TEXT,
+    at          INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS security_events_at ON security_events(at);
+  CREATE TABLE IF NOT EXISTS alerts (
+    kind    TEXT PRIMARY KEY,
+    lastAt  INTEGER NOT NULL,
+    lastMsg TEXT
+  );
+`)
+
+export function recordSecurityEvent(e: { kind: string; fp?: string | null; address?: string | null; challengeId?: string | null }) {
+  db.prepare(`INSERT INTO security_events (kind, fp, address, challengeId, at) VALUES (?, ?, ?, ?, ?)`).run(
+    e.kind,
+    e.fp ?? null,
+    e.address ?? null,
+    e.challengeId ?? null,
+    Date.now(),
+  )
+}
+
+export function countSecurityEventsSince(since: number, kinds?: string[]): number {
+  if (kinds && kinds.length) {
+    const marks = kinds.map(() => '?').join(', ')
+    return (db.prepare(`SELECT COUNT(*) AS n FROM security_events WHERE at >= ? AND kind IN (${marks})`).get(since, ...kinds) as { n: number }).n
+  }
+  return (db.prepare(`SELECT COUNT(*) AS n FROM security_events WHERE at >= ?`).get(since) as { n: number }).n
+}
+
+export function getAlertState(kind: string): { kind: string; lastAt: number; lastMsg: string | null } | undefined {
+  return db.prepare(`SELECT kind, lastAt, lastMsg FROM alerts WHERE kind = ?`).get(kind) as { kind: string; lastAt: number; lastMsg: string | null } | undefined
+}
+
+export function setAlertState(kind: string, at: number, msg: string) {
+  db.prepare(`INSERT INTO alerts (kind, lastAt, lastMsg) VALUES (?, ?, ?) ON CONFLICT(kind) DO UPDATE SET lastAt = excluded.lastAt, lastMsg = excluded.lastMsg`).run(kind, at, msg)
 }

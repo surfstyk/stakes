@@ -17,7 +17,6 @@
 // never-staked one instead of being blocked by it. Full signMessage auth is post-competition.
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { createHash } from 'node:crypto'
 import { openDay } from '../src/vault/schedule.ts'
 import {
   addCheckin,
@@ -25,11 +24,13 @@ import {
   cheer,
   confirmDeposit,
   countActiveFor,
+  countChallengesSince,
   countSeedsSince,
   createChallenge,
   deleteWindowChallenge,
   getActiveRowFor,
   getChallenge,
+  getChallengeRow,
   getHistoryRowsFor,
   getSeed,
   getSettlement,
@@ -37,6 +38,7 @@ import {
   isDepositHashUsed,
   joinChallenge,
   keptDaysFor,
+  recordSecurityEvent,
   requestSeed,
   requestWordStamp,
   reshapeCheckinsFor,
@@ -46,6 +48,9 @@ import {
 } from './db.ts'
 import { HASH_RE, lookupStakeDeposit, normAddr } from './rpc.ts'
 import { verifyChallenge } from './verify.ts'
+import { requesterHash } from './client-ip.ts'
+import { isValidNq, prettyNq } from './nq.ts'
+import { seedCapsFromEnv, seedVerdict } from './seed-policy.ts'
 
 const GRACE_MS = 15 * 60_000
 const WEEK_MS = 7 * 86400_000
@@ -171,31 +176,32 @@ const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : N
 
 // ---- the seed faucet (ONBOARDING.md §7.5 abuse box) ----------------------------------------
 // Hacking welcome. One seed per (wallet, challenge) — a returning wallet re-seeds per challenge
-// (stakes-seed-policy-2026-09-06). The only guards are a per-IP daily limit, a deliberately HIGH
-// global daily cap, and a kill switch. The API only QUEUES; the isolated settle service signs +
-// sends (server/seed-due.ts).
-//
-// Why the cap is high, not unlimited (math on the 2026-09-06 treasury, ~11,138 NIM): each seed is
-// SEED_LUNA = 0.1 NIM. The per-IP cap (20/day = 2 NIM/day per attacker) is the real throttle — a
-// lone abuser bleeds ~2 NIM/day, so ~5,500 days to drain. Maxing the global 2,000/day cap needs a
-// sustained ~100-IP botnet (200 NIM/day → ~56 days to drain), to steal a treasury worth ~€20–60,
-// in the open, with STAKES_SEED_OFF=1 as the stop. So: high enough to be "hack it if you want,"
-// bounded enough that seeds can never quietly starve settlement (payouts share this treasury).
-// Reverse to a tight cap when real money is genuinely on it.
+// (stakes-seed-policy-2026-09-06). The API only QUEUES; the isolated settle service signs + sends
+// (server/seed-due.ts). What bounds it lives in server/seed-policy.ts, learned from the 2026-09-09
+// farm (AUDIT-CYCLE-II.md §9): a global 24h cap (the treasury bound), an HOURLY ceiling (the
+// burn-rate bound — emptying the day takes ≥ 10 h, and the settle tick's alarm fires within
+// minutes, server/alert-due.ts), a per-network daily cap, and a NEWCOMER lane: a network's first
+// seed of the day is served while any budget remains, repeats only while the day is under half
+// spent. A free faucet to fresh wallets can't be made un-farmable without a cost at the client,
+// and the zero-dialog onboarding forbids every visible cost — so the goal is that farming never
+// takes the seed from a real newcomer, and that we see it. The network identity is the Caddy-set
+// X-Real-IP (server/client-ip.ts). Kill switch STAKES_SEED_OFF=1.
 const SEED_LUNA = Number(process.env.STAKES_SEED_LUNA ?? 10_000) // 0.1 NIM ≈ a month of dust stamps
-const SEED_DAILY_CAP = Number(process.env.STAKES_SEED_DAILY_CAP ?? 2_000)
-const SEED_PER_IP_DAILY = Number(process.env.STAKES_SEED_PER_IP_DAILY ?? 20)
 const SEED_OFF = process.env.STAKES_SEED_OFF === '1'
 const DAY = 86400_000
-// Nimiq user-friendly address: NQ + 2 check digits + 32 base32 chars (0-9 A-H J-N P-V X Y).
-const NQ_RE = /^NQ\d{2}[0-9A-HJ-NP-VXY]{32}$/
-const normNq = (s: string) => s.replace(/\s+/g, '').toUpperCase()
-const prettyNq = (s: string) => normNq(s).replace(/(.{4})(?=.)/g, '$1 ')
-// Requester fingerprint: hashed first-hop IP (Caddy sets X-Forwarded-For); never stored raw.
-function requesterHash(req: IncomingMessage): string {
-  const xff = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim()
-  const ip = xff || req.socket.remoteAddress || '?'
-  return createHash('sha256').update(`stakes-seed:${ip}`).digest('hex').slice(0, 16)
+const HOUR = 3600_000
+// The creation box (AUDIT §9 C4): bounds junk-row amplification from one network. 100/day is far
+// above honest use (browsing the deck creates a handful) and leaves a shared wifi / CGNAT address room.
+const createPerIpDaily = () => Number(process.env.STAKES_CREATE_PER_IP_DAILY ?? 100)
+
+/** The tripwire (AUDIT §9 C2): log a write that looks like identity griefing. Never blocks. */
+function foreignWrite(kind: 'taste-replaced-foreign' | 'taste-deleted-foreign', fp: string, address: string, challengeId: string) {
+  try {
+    recordSecurityEvent({ kind, fp, address, challengeId })
+  } catch {
+    /* the tripwire never fails the request */
+  }
+  console.warn(`[security] ${kind} ${challengeId} (${address.slice(0, 9)}…) by ${fp}`)
 }
 
 // Public serialization of a challenge view. Strips server-internal deposit fields
@@ -221,8 +227,10 @@ function settlementView(id: string) {
 
 function publicChallenge(view: ReturnType<typeof getChallenge>) {
   if (!view) return view
+  const { creatorFp, ...pub } = view
+  void creatorFp // server-internal (the tripwire); never on the wire
   return {
-    ...view,
+    ...pub,
     participants: view.participants.map(({ depositTxHash, depositConfirmed, ...rest }) => rest),
     settlement: settlementView(view.id),
   }
@@ -276,6 +284,11 @@ export const server = createServer(async (req, res) => {
       const goal = str(b.goal)
       const creatorAddress = str(b.creatorAddress)
       if (!goal || !creatorAddress) return send(res, 400, { error: 'goal and creatorAddress required' })
+      // On real money the creator must be a real Nimiq address (checksum, not just shape): the run is
+      // tagged, seeded and paid to it. Mock/dev keeps its DEV- identities.
+      if (realMoney() && !isValidNq(creatorAddress)) return send(res, 400, { error: 'a Nimiq address is required' })
+      const who = requesterHash(req)
+      if (countChallengesSince(Date.now() - DAY, who) >= createPerIpDaily()) return send(res, 429, { error: 'too many new challenges from this network today' })
       // The invariant, enforced at the API (the trust boundary): ≤1 live run per address.
       // A finished/lapsed run is retired first. A never-staked taste is REPLACED, not a blocker:
       // it holds no money and no progress, and writes aren't signed (SEC-04) — if it could block,
@@ -286,7 +299,9 @@ export const server = createServer(async (req, res) => {
         const term = computeTerminal(existing, Date.now())
         if (term) archiveChallenge(existing.id, term)
         else if (existing.status === 'window' && !existing.stakedAt && deleteWindowChallenge(existing.id)) {
-          /* replaced */
+          // Replaced. Tripwire: a live taste replaced from a different network than the one that
+          // created it is what identity griefing looks like (AUDIT §9 C2). Detect, never block.
+          if (existing.creatorFp && existing.creatorFp !== who) foreignWrite('taste-replaced-foreign', who, creatorAddress, existing.id)
         } else return send(res, 409, { error: 'you already have a challenge running' })
       }
       // The compressed "fast clock" is a dev/testnet affordance only (the client strips it from
@@ -309,6 +324,7 @@ export const server = createServer(async (req, res) => {
         dayLengthMs,
         status: 'window',
         templateId: str(b.templateId) || undefined,
+        creatorFp: who,
       })
       return send(res, 201, reshapeChallenge(getActiveRowFor(creatorAddress)!))
     }
@@ -318,16 +334,19 @@ export const server = createServer(async (req, res) => {
       const b = await readJson(req)
       const address = str(b.address)
       const challengeId = str(b.challengeId)
-      if (!NQ_RE.test(normNq(address))) return send(res, 400, { error: 'a Nimiq address is required' })
+      if (!isValidNq(address)) return send(res, 400, { error: 'a Nimiq address is required' })
       if (!challengeId || !getChallenge(challengeId)) return send(res, 404, { error: 'challenge not found' })
       const addr = prettyNq(address)
       const existing = getSeed(addr, challengeId)
       if (existing) return send(res, 200, { status: 'exists', seeded: existing.status === 'sent' })
       if (SEED_OFF) return send(res, 503, { error: 'seeding is paused' })
-      const since = Date.now() - DAY
-      if (countSeedsSince(since) >= SEED_DAILY_CAP) return send(res, 429, { error: 'seed cap reached for today' })
+      const now = Date.now()
       const who = requesterHash(req)
-      if (countSeedsSince(since, who) >= SEED_PER_IP_DAILY) return send(res, 429, { error: 'too many seeds from this network today' })
+      const verdict = seedVerdict(
+        { total24h: countSeedsSince(now - DAY), total1h: countSeedsSince(now - HOUR), byIp24h: countSeedsSince(now - DAY, who) },
+        seedCapsFromEnv(),
+      )
+      if (!verdict.ok) return send(res, 429, { error: verdict.error })
       const status = requestSeed({ address: addr, challengeId, ipHash: who, luna: SEED_LUNA })
       return send(res, 200, { status, seeded: false })
     }
@@ -344,7 +363,11 @@ export const server = createServer(async (req, res) => {
 
       // DELETE /api/challenges/:id — the mis-tap exit: drop a never-staked taste (J4)
       if (method === 'DELETE' && seg.length === 3) {
-        return send(res, 200, { deleted: deleteWindowChallenge(id) })
+        const row = getChallengeRow(id)
+        const who = requesterHash(req)
+        const deleted = deleteWindowChallenge(id)
+        if (deleted && row?.creatorFp && row.creatorFp !== who) foreignWrite('taste-deleted-foreign', who, row.creatorAddress, id)
+        return send(res, 200, { deleted })
       }
 
       // POST /api/challenges/:id/official  { address, durationDays, stake, depositTxHash }

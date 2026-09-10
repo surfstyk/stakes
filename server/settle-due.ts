@@ -14,6 +14,7 @@
 import { listEndedUnsettled } from './db.ts'
 import { seedDue } from './seed-due.ts'
 import { wordDue } from './word-due.ts'
+import { alertDue } from './alert-due.ts'
 import { settleChallenge } from './settle-core.ts'
 import { loadTreasury, treasuryAddress } from './treasury.ts'
 
@@ -37,6 +38,15 @@ async function main() {
   // Commitment mirrors: the "made it official" moment onto the public feed ("<X> NIM on the word").
   const w = await wordDue({ execute, kp, log: (m) => console.log(m) })
   if (w.planned) console.log(`[settle-due] commitment stamps: ${w.planned} pending, ${w.sent} sent, ${w.failed} failed${w.skipped ? ` — ${w.skipped}` : ''}`)
+
+  // The burst alarm (AUDIT §9): seed farm / identity griefing / creation flood → journal + webhook.
+  // Never blocks settlement.
+  try {
+    const a = await alertDue({ log: (m) => console.log(m) })
+    if (a.fired.length) console.log(`[settle-due] alerts fired: ${a.fired.join(', ')}`)
+  } catch (e) {
+    console.error(`[settle-due] alert check failed — ${(e as Error).message}`)
+  }
 
   const tally: Record<string, number> = {}
   let paidOut = 0
