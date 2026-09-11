@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit",
     "typecheck:server": "tsc -p tsconfig.server.json",
     "test": "node --import tsx --test server/*.test.ts src/**/*.test.ts",
+    "build:mock": "vite build --config vite.mock.config.mts",
+    "preview:mock": "vite preview --config vite.mock.config.mts",
+    "test:e2e": "playwright test flow.spec.ts crawl.spec.ts",
     "api": "node --env-file-if-exists=.env.local --import tsx server/api.ts",
     "treasury:check": "node --env-file=.env.local --import tsx server/check.ts",
     "deposits": "node --env-file=.env.local --import tsx server/deposits.ts",
@@ -27,6 +30,7 @@
   },
   "devDependencies": {
     "@nimiq/core": "^2.7.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

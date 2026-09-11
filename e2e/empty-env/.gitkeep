@@ -1,0 +1,2 @@
+# Empty on purpose: vite `envDir` points here for the mock build so .env.local
+# (real treasury/stamp) is ignored -> IS_MOCK true + DEV_TOOLS on. See vite.mock.config.mts.

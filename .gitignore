@@ -65,3 +65,9 @@ server/plan.json
 *.db
 *.db-shm
 *.db-wal
+
+# E2E (Playwright) — mock build output + run artifacts
+dist-mock/
+test-results/
+playwright-report/
+.playwright/

@@ -24,8 +24,25 @@ jobs:
       - name: Test
         run: npm test
 
+  # Gate: the Playwright harness drives the real (mock) build headlessly — the golden path never
+  # blanks, and no screen is a dead end or overflows the phone frame. Separate job so the browser
+  # download doesn't slow the unit gate; deploy waits on both.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E (flow + crawl)
+        run: npm run test:e2e
+
   deploy:
-    needs: test
+    needs: [test, e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
