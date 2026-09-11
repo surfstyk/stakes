@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, HistoryItem } from './model.ts'
 import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver, keptDays } from './model.ts'
@@ -47,6 +47,12 @@ export function ReshapeApp() {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ kind: 'cancel' | 'error' } | null>(null)
+  // One action at a time. `busy` drives the UI but is React state (a stale-closure read across
+  // an await); this ref is the synchronous truth that blocks a re-entrant call in the same tick —
+  // a double-tapped Start (or a tap during a slow create) used to fire two `startChallenge`s and
+  // leave the client's challenge pointing at a run the server had already replaced, which is how
+  // "Make it official" could surface blank (user bug report 2026-09-11). One create, always.
+  const inFlight = useRef(false)
 
   // The landing rule: active run → its screen · else the cold open. The front door is always the
   // invitation to commit, never the backward-looking record — a returning wallet with past runs but
@@ -123,6 +129,9 @@ export function ReshapeApp() {
   const home = () => void refresh()
 
   async function guard(fn: () => Promise<void>) {
+    // Drop a re-entrant call outright — never queue a second native op / create behind the first.
+    if (inFlight.current) return
+    inFlight.current = true
     setError(null)
     setBusy(true)
     // Latch "a native op is in flight" so the resume-heal reload (#209 Step 2) can never fire
@@ -136,6 +145,7 @@ export function ReshapeApp() {
       if (import.meta.env.DEV) console.warn('[stakes] action failed:', e)
       setError({ kind: isUserCancel(e) ? 'cancel' : 'error' })
     } finally {
+      inFlight.current = false
       setBusy(false)
       markSensitiveOp(false)
     }
@@ -203,7 +213,7 @@ export function ReshapeApp() {
     return <LoadingScreen />
   }
   if (view === 'main' || (!challenge && view !== 'archive')) {
-    return <MainScreenLoader onStart={onStart} onWordmark={home} />
+    return <MainScreenLoader onStart={onStart} onWordmark={home} busy={busy} />
   }
   if (view === 'archive') {
     return (
@@ -215,7 +225,7 @@ export function ReshapeApp() {
       />
     )
   }
-  if (!challenge) return <MainScreenLoader onStart={onStart} onWordmark={home} />
+  if (!challenge) return <MainScreenLoader onStart={onStart} onWordmark={home} busy={busy} />
 
   switch (view) {
     case 'taste':
@@ -277,10 +287,10 @@ export function ReshapeApp() {
 }
 
 // The Main screen needs the social counters — a tiny loader so the deck renders once they arrive.
-function MainScreenLoader({ onStart, onWordmark }: { onStart: (t: Template) => void; onWordmark: () => void }) {
+function MainScreenLoader({ onStart, onWordmark, busy }: { onStart: (t: Template) => void; onWordmark: () => void; busy?: boolean }) {
   const [social, setSocial] = useState<{ startedThisWeek: Record<string, number> } | null>(null)
   useEffect(() => {
     void data.getSocial().then(setSocial)
   }, [])
-  return <MainScreen social={social ?? { startedThisWeek: {} }} onStart={onStart} onWordmark={onWordmark} />
+  return <MainScreen social={social ?? { startedThisWeek: {} }} onStart={onStart} onWordmark={onWordmark} busy={busy} />
 }

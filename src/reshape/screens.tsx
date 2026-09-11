@@ -22,13 +22,13 @@ function useNow(active: boolean, fast = false): number {
 // ============================================================================
 // 1 · Main — the swipe deck (the new front door)
 // ============================================================================
-export function MainScreen({ social, onStart, onWordmark }: { social: Social; onStart: (t: Template) => void; onWordmark: () => void }) {
+export function MainScreen({ social, onStart, onWordmark, busy }: { social: Social; onStart: (t: Template) => void; onWordmark: () => void; busy?: boolean }) {
   // Track the card the deck is currently showing so the pinned foot CTA starts THAT one —
   // it used to hardcode TEMPLATES[0], so swiping to another card then tapping the button
   // silently started "No sugar" (rehearsal bug 2026-08-31).
   const [sel, setSel] = useState<Template>(TEMPLATES[0])
   return (
-    <Frame foot={<Cta label={c.main.cta} variant="blue" icon={Icon.arrow} onClick={() => onStart(sel)} />}>
+    <Frame foot={<Cta label={c.main.cta} variant="blue" icon={Icon.arrow} onClick={() => onStart(sel)} disabled={busy} />}>
       <Wordmark onClick={onWordmark} />
       <div style={{ marginTop: 22 }}>
         <p className="kicker" style={{ margin: '0 0 8px' }}>

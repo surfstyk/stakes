@@ -43,8 +43,13 @@ export function pickLine(templateId: string, dayIndex: number, tap: number, mome
   let pool = LINES.filter((l) => inScope(l) && (l.category === cat || l.category === 'any'))
   if (pool.length === 0) pool = LINES.filter(inScope)
   if (pool.length === 0) pool = LINES.filter(notContext)
-
-  const i = (((dayIndex * 7 + tap) % pool.length) + pool.length) % pool.length
+  // The sphere is rendered on every commit/day screen; a throw here blanks the whole app. So this
+  // stays TOTAL: an empty pool (never expected) yields a calm baseline, and non-finite inputs (a
+  // challenge with a bad clock → NaN dayIndex) are coerced, not indexed with (NaN % 0 = NaN).
+  if (pool.length === 0) return { text: 'One day at a time.', source: null }
+  const d = Number.isFinite(dayIndex) ? Math.trunc(dayIndex) : 0
+  const t = Number.isFinite(tap) ? Math.trunc(tap) : 0
+  const i = (((d * 7 + t) % pool.length) + pool.length) % pool.length
   const l = pool[i]
   return { text: l.text, source: l.source }
 }
