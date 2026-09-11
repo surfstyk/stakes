@@ -153,19 +153,14 @@ export function ReshapeApp() {
 
   const onStart = (t: Template) =>
     guard(async () => {
-      // Point 2 (handoff 2026-09-04): starting a different challenge while a taste is still
-      // running silently REPLACES it — the soft escape, no cancel dialog. Only ever a taste
-      // (unstaked `window`); a staked run is forward-only and never reached from the picker.
-      if (challenge && effectiveStatus(challenge) === 'window') {
-        await data.deleteAttempt(challenge.id)
-      }
+      // The picker is only ever reached with no active taste: a started challenge is forward-only,
+      // its pill is inert, and nothing routes a live taste back here (the no-cancel law — the
+      // soft-cancel/replace path was removed 2026-09-11). startChallenge itself rejects if a run is
+      // somehow still live, so a taste can never be silently discarded to start another.
       const ch = await data.startChallenge(t.id)
       setChallenge(ch)
       setView('taste')
     })
-
-  // The challenge chip's tap during a taste → back to the picker (where starting another replaces it).
-  const toPicker = () => setView('main')
 
   const onOfficial = (stake: { perDay: number; days: number }) =>
     guard(async () => {
@@ -229,9 +224,9 @@ export function ReshapeApp() {
 
   switch (view) {
     case 'taste':
-      return <TasteScreen challenge={challenge} onMakeCount={() => setView('official')} onPicker={toPicker} onWordmark={home} />
+      return <TasteScreen challenge={challenge} onMakeCount={() => setView('official')} onWordmark={home} />
     case 'official':
-      return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onPicker={toPicker} onWordmark={home} />
+      return <MakeOfficialScreen challenge={challenge} busy={busy} error={error} onOfficial={onOfficial} onWordmark={home} />
     case 'sealShare':
       return (
         <SealShareScreen

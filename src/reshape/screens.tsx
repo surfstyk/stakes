@@ -59,12 +59,10 @@ function CarouselSelector({ social, onIndexChange }: { social: Social; onIndexCh
 export function TasteScreen({
   challenge,
   onMakeCount,
-  onPicker,
   onWordmark,
 }: {
   challenge: Challenge
   onMakeCount: () => void
-  onPicker: () => void
   onWordmark: () => void
 }) {
   const now = useNow(true, true)
@@ -77,7 +75,7 @@ export function TasteScreen({
       sphere={<SphereWithPick challenge={challenge} />}
       foot={<Cta label={c.taste.cta} variant="blue" icon={Icon.arrow} onClick={onMakeCount} />}
     >
-      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <h1 className="h" style={{ fontSize: 36, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
         {c.taste.h}
       </h1>
@@ -105,14 +103,12 @@ export function MakeOfficialScreen({
   busy,
   error,
   onOfficial,
-  onPicker,
   onWordmark,
 }: {
   challenge: Challenge
   busy: boolean
   error: { kind: 'cancel' | 'error' } | null
   onOfficial: (stake: { perDay: number; days: number }) => void
-  onPicker: () => void
   onWordmark: () => void
 }) {
   const [pdi, setPdi] = useState(1) // 100 NIM/day
@@ -126,7 +122,7 @@ export function MakeOfficialScreen({
       sphere={<SphereWithPick challenge={challenge} />}
       foot={<Cta label={busy ? c.official.busy : c.official.cta} variant="blue" onClick={() => onOfficial({ perDay, days })} disabled={busy} />}
     >
-      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} onPicker={onPicker} />} />
+      <TopBar onWordmark={onWordmark} chip={<ChallengeChip challenge={challenge} />} />
       <div style={{ marginTop: 16 }}>
         <h1 className="h" style={{ fontSize: 32, maxWidth: '18ch' }}>
           {c.official.h}

@@ -105,28 +105,20 @@ export function TopBar({ onWordmark, chip }: { onWordmark?: () => void; chip?: R
 }
 
 // The challenge indicator: name + a day-hex glyph. Name-only during the taste (durationDays not
-// chosen yet); name + "Day n of N" once it's a running stake. Tappable back to the picker ONLY
-// pre-commit — choosing a different one there silently replaces the taste (the escape, point 2).
-// Never tappable once money is on it (forward-only). One green dot, never a bead: the live sphere
-// stays the single vermilion bead on the surface.
-export function ChallengeChip({ challenge, onPicker }: { challenge: Challenge; onPicker?: () => void }) {
+// chosen yet); name + "Day n of N" once it's a running stake. Never tappable: a started challenge
+// is forward-only, and there is no path back to the picker from it. The only way to step one is to
+// let the 24h taste window lapse (the no-cancel law — no soft-cancel over this pill, decided
+// 2026-09-11). One green dot, never a bead: the live sphere stays the single vermilion bead.
+export function ChallengeChip({ challenge }: { challenge: Challenge }) {
   const label = TEMPLATES.find((t) => t.id === challenge.templateId)?.label ?? challenge.goal
   const running = effectiveStatus(challenge) === 'official'
   const day = running ? Math.min(currentDay(challenge) + 1, challenge.durationDays) : 0
-  const tappable = effectiveStatus(challenge) === 'window' && !!onPicker
-  const inner = (
-    <>
+  return (
+    <span className="challengechip">
       <span className="cc-dot" />
       <span className="cc-name">{label}</span>
       {running && <span className="cc-day">{copy.rs.chip.dayOfN(day, challenge.durationDays)}</span>}
-    </>
-  )
-  return tappable ? (
-    <button className="challengechip" onClick={onPicker} aria-label={copy.a11y.changeChallenge}>
-      {inner}
-    </button>
-  ) : (
-    <span className="challengechip">{inner}</span>
+    </span>
   )
 }
 
