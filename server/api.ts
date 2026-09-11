@@ -23,7 +23,6 @@ import {
   archiveChallenge,
   cheer,
   confirmDeposit,
-  countActiveFor,
   countChallengesSince,
   countSeedsSince,
   createChallenge,

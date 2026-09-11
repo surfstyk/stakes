@@ -183,7 +183,7 @@ export function countActiveFor(address: string): number {
 export function getHistoryRowsFor(address: string): ChallengeRow[] {
   return db
     .prepare(`SELECT * FROM challenges WHERE creatorAddress=? AND status IN ('ended','lapsed','settled') ORDER BY COALESCE(endedAt, createdAt) DESC`)
-    .all(address) as ChallengeRow[]
+    .all(address) as unknown as ChallengeRow[]
 }
 
 /** A participant's check-ins with the stamp fields (reshape serialization). */
@@ -417,13 +417,13 @@ export function getChallenge(id: string) {
       `SELECT address, name, joinedAt, depositTxHash, depositConfirmed
          FROM participants WHERE challengeId = ? ORDER BY joinedAt ASC`,
     )
-    .all(id) as ParticipantRow[]
+    .all(id) as unknown as ParticipantRow[]
   const checkins = db
     .prepare(
       `SELECT id, address, day, note, emoji, at, cheers
          FROM checkins WHERE challengeId = ? ORDER BY at ASC`,
     )
-    .all(id) as CheckinRow[]
+    .all(id) as unknown as CheckinRow[]
   return { ...c, participants, checkins }
 }
 
@@ -559,7 +559,7 @@ export function countSeedsSince(since: number, ipHash?: string): number {
 export function listPendingSeeds(limit = 50, maxAttempts = 5): SeedRow[] {
   return db
     .prepare(`SELECT * FROM seeds WHERE status = 'pending' AND attempts < ? ORDER BY requestedAt ASC LIMIT ?`)
-    .all(maxAttempts, limit) as SeedRow[]
+    .all(maxAttempts, limit) as unknown as SeedRow[]
 }
 
 export function markSeedSent(address: string, challengeId: string, txHash: string) {
@@ -612,7 +612,7 @@ export function getWordStamp(challengeId: string): WordStampRow | undefined {
 export function listPendingWordStamps(limit = 50, maxAttempts = 5): WordStampRow[] {
   return db
     .prepare(`SELECT * FROM word_stamps WHERE status = 'pending' AND attempts < ? ORDER BY requestedAt ASC LIMIT ?`)
-    .all(maxAttempts, limit) as WordStampRow[]
+    .all(maxAttempts, limit) as unknown as WordStampRow[]
 }
 
 export function markWordStampSent(challengeId: string, txHash: string) {

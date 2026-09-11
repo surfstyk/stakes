@@ -267,7 +267,7 @@ async function realMoney<T>(chain: (treasury: string, id: string, hash: string) 
     Object.assign(chainDeps, saved)
   }
 }
-const depositOf = (id: string, hash: string, nim: number) => ({ from: 'NQ15 PG6C SOME SUB ADDR', valueLuna: nim * 100_000, hash, at: 1 })
+const depositOf = (_id: string, hash: string, nim: number) => ({ from: 'NQ15 PG6C SOME SUB ADDR', valueLuna: nim * 100_000, hash, at: 1 })
 
 test('real money: /official without a deposit hash is refused (402) and the run stays a taste', async () => {
   const addr = 'NQ77 7777 7777 7777 7777 7777 7777 7777 7777'

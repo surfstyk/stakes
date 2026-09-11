@@ -1,0 +1,26 @@
+{
+  // The base tsconfig only includes src/ (Vite's world), so server/*.ts — api.ts, settle.ts,
+  // treasury.ts, the cron workers — was NEVER typechecked. tsx runs it untyped, so a type error
+  // there reached production silently (see server/reshape.test.ts header). This config closes that:
+  // `npm run typecheck:server` is a CI gate alongside the src typecheck and the test run.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["ES2022"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "types": ["node"]
+  },
+  "include": ["server"]
+}

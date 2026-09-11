@@ -6,7 +6,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Gate: nothing deploys unless the whole suite + both typechecks are green. server/*.ts is
+  # not covered by the src typecheck (tsconfig only includes src/), so it gets its own pass.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Typecheck (app)
+        run: npm run typecheck
+      - name: Typecheck (server)
+        run: npm run typecheck:server
+      - name: Test
+        run: npm test
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
