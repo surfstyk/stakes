@@ -206,6 +206,8 @@
     "day": {
       "h": "Today is the whole game.",
       "sub": "Do it once today, any way you like. This day closes at {closeTime} {when} — {hoursLeft} hours left.",
+      "contKickerOne": "1 day banked and safe · today is day {day}",
+      "contKicker": "{n} days banked and safe · today is day {day}",
       "ridingLbl": "Riding on today",
       "ridingNote": "Win it and it's yours. That's the only number that matters right now.",
       "bankedN": "{n} days banked",

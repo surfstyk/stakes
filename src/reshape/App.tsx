@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { copy } from '../brand/index.ts'
 import type { Challenge, HistoryItem } from './model.ts'
-import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver } from './model.ts'
+import { currentDay, effectiveStatus, goalRecord, hasFreshMiss, isRunOver, keptDays } from './model.ts'
 import { data, devSeed, hasKnownIdentity, type SeedKind } from './data.ts'
 import type { Template } from './templates.ts'
 import { DEV_TOOLS } from '../lib/flags.ts'
@@ -75,6 +75,7 @@ export function ReshapeApp() {
         'seed-taste': 'taste',
         'view-official': 'taste',
         'seed-day': 'day',
+        'seed-day2of3': 'day2of3',
         'seed-longrun': 'long',
         'seed-sealed': 'sealed',
         'view-seal': 'sealone',
@@ -225,9 +226,13 @@ export function ReshapeApp() {
       return (
         <SealShareScreen
           challenge={challenge}
-          onShare={() =>
-            void share(currentDay(challenge) === 0 ? copy.share.sealDay1(challenge.emoji, challenge.goal) : copy.share.dayKept(challenge.emoji, challenge.goal))
-          }
+          onShare={() => {
+            // Match the postcard: it shows the most recent kept day, so the share line does too
+            // (day-one wording only when day one is the newest kept day).
+            const k = keptDays(challenge)
+            const lastKept = k.size ? Math.max(...k) : currentDay(challenge)
+            void share(lastKept === 0 ? copy.share.sealDay1(challenge.emoji, challenge.goal) : copy.share.dayKept(challenge.emoji, challenge.goal))
+          }}
           onWordmark={home}
         />
       )

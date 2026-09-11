@@ -112,6 +112,10 @@ export const copy = {
       h: en.rs.day.h,
       sub: (closeTime: string, hoursLeft: number, tomorrow: boolean) =>
         fmt(en.rs.day.sub, { closeTime, hoursLeft, when: tomorrow ? 'tomorrow' : 'today' }),
+      // The returning-to-a-new-day eyebrow: names the banked days as safe and today as a fresh
+      // day, so "I did it today" reads as a NEW day's move, never a re-sign of what you just did.
+      contKicker: (kept: number, day: number) =>
+        kept === 1 ? fmt(en.rs.day.contKickerOne, { day }) : fmt(en.rs.day.contKicker, { n: kept, day }),
       ridingLbl: en.rs.day.ridingLbl,
       ridingNote: en.rs.day.ridingNote,
       cta: en.rs.day.cta,

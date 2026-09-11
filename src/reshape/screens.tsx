@@ -259,7 +259,15 @@ export function DayScreen({
         </>
       ) : (
         <>
-          <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 26, maxWidth: '16ch' }}>
+          {/* Returning to a rolled-over day: name the banked days as safe and today as a fresh day,
+              so the CTA below reads as a NEW day's move, not a re-sign of what you already did
+              (bug report 2026-09-11). Only when something is already banked (cur ≥ 1). */}
+          {keptCount > 0 && (
+            <p className="kicker" style={{ marginTop: 26, marginBottom: 8 }}>
+              {c.day.contKicker(keptCount, dayNum)}
+            </p>
+          )}
+          <h1 className="h" style={{ fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em', marginTop: keptCount > 0 ? 0 : 26, maxWidth: '16ch' }}>
             {c.day.h}
           </h1>
           <p className="sub" style={{ marginTop: 10, maxWidth: '32ch', fontSize: 15 }}>
@@ -276,6 +284,13 @@ export function DayScreen({
             </div>
           </div>
           {keptCount > 0 && <DayChain marks={chain} keptCount={keptCount} safe={safe} todayFill={dayFill(challenge, now)} />}
+          {/* The banked win stays shareable after the day rolls: this link raises the same 07 postcard
+              (for the most recent kept day), so yesterday's proof is never stranded (bug report 2026-09-11). */}
+          {keptCount > 0 && (
+            <button className="textlink" onClick={onShowSomeone} style={{ alignSelf: 'flex-start', marginTop: 6 }}>
+              {c.day.showSomeone}
+            </button>
+          )}
           {error && (
             <p className="sub" style={{ color: 'var(--stake)', marginTop: 16 }}>
               {c.day.err}
@@ -299,8 +314,12 @@ export function SealShareScreen({
   onShare: () => void
   onWordmark: () => void
 }) {
-  const cur = currentDay(challenge)
-  const kept = keptDays(challenge).size
+  // Show the most recent BANKED day, not the open one — so this postcard works both right after a
+  // seal (that day is the newest kept) and when raised later from an unsealed day's "Show someone"
+  // link (it shows yesterday's kept day + its proof, never a blank not-yet-sealed day).
+  const keptSet = keptDays(challenge)
+  const cur = keptSet.size ? Math.max(...keptSet) : currentDay(challenge)
+  const kept = keptSet.size
   const perDay = challenge.durationDays ? Math.round(challenge.stake / challenge.durationDays) : 0
   const safe = kept * perDay
   const stampTx = challenge.checkins.find((k) => k.day === cur)?.stampTxHash

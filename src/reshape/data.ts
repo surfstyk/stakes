@@ -470,6 +470,7 @@ export const IS_MOCK_DATA = IS_MOCK
 export type SeedKind =
   | 'taste'
   | 'day'
+  | 'day2of3'
   | 'long'
   | 'sealed'
   | 'sealone'
@@ -524,6 +525,9 @@ export function devSeed(kind: SeedKind): void {
       break
     case 'day': // day 3 open, days 1–2 kept
       active = base({ ...staked, stakedAt: now - Math.floor(len * 2.4), lockAt: now - Math.floor(len * 2.4), checkins: kept(2) })
+      break
+    case 'day2of3': // the bug-report state: 3-day run, day 2 open, day 1 banked (staked late in day 0)
+      active = base({ status: 'official', durationDays: 3, stake: 300, stakedAt: now - Math.floor(len * 0.3), lockAt: now - Math.floor(len * 1.05), checkins: kept(1) })
       break
     case 'long': // day 24 of a 30-day run, 23 kept → the chain-cap ("+14 earlier", 2,300 NIM safe)
       active = base({ status: 'official', durationDays: 30, stake: 3000, stakedAt: now - Math.floor(len * 23.4), lockAt: now - Math.floor(len * 23.4), checkins: kept(23) })
