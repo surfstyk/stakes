@@ -1,5 +1,5 @@
-// The burst alarm (server/alert-due.ts) — thresholds, cooldown, and the two webhook formats. All offline:
-// a temp DB, an injected fetch that records calls.
+// The burst alarm (server/alert-due.ts) — thresholds, cooldown, and the telegram + JSON webhook formats.
+// All offline: a temp DB, an injected fetch that records calls.
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -34,25 +34,24 @@ function recorder() {
 
 test('quiet state fires nothing and calls no webhook', async () => {
   const { calls, f } = recorder()
-  const r = await alertDue({ env: { ...quiet, STAKES_ALERT_WEBHOOK: 'https://ntfy.sh/x' }, fetchImpl: f })
+  const r = await alertDue({ env: { ...quiet, STAKES_ALERT_WEBHOOK: 'https://api.telegram.org/bot1:ABC/sendMessage', STAKES_ALERT_CHAT_ID: '42' }, fetchImpl: f })
   assert.deepEqual(r.fired, [])
   assert.equal(calls.length, 0)
 })
 
-test('a seed burst fires once, posts ntfy-style text, then is suppressed by the cooldown', async () => {
+test('a seed burst fires once, posts to telegram, then is suppressed by the cooldown', async () => {
   const id = challenge()
   for (let i = 0; i < 3; i++) db.requestSeed({ address: nqAddr(), challengeId: id, ipHash: 'burst', luna: 1 })
   const { calls, f } = recorder()
-  const env = { ...quiet, STAKES_ALERT_SEED_10M: '3', STAKES_ALERT_WEBHOOK: 'https://ntfy.sh/stakes-test' }
+  const env = { ...quiet, STAKES_ALERT_SEED_10M: '3', STAKES_ALERT_WEBHOOK: 'https://api.telegram.org/bot1:ABC/sendMessage', STAKES_ALERT_CHAT_ID: '42' }
   const logs: string[] = []
   const r1 = await alertDue({ env, fetchImpl: f, log: (m) => logs.push(m) })
   assert.deepEqual(r1.fired, ['seed-burst'])
   assert.equal(calls.length, 1)
-  assert.equal(calls[0].url, 'https://ntfy.sh/stakes-test')
-  const h = calls[0].init.headers as Record<string, string>
-  assert.equal(h['content-type'], 'text/plain')
-  assert.equal(h.Title, 'Stakes alert')
-  assert.match(String(calls[0].init.body), /^Stakes alert \[seed-burst\]/)
+  assert.equal(calls[0].url, 'https://api.telegram.org/bot1:ABC/sendMessage')
+  const body = JSON.parse(String(calls[0].init.body))
+  assert.equal(body.chat_id, '42')
+  assert.match(body.text, /^Stakes alert \[seed-burst\]/)
   assert.ok(logs.some((l) => l.startsWith('[alert] Stakes alert [seed-burst]')), 'journal line')
   // same minute again → suppressed, no second post
   const r2 = await alertDue({ env, fetchImpl: f })
@@ -63,6 +62,24 @@ test('a seed burst fires once, posts ntfy-style text, then is suppressed by the 
   const r3 = await alertDue({ env: { ...env, STAKES_ALERT_COOLDOWN_MS: '0' }, fetchImpl: f })
   assert.deepEqual(r3.fired, ['seed-burst'])
   assert.equal(calls.length, 2)
+})
+
+test('a telegram webhook posts {chat_id, text}; auto-detected from the host', async () => {
+  const { calls, f } = recorder()
+  const env = { STAKES_ALERT_WEBHOOK: 'https://api.telegram.org/bot123:ABC/sendMessage', STAKES_ALERT_CHAT_ID: '42' }
+  const ok = await sendWebhook(env, 'hello', f, () => {})
+  assert.equal(ok, true)
+  assert.equal((calls[0].init.headers as Record<string, string>)['content-type'], 'application/json')
+  assert.deepEqual(JSON.parse(String(calls[0].init.body)), { chat_id: '42', text: 'hello', disable_web_page_preview: true })
+})
+
+test('telegram without a chat id sends nothing and says why', async () => {
+  const { calls, f } = recorder()
+  const logs: string[] = []
+  const ok = await sendWebhook({ STAKES_ALERT_WEBHOOK: 'https://api.telegram.org/bot123:ABC/sendMessage' }, 'x', f, (m) => logs.push(m))
+  assert.equal(ok, false)
+  assert.equal(calls.length, 0)
+  assert.ok(logs.some((l) => l.includes('STAKES_ALERT_CHAT_ID')))
 })
 
 test('a generic webhook gets JSON with both `text` (Slack) and `content` (Discord)', async () => {
@@ -84,7 +101,7 @@ test('no webhook configured → the alarm still fires to the journal; a bad URL 
 
 test('the identity-griefing tripwire needs a cluster (3 foreign writes in 10 min)', async () => {
   const { calls, f } = recorder()
-  const env = { ...quiet, STAKES_ALERT_FOREIGN_10M: '3', STAKES_ALERT_COOLDOWN_MS: '0', STAKES_ALERT_WEBHOOK: 'https://ntfy.sh/t' }
+  const env = { ...quiet, STAKES_ALERT_FOREIGN_10M: '3', STAKES_ALERT_COOLDOWN_MS: '0', STAKES_ALERT_WEBHOOK: 'https://hooks.example.com/t' }
   db.recordSecurityEvent({ kind: 'taste-replaced-foreign', fp: 'a', address: 'NQ..', challengeId: 'c1' })
   db.recordSecurityEvent({ kind: 'taste-deleted-foreign', fp: 'b', address: 'NQ..', challengeId: 'c2' })
   let r = await alertDue({ env, fetchImpl: f })

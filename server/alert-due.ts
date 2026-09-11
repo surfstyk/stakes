@@ -9,12 +9,15 @@
 //   foreign-writes taste replace/delete calls from a different network than the creator, ≥ …_FOREIGN_10M
 //                  (3) in 10 min — the identity-griefing tripwire (§9 C2 → ship the run token)
 //   create-flood   challenges created in 10 min ≥ STAKES_ALERT_CREATE_10M (60)
-// Delivery: always the journal (`[alert] …`); plus STAKES_ALERT_WEBHOOK if set — an ntfy topic
-// (text POST; detected by host, or STAKES_ALERT_FORMAT=ntfy) or a JSON webhook ({text, content}:
-// Slack reads `text`, Discord reads `content`). One message per kind per STAKES_ALERT_COOLDOWN_MS (1 h).
+// Delivery: always the journal (`[alert] …`); plus STAKES_ALERT_WEBHOOK if set. Format auto-detected
+// from the host, or forced with STAKES_ALERT_FORMAT:
+//   telegram  api.telegram.org/bot<TOKEN>/sendMessage — POST {chat_id, text}; needs STAKES_ALERT_CHAT_ID.
+//             The bot token lives in the URL, both it and the chat id are box secrets (never the repo).
+//   json      anything else — POST {text, content}: Slack reads `text`, Discord reads `content`.
+// One message per kind per STAKES_ALERT_COOLDOWN_MS (1 h).
 //
-//   STAKES_ALERT_WEBHOOK=https://ntfy.sh/<topic> STAKES_DB=/tmp/alert-test.db \
-//     node --import tsx server/alert-due.ts --test        # sends one synthetic alert, touches no game state
+//   STAKES_ALERT_WEBHOOK=https://api.telegram.org/bot<TOKEN>/sendMessage STAKES_ALERT_CHAT_ID=<id> \
+//     STAKES_DB=/tmp/alert-test.db node --import tsx server/alert-due.ts --test   # one synthetic alert, no game state
 
 import { countChallengesSince, countSecurityEventsSince, countSeedsSince, getAlertState, setAlertState } from './db.ts'
 import { seedCapsFromEnv } from './seed-policy.ts'
@@ -89,17 +92,33 @@ export async function alertDue(opts: AlertOpts = {}): Promise<AlertResult> {
 export async function sendWebhook(env: NodeJS.ProcessEnv, text: string, f: typeof fetch, log: (m: string) => void): Promise<boolean> {
   const url = (env.STAKES_ALERT_WEBHOOK ?? '').trim()
   if (!url) return false
-  let ntfy = env.STAKES_ALERT_FORMAT === 'ntfy'
+  let host: string
   try {
-    if (!ntfy && env.STAKES_ALERT_FORMAT !== 'json') ntfy = /(^|\.)ntfy\.sh$/.test(new URL(url).host)
+    host = new URL(url).host
   } catch {
     log('[alert] STAKES_ALERT_WEBHOOK is not a valid URL')
     return false
   }
+  const fmt = env.STAKES_ALERT_FORMAT
+  const telegram = fmt === 'telegram' || (!fmt && /(^|\.)api\.telegram\.org$/.test(host))
   try {
-    const res = ntfy
-      ? await f(url, { method: 'POST', headers: { 'content-type': 'text/plain', Title: 'Stakes alert', Priority: 'high', Tags: 'rotating_light' }, body: text })
-      : await f(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, content: text }) })
+    let res: Response
+    if (telegram) {
+      // Telegram Bot API sendMessage: token is in the URL, chat id is the one extra piece. Plain text —
+      // no MarkdownV2 escaping to trip over on messages full of IPs and slashes.
+      const chatId = (env.STAKES_ALERT_CHAT_ID ?? '').trim()
+      if (!chatId) {
+        log('[alert] telegram delivery needs STAKES_ALERT_CHAT_ID')
+        return false
+      }
+      res = await f(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+      })
+    } else {
+      res = await f(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, content: text }) })
+    }
     if (!res.ok) log(`[alert] webhook answered ${res.status}`)
     return res.ok
   } catch (e) {
